@@ -11,16 +11,11 @@ const { concept } = Astro.props;
 <article id={concept.slug} class:list={['portfolio-story', 'website-concept', `website-concept--${concept.slug}`]} data-reveal>
   <header class="portfolio-story__intro">
     <p><span>{concept.label}</span><span>{concept.focus}</span></p>
-    {concept.slug === 'fieldwork-commercial' ? (
-      <h3 class="concept-title" aria-label={concept.name}>
-        <span class="concept-title__line" aria-hidden="true">Fieldwork</span>
-        <span class="concept-title__line" aria-hidden="true">Commercial</span>
-      </h3>
-    ) : <h3 class="concept-title">{concept.name}</h3>}
+    <h3 class="concept-title">{concept.name}</h3>
     <p>{concept.description}</p>
   </header>
 
-  <div class="concept-browser" data-scroll-scene>
+  <div class="concept-browser" data-scroll-scene data-motion-depth="concept">
     <div class="concept-browser__chrome" aria-label={`Website preview at ${concept.domain}`}>
       <span class="concept-browser__lights" aria-hidden="true"><i></i><i></i><i></i></span>
       <span class="concept-browser__address">{concept.domain}</span>

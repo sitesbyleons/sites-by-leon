@@ -5,9 +5,9 @@ import { canStartCheckout, getPlan, plans } from '../src/lib/billing';
 describe('billing plans', () => {
   it('keeps the approved monthly prices and Stripe price environment names together', () => {
     expect(plans).toEqual([
-      { key: 'essential', name: 'Essential', monthlyUsd: 30, priceEnv: 'STRIPE_PRICE_ESSENTIAL' },
-      { key: 'studio', name: 'Studio', monthlyUsd: 65, priceEnv: 'STRIPE_PRICE_STUDIO' },
-      { key: 'signature', name: 'Signature', monthlyUsd: 100, priceEnv: 'STRIPE_PRICE_SIGNATURE' },
+      { key: 'essential', name: 'Essential', monthlyUsd: 25, priceEnv: 'STRIPE_PRICE_ESSENTIAL' },
+      { key: 'studio', name: 'Studio', monthlyUsd: 30, priceEnv: 'STRIPE_PRICE_STUDIO' },
+      { key: 'signature', name: 'Signature', monthlyUsd: 40, priceEnv: 'STRIPE_PRICE_SIGNATURE' },
     ]);
   });
 

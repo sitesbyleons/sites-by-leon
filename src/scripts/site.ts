@@ -15,11 +15,13 @@ const revealItems = Array.from(document.querySelectorAll<HTMLElement>('[data-rev
 const showWithoutMotion = () => {
   revealItems.forEach((item) => item.classList.add('is-visible'));
   gsap.set(revealItems, { clearProps: 'transform,opacity,visibility' });
+  gsap.set('[data-motion-depth], .portfolio-story__intro', { clearProps: 'transform,transformOrigin' });
   gsap.set('.concept-browser__progress', { scaleX: 1 });
 };
 
 const initializeScrollMotion = () => {
   document.documentElement.dataset.motion = 'gsap-scrolltrigger';
+  document.documentElement.dataset.motionScenes = 'hero-depth concept-3d pricing-3d';
 
   const batchedRevealItems = revealItems.filter(
     (item) => !item.matches('.process-list li, .portfolio-story'),
@@ -42,21 +44,8 @@ const initializeScrollMotion = () => {
   });
 
   document.querySelectorAll<HTMLElement>('.portfolio-story').forEach((story) => {
-    const intro = story.querySelector<HTMLElement>('.portfolio-story__intro');
     const browser = story.querySelector<HTMLElement>('.concept-browser');
-    if (!intro || !browser) return;
-
-    gsap.fromTo(
-      [intro, browser],
-      { y: 36 },
-      {
-        y: 0,
-        duration: 0.92,
-        stagger: 0.12,
-        ease: 'power3.out',
-        scrollTrigger: { trigger: story, start: 'clamp(top 84%)', once: true },
-      },
-    );
+    if (!browser) return;
 
     const progress = browser.querySelector<HTMLElement>('.concept-browser__progress');
     const leadImage = browser.querySelector<HTMLImageElement>('.concept-canvas img');
@@ -95,6 +84,135 @@ const initializeScrollMotion = () => {
         },
       );
     }
+  });
+
+  const motionMedia = gsap.matchMedia();
+
+  motionMedia.add('(min-width: 769px)', () => {
+    const hero = document.querySelector<HTMLElement>('.hero');
+    const heroImages = Array.from(document.querySelectorAll<HTMLElement>('.hero-gallery__image'));
+
+    if (hero && heroImages.length) {
+      heroImages.forEach((image, index) => {
+        const startY = [7, -7, 10][index] ?? 6;
+        const startRotation = [-1.8, 2.2, -2.4][index] ?? 0;
+        gsap.fromTo(
+          image,
+          { yPercent: startY, rotation: startRotation, scale: 0.96 },
+          {
+            yPercent: -startY,
+            rotation: -startRotation * 0.45,
+            scale: 1.025,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: hero,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: 0.8,
+              invalidateOnRefresh: true,
+            },
+          },
+        );
+      });
+    }
+
+    document.querySelectorAll<HTMLElement>('.portfolio-story').forEach((story, index) => {
+      const intro = story.querySelector<HTMLElement>('.portfolio-story__intro');
+      const browser = story.querySelector<HTMLElement>('.concept-browser');
+      if (!intro || !browser) return;
+      const direction = index % 2 === 0 ? -1 : 1;
+
+      gsap.fromTo(
+        browser,
+        {
+          transformPerspective: 1600,
+          rotationX: 9,
+          rotationY: direction * 10,
+          z: -140,
+          scale: 0.94,
+          transformOrigin: '50% 45%',
+        },
+        {
+          rotationX: 0,
+          rotationY: 0,
+          z: 0,
+          scale: 1,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: story,
+            start: 'clamp(top 94%)',
+            end: 'clamp(top 32%)',
+            scrub: 0.8,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
+
+      gsap.fromTo(
+        intro,
+        { xPercent: direction * 7 },
+        {
+          xPercent: 0,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: story,
+            start: 'clamp(top 96%)',
+            end: 'clamp(top 48%)',
+            scrub: 0.7,
+          },
+        },
+      );
+    });
+
+    const pricingGrid = document.querySelector<HTMLElement>('.pricing-grid');
+    const pricingCards = Array.from(document.querySelectorAll<HTMLElement>('.pricing-card'));
+    if (pricingGrid && pricingCards.length) {
+      gsap.fromTo(
+        pricingCards,
+        {
+          transformPerspective: 1200,
+          rotationY: (index) => [-11, 0, 11][index] ?? 0,
+          y: 64,
+          z: -90,
+        },
+        {
+          rotationY: 0,
+          y: 0,
+          z: 0,
+          duration: 0.95,
+          stagger: 0.12,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: pricingGrid, start: 'clamp(top 78%)', once: true },
+        },
+      );
+    }
+  });
+
+  motionMedia.add('(max-width: 768px)', () => {
+    document.querySelectorAll<HTMLElement>('.portfolio-story').forEach((story, index) => {
+      const browser = story.querySelector<HTMLElement>('.concept-browser');
+      if (!browser) return;
+      gsap.fromTo(
+        browser,
+        { y: 42, rotation: index % 2 === 0 ? -1.2 : 1.2, scale: 0.975 },
+        {
+          y: 0,
+          rotation: 0,
+          scale: 1,
+          duration: 0.85,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: story, start: 'clamp(top 86%)', once: true },
+        },
+      );
+    });
+
+    const pricingCards = Array.from(document.querySelectorAll<HTMLElement>('.pricing-card'));
+    ScrollTrigger.batch(pricingCards, {
+      start: 'clamp(top 88%)',
+      once: true,
+      interval: 0.08,
+      onEnter: (batch) => gsap.fromTo(batch, { y: 34 }, { y: 0, duration: 0.7, stagger: 0.08, ease: 'power2.out' }),
+    });
   });
 
   const processList = document.querySelector<HTMLElement>('.process-list');

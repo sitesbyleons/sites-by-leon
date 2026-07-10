@@ -2,12 +2,14 @@
 
 A bold, cinematic marketing site for an affordable website-design and managed-hosting service built specifically for photographers.
 
-The public site is an Astro static build. It presents three clearly labeled concept projects, monthly packages from `$30` to `$100`, an honest direct-email fallback, legal pages, and a Supabase-ready inquiry function.
+The public site is an Astro static build. It presents three clearly labeled concept projects, monthly packages from `$25` to `$40`, an honest direct-email fallback, legal pages, and a Supabase-ready inquiry function.
 
 ## What is live in Phase 1
 
 - Photographer-focused website design and managed hosting
-- Essential `$30/month`, Studio `$65/month`, and Signature `$100/month`
+- Essential `$25/month`, Studio `$30/month`, and Signature `$40/month`
+- Domains and payment-system setup in every plan
+- Template-based Essential and Studio plans; custom-made Signature sites
 - No separate build fee
 - Three original examples marked `Concept Project`
 - Direct contact at `sites.by.leon@gmail.com`
@@ -121,7 +123,7 @@ The final production URL will be recorded here after the Cloudflare Pages projec
 
 - Clerk authentication and Organizations in a separate server-rendered dashboard
 - Project progress, update requests, plan status, and personal support UI
-- Stripe Checkout for the `$30`, `$65`, and `$100` monthly subscriptions
+- Stripe Checkout for the `$25`, `$30`, and `$40` monthly subscriptions
 - Stripe Customer Portal
 - Signed, retryable, idempotent webhook updates stored in Supabase
 

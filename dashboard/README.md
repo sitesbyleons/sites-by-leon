@@ -8,7 +8,7 @@ This is the separate server-rendered account area for photography clients. It de
 - Clerk Organization requirement before workspace data is shown
 - Supabase client access using the current Clerk session token
 - Organization-scoped project, request, subscription, and connected-payment status
-- Tested Essential `$30`, Studio `$65`, and Signature `$100` monthly plan map
+- Tested Essential `$25`, Studio `$30`, and Signature `$40` monthly plan map
 - Server endpoints for Stripe Checkout and the Stripe Customer Portal
 - A cinematic responsive dashboard matching the public brand
 - A development-only `?preview=true` route used for visual tests; it is impossible in production builds

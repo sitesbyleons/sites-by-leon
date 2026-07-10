@@ -150,7 +150,7 @@ function buildDesktop(page) {
   addButton(board, 'Hero / Contact', 'Contact', 72, 770, 136, COLORS.blue, COLORS.graphite);
   addText(board, 'Hero / Email', 'sites.by.leon@gmail.com  ↗', 238, 786, 340, 14, COLORS.ivory, { weight: 700, height: 24 });
   addLine(board, 'Hero / Fact divider', 72, 865, 620, COLORS.silver, 0.28);
-  addText(board, 'Hero / Facts', 'MONTHLY ONLY    /    $30–$100    /    NO BUILD FEE', 72, 890, 610, 11, COLORS.silver, { letterSpacing: 0.8, height: 20 });
+  addText(board, 'Hero / Facts', 'MONTHLY ONLY    /    $25–$40    /    DOMAIN + PAYMENTS', 72, 890, 610, 11, COLORS.silver, { letterSpacing: 0.8, height: 20 });
   addBrowser(board, 'Hero / Website preview', 800, 190, 560, 710, '#4C4138', 'Aster House');
 
   addRect(board, 'Promise / Background', 0, 1120, 1440, 300, COLORS.graphite2);
@@ -280,7 +280,7 @@ function buildMobile(page) {
   addText(board, 'Mobile / Hero description', 'A cinematic home for your work—designed, launched, hosted,\nand cared for by one person you can actually reach.', 20, 420, 350, 15, COLORS.silverLight, { lineHeight: 1.45, lines: 4 });
   addButton(board, 'Mobile / Hero CTA', 'Contact', 20, 535, 350, COLORS.blue, COLORS.graphite);
   addText(board, 'Mobile / Hero email', 'sites.by.leon@gmail.com  ↗', 20, 612, 350, 13, COLORS.ivory, { weight: 700, height: 22 });
-  addText(board, 'Mobile / Hero facts', 'MONTHLY ONLY   /   $30–$100   /   NO BUILD FEE', 20, 680, 350, 9, COLORS.silver, { letterSpacing: 0.5, height: 18 });
+  addText(board, 'Mobile / Hero facts', 'MONTHLY ONLY   /   $25–$40   /   DOMAIN + PAYMENTS', 20, 680, 350, 9, COLORS.silver, { letterSpacing: 0.5, height: 18 });
   addBrowser(board, 'Mobile / Hero browser', 20, 730, 350, 305, '#4C4138', 'Aster House');
 
   addRect(board, 'Mobile / Promise', 0, 1080, 390, 330, COLORS.graphite2);

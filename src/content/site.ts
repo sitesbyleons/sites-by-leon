@@ -90,25 +90,25 @@ export const concepts: readonly Concept[] = [
 export const plans: readonly Plan[] = [
   {
     name: 'Essential',
-    monthlyPrice: 30,
+    monthlyPrice: 25,
     buildFee: 0,
-    description: 'A polished home for a photographer ready to look established online.',
-    features: ['Focused one-page site', 'Mobile-ready portfolio', 'Hosting and routine care', 'Personal email support'],
+    description: 'A sharp one-page start for a new photography business.',
+    features: ['Template one-page site', 'Custom domain', 'Payment system', 'Hosting and care'],
   },
   {
     name: 'Studio',
-    monthlyPrice: 65,
+    monthlyPrice: 30,
     buildFee: 0,
-    description: 'A fuller portfolio and inquiry journey for a growing photography business.',
-    features: ['Multi-page experience', 'Expanded project galleries', 'Inquiry form setup', 'Content updates and support'],
+    description: 'More pages and galleries for a growing body of work.',
+    features: ['Template multi-page site', 'Custom domain', 'Payment system', 'Galleries and inquiries'],
     featured: true,
   },
   {
     name: 'Signature',
-    monthlyPrice: 100,
+    monthlyPrice: 40,
     buildFee: 0,
-    description: 'A more tailored digital presence with room for ambitious ideas.',
-    features: ['Custom page direction', 'Priority update support', 'Advanced inquiry flows', 'Payment-ready planning'],
+    description: 'A custom direction shaped around your photography and brand.',
+    features: ['Custom-made site', 'Custom domain', 'Payment system', 'Hosting and priority care'],
   },
 ] as const;
 

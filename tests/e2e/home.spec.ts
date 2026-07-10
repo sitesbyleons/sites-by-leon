@@ -27,10 +27,8 @@ test('uses a varied cinematic image library inside complete website concepts', a
 test('website concepts demonstrate the photographer client journey', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByText('Portfolio', { exact: true })).toBeVisible();
-  await expect(page.getByText('Client inquiries', { exact: true })).toBeVisible();
-  await expect(page.getByText('Booking & deposits', { exact: true })).toBeVisible();
-  await expect(page.getByText('Client portal & payments', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Check out the concepts.' })).toBeVisible();
+  await expect(page.locator('.concept-capabilities')).toHaveCount(0);
   await expect(page.getByText('Check your date', { exact: true })).toBeVisible();
   await expect(page.getByText('Book a session', { exact: true })).toBeVisible();
   await expect(page.getByText('Deposit received', { exact: true })).toBeVisible();
@@ -49,7 +47,10 @@ test('frames every concept as a website with its own example domain', async ({ p
     'text-align',
     'center',
   );
-  await expect(page.locator('.website-concept--fieldwork-commercial .concept-title__line')).toHaveCount(2);
+  const fieldworkTitle = page.locator('.website-concept--fieldwork-commercial .concept-title');
+  await expect(fieldworkTitle).toHaveText('Fieldwork Commercial');
+  await expect(fieldworkTitle).toHaveCSS('white-space', 'nowrap');
+  await expect(page.locator('.website-concept--fieldwork-commercial .concept-title__line')).toHaveCount(0);
 });
 
 test('keeps the four-step process concise and fully boxed', async ({ page }) => {
@@ -60,12 +61,22 @@ test('keeps the four-step process concise and fully boxed', async ({ page }) => 
   await expect(page.locator('.process-list')).toHaveCSS('border-bottom-width', '1px');
 });
 
-test('loads GSAP ScrollTrigger for restrained scroll choreography', async ({ page }) => {
+test('loads GSAP ScrollTrigger with visible 2D and 3D depth scenes', async ({ page }) => {
   await page.goto('/');
 
   await expect(page.locator('script[src*="cdn.jsdelivr.net/npm/gsap"]')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'gsap-scrolltrigger');
+  await expect(page.locator('html')).toHaveAttribute('data-motion-scenes', 'hero-depth concept-3d pricing-3d');
+  await expect(page.locator('[data-motion-depth="concept"]')).toHaveCount(3);
   await expect(page.locator('.concept-browser__progress')).toHaveCount(3);
+
+  const firstConcept = page.locator('[data-motion-depth="concept"]').first();
+  const initialTransform = await firstConcept.evaluate((element) => getComputedStyle(element).transform);
+  expect(initialTransform).toContain('matrix3d');
+  await firstConcept.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(450);
+  const progressedTransform = await firstConcept.evaluate((element) => getComputedStyle(element).transform);
+  expect(progressedTransform).not.toBe(initialTransform);
 });
 
 test('keeps interface language focused on what clients need', async ({ page }) => {
@@ -84,12 +95,25 @@ test('labels all three examples as concept projects', async ({ page }) => {
   await expect(page.locator('#work article')).toHaveCount(3);
 });
 
-test('shows all monthly options and no build fee', async ({ page }) => {
+test('shows three side-by-side monthly plans from $25 to $40 with domains and payments', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
 
-  await expect(page.locator('.pricing-ledger__row').filter({ hasText: 'Essential' })).toContainText('$30');
-  await expect(page.locator('.pricing-ledger__row').filter({ hasText: 'Studio' })).toContainText('$65');
-  await expect(page.locator('.pricing-ledger__row').filter({ hasText: 'Signature' })).toContainText('$100');
+  const cards = page.locator('.pricing-card');
+  await expect(cards).toHaveCount(3);
+  await expect(cards.filter({ hasText: 'Essential' })).toContainText('$25');
+  await expect(cards.filter({ hasText: 'Studio' })).toContainText('$30');
+  await expect(cards.filter({ hasText: 'Signature' })).toContainText('$40');
+  await expect(cards.getByText('Custom domain', { exact: true })).toHaveCount(3);
+  await expect(cards.getByText('Payment system', { exact: true })).toHaveCount(3);
+  await expect(cards.getByText(/template/i)).toHaveCount(2);
+  await expect(cards.getByText('Custom-made site', { exact: true })).toHaveCount(1);
+  const cardPositions = await cards.evaluateAll((items) =>
+    items.map((item) => ({ x: (item as HTMLElement).offsetLeft, y: (item as HTMLElement).offsetTop })),
+  );
+  expect(new Set(cardPositions.map((position) => position.y)).size).toBe(1);
+  expect(cardPositions[0].x).toBeLessThan(cardPositions[1].x);
+  expect(cardPositions[1].x).toBeLessThan(cardPositions[2].x);
   await expect(page.getByText(/no separate build fee/i)).toBeVisible();
   await expect(page.getByText(/i am a photographer/i)).toHaveCount(0);
 });
@@ -100,8 +124,8 @@ test('keeps direct email available when online sending is not configured', async
 
   await form.getByLabel('Name').fill('Ari Lane');
   await form.getByLabel('Email').fill('ari@example.com');
-  await form.getByLabel('What do you photograph?').fill('Weddings');
-  await form.getByLabel('What are you looking for?').fill('I need a cinematic portfolio that is easier to manage.');
+  await expect(form.getByLabel('What do you photograph?')).toHaveCount(0);
+  await form.getByLabel('Tell me what you need').fill('I need a cinematic wedding portfolio that is easier to manage.');
   await form.getByRole('button', { name: 'Send inquiry' }).click();
 
   await expect(page.getByText(/online sending is not connected yet/i)).toBeVisible();

@@ -6,30 +6,27 @@ import { plans } from '../content/site';
   <div class="container">
     <header class="section-head" data-reveal>
       <p class="section-kicker">Monthly plans</p>
-      <h2 id="pricing-title">Pick a <em>starting point.</em></h2>
+      <h2 id="pricing-title">Three plans. <em>One simple month.</em></h2>
       <div class="section-head__aside">
-        <p>Monthly only. No separate build fee.</p>
+        <p>$25–$40 monthly. No separate build fee.</p>
       </div>
     </header>
 
-    <div class="pricing-ledger" data-reveal>
+    <div class="pricing-grid" data-reveal>
       {plans.map((plan, index) => (
-        <article class:list={['pricing-ledger__row', { 'pricing-ledger__row--featured': plan.featured }] }>
-          <div class="pricing-ledger__name">
-            <span>{String(index + 1).padStart(2, '0')}</span>
+        <article class:list={['pricing-card', { 'pricing-card--featured': plan.featured, 'pricing-card--custom': index === 2 }]} data-motion-depth="pricing">
+          <header class="pricing-card__header">
+            <span class="pricing-card__index">{String(index + 1).padStart(2, '0')}</span>
             <h3>{plan.name}</h3>
-            {plan.featured && <small>Most flexible</small>}
-          </div>
-          <p>{plan.description}</p>
+            <p class="pricing-card__price"><sup>$</sup>{plan.monthlyPrice}<span>/mo</span></p>
+          </header>
+          <p class="pricing-card__description">{plan.description}</p>
           <ul>{plan.features.map((feature) => <li>{feature}</li>)}</ul>
-          <div class="pricing-ledger__price">
-            <p><sup>$</sup>{plan.monthlyPrice}<span>/mo</span></p>
-            <a href="#contact" aria-label={`Contact about ${plan.name}`}>Contact <span aria-hidden="true">↗</span></a>
-          </div>
+          <a class="pricing-card__action" href="#contact" aria-label={`Contact about ${plan.name}`}>Choose {plan.name} <span aria-hidden="true">↗</span></a>
         </article>
       ))}
     </div>
 
-    <p class="pricing__note" data-reveal>Every plan includes hosting, routine maintenance, and direct support.</p>
+    <p class="pricing__note" data-reveal>Every plan includes a domain, a payment system, hosting, and direct support.</p>
   </div>
 </section>
