@@ -1,32 +1,38 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import ComingSoon from '../components/ComingSoon.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import Hero from '../components/Hero.astro';
-import PromiseStrip from '../components/PromiseStrip.astro';
 import ConceptShowcase from '../components/ConceptShowcase.astro';
-import Process from '../components/Process.astro';
 import Pricing from '../components/Pricing.astro';
 import Services from '../components/Services.astro';
-import Founder from '../components/Founder.astro';
 import Contact from '../components/Contact.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 ---
 
-<BaseLayout>
-  <SiteHeader />
-  <main id="main">
-    <Hero />
-    <PromiseStrip />
-    <ConceptShowcase />
-    <Process />
-    <Pricing />
-    <Services />
-    <Founder />
-    <Contact />
-  </main>
-  <SiteFooter />
+<BaseLayout
+  hostSwitch
+  title="Sites By Leon — Coming soon"
+  description="Cinematic websites and managed hosting for photographers."
+>
+  <div class="host-coming">
+    <ComingSoon />
+  </div>
+
+  <div class="host-preview">
+    <SiteHeader />
+    <main id="preview-main">
+      <Hero />
+      <ConceptShowcase />
+      <Pricing />
+      <Services />
+      <Contact />
+    </main>
+    <SiteFooter />
+  </div>
 </BaseLayout>
 
 <script>
   import '../scripts/site';
 </script>
+
