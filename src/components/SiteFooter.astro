@@ -1,20 +1,17 @@
 ---
-import { contactEmail, navigation } from '../content/site';
+import { contactEmail } from '../content/site';
 import BrandMark from './BrandMark.astro';
 ---
 
 <footer class="site-footer">
   <div class="container site-footer__top">
     <BrandMark href="#top" />
-    <p>Web design and managed hosting for photographers. Built and looked after by Leon.</p>
     <a class="site-footer__email" href={`mailto:${contactEmail}`}>{contactEmail}</a>
   </div>
   <div class="container site-footer__bottom">
-    <nav aria-label="Footer navigation">
-      {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
-      <a href="#contact">Contact</a>
-    </nav>
+    <nav aria-label="Footer navigation"><a href="#work">Work</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a></nav>
     <nav aria-label="Legal navigation"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
     <p>© {new Date().getFullYear()} Sites By Leon</p>
   </div>
 </footer>
+
