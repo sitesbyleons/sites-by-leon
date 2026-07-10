@@ -6,20 +6,13 @@ import { concepts } from '../content/site';
 <section class="section work" id="work" aria-labelledby="work-title">
   <div class="container">
     <header class="section-head" data-reveal>
-      <p class="section-kicker">Website concepts</p>
-      <h2 id="work-title">Check out <em>the concepts.</em></h2>
-      <div class="section-head__aside">
-        <p>Three directions for showing your work, taking inquiries, and getting paid.</p>
-      </div>
+      <p class="section-kicker">Three website concepts</p>
+      <h2 id="work-title">Made to show <em>your work.</em></h2>
     </header>
 
     <div class="portfolio-list">
       {concepts.map((concept) => <WebsiteConcept concept={concept} />)}
     </div>
-
-    <div class="work__cta" data-reveal>
-      <p>Your images. Your style. Your website.</p>
-      <a class="text-link text-link--dark" href="#contact">Talk about your site</a>
-    </div>
   </div>
 </section>
+
