@@ -4,8 +4,8 @@ import { expect, test } from '@playwright/test';
 test('hero explains the product and reaches contact', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByText('Web design + hosting for photographers', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Your work. Beautifully online.');
+  await expect(page.getByText('Websites + hosting for photographers', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Show off your photography. I’ll handle the website.');
   await page.locator('.site-header').getByRole('link', { name: 'Contact', exact: true }).click();
   await expect(page.locator('#contact')).toBeInViewport();
 });
@@ -27,7 +27,7 @@ test('uses a varied cinematic image library inside complete website concepts', a
 test('website concepts demonstrate the photographer client journey', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { level: 2, name: 'Check out the concepts.' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Made to show your work.' })).toBeVisible();
   await expect(page.locator('.concept-capabilities')).toHaveCount(0);
   await expect(page.getByText('Check your date', { exact: true })).toBeVisible();
   await expect(page.getByText('Book a session', { exact: true })).toBeVisible();
@@ -53,12 +53,12 @@ test('frames every concept as a website with its own example domain', async ({ p
   await expect(page.locator('.website-concept--fieldwork-commercial .concept-title__line')).toHaveCount(0);
 });
 
-test('keeps the four-step process concise and fully boxed', async ({ page }) => {
+test('keeps the main page focused by removing secondary explainer sections', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.locator('.process-list li')).toHaveCount(4);
-  await expect(page.locator('.process-list p')).toHaveCount(0);
-  await expect(page.locator('.process-list')).toHaveCSS('border-bottom-width', '1px');
+  await expect(page.locator('.promise-strip')).toHaveCount(0);
+  await expect(page.locator('.process')).toHaveCount(0);
+  await expect(page.locator('.founder')).toHaveCount(0);
 });
 
 test('loads GSAP ScrollTrigger with visible 2D and 3D depth scenes', async ({ page }) => {
@@ -87,10 +87,10 @@ test('keeps interface language focused on what clients need', async ({ page }) =
   );
 });
 
-test('labels all three examples as concept projects', async ({ page }) => {
+test('keeps all three website examples visual and concise', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByText('Concept Project', { exact: true })).toHaveCount(3);
+  await expect(page.locator('.portfolio-story__intro > p')).toHaveCount(3);
   await expect(page.locator('#work img')).toHaveCount(9);
   await expect(page.locator('#work article')).toHaveCount(3);
 });
@@ -114,23 +114,24 @@ test('shows three side-by-side monthly plans from $25 to $40 with domains and pa
   expect(new Set(cardPositions.map((position) => position.y)).size).toBe(1);
   expect(cardPositions[0].x).toBeLessThan(cardPositions[1].x);
   expect(cardPositions[1].x).toBeLessThan(cardPositions[2].x);
-  await expect(page.getByText(/no separate build fee/i)).toBeVisible();
   await expect(page.getByText(/i am a photographer/i)).toHaveCount(0);
 });
 
-test('keeps direct email available when online sending is not configured', async ({ page }) => {
+test('keeps contact direct and email-only', async ({ page }) => {
   await page.goto('/#contact');
-  const form = page.locator('[data-contact-form]');
+  await expect(page.locator('[data-contact-form]')).toHaveCount(0);
+  await expect(page.locator('#contact').getByRole('link', { name: 'Email Leon' })).toHaveAttribute(
+    'href',
+    'mailto:sites.by.leon@gmail.com',
+  );
+});
 
-  await form.getByLabel('Name').fill('Ari Lane');
-  await form.getByLabel('Email').fill('ari@example.com');
-  await expect(form.getByLabel('What do you photograph?')).toHaveCount(0);
-  await form.getByLabel('Tell me what you need').fill('I need a cinematic wedding portfolio that is easier to manage.');
-  await form.getByRole('button', { name: 'Send inquiry' }).click();
+test('shows a minimal coming-soon page for the production host mode', async ({ page }) => {
+  await page.goto('/?mode=coming');
 
-  await expect(page.getByText(/online sending is not connected yet/i)).toBeVisible();
-  await expect(page.locator('.contact__intro').getByRole('link', { name: 'sites.by.leon@gmail.com' })).toBeVisible();
-  await expect(form.getByLabel('Name')).toHaveValue('Ari Lane');
+  await expect(page.getByRole('heading', { level: 1, name: 'Coming soon.' })).toBeVisible();
+  await expect(page.locator('.host-preview')).toBeHidden();
+  await expect(page.locator('.coming-soon .brand-mark img')).toHaveAttribute('src', /^data:image\/png;base64,/);
 });
 
 test('publishes the privacy and terms pages', async ({ page }) => {
