@@ -1,0 +1,148 @@
+---
+import { SignOutButton, UserButton } from '@clerk/astro/components';
+
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { checkAppAdmin, loadAdminData, type AdminData } from '../../lib/admin';
+import { decideAdminAccess } from '../../lib/access';
+import { createClerkSupabaseClient } from '../../lib/supabase';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+
+let isAdmin = isPreview;
+let adminError: string | null = null;
+let supabase = null;
+
+if (!isPreview && auth?.userId) {
+  supabase = createClerkSupabaseClient(async () => (await auth.getToken()) ?? null);
+  const adminCheck = await checkAppAdmin(supabase, auth.userId);
+  isAdmin = adminCheck.isAdmin;
+  adminError = adminCheck.error;
+}
+
+const access = decideAdminAccess({
+  userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
+  isAdmin,
+});
+
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+
+let data: AdminData;
+
+if (isPreview) {
+  data = {
+    workspaces: [
+      { id: 'ws_northline', name: 'Northline Portraits', slug: 'northline', status: 'active', updated_at: '2026-07-10T17:00:00.000Z' },
+      { id: 'ws_vow', name: 'Vow & Light', slug: 'vow-and-light', status: 'approved', updated_at: '2026-07-09T15:00:00.000Z' },
+      { id: 'ws_fieldwork', name: 'Fieldwork Commercial', slug: 'fieldwork', status: 'lead', updated_at: '2026-07-08T13:00:00.000Z' },
+    ],
+    projects: [
+      { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, updated_at: '2026-07-10T17:00:00.000Z' },
+      { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, updated_at: '2026-07-09T15:00:00.000Z' },
+    ],
+    subscriptions: [
+      { workspace_id: 'ws_northline', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
+    ],
+    requests: [
+      { id: 'req_1', workspace_id: 'ws_northline', subject: 'Replace the featured gallery', status: 'new', created_at: '2026-07-10T16:00:00.000Z' },
+      { id: 'req_2', workspace_id: 'ws_vow', subject: 'Add fall mini sessions', status: 'planned', created_at: '2026-07-09T14:00:00.000Z' },
+    ],
+    error: null,
+  };
+} else {
+  data = await loadAdminData(supabase);
+}
+
+const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
+const activeSubscriptions = data.subscriptions.filter((subscription) => ['active', 'trialing'].includes(subscription.status));
+const openRequests = data.requests.filter((request) => !['completed', 'declined'].includes(request.status));
+const date = (value: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value));
+---
+
+<DashboardLayout title="Studio admin" shell>
+  <div class="admin-shell">
+    <aside class="admin-rail">
+      <a class="portal-brand portal-brand--small" href="/admin" aria-label="Sites By Leon admin">
+        <span>Sites</span><span>By</span><span>Leon</span>
+      </a>
+      <nav aria-label="Admin dashboard">
+        <a class="is-active" href="#overview">Overview</a>
+        <a href="#clients">Clients</a>
+        <a href="#projects">Projects</a>
+        <a href="#requests">Requests</a>
+      </nav>
+      <div class="admin-rail__footer">
+        <a href="/dashboard">Client view</a>
+        {!isPreview && <SignOutButton><button type="button">Sign out</button></SignOutButton>}
+      </div>
+    </aside>
+
+    <main class="admin-main" id="overview">
+      <header class="admin-topbar">
+        <div><p class="eyebrow">Studio control</p><span>Sites By Leon</span></div>
+        {!isPreview && <UserButton />}
+      </header>
+
+      <section class="admin-hero">
+        <div>
+          <p class="eyebrow">Good morning, Leon</p>
+          <h1>Everything in <em>one view.</em></h1>
+        </div>
+        <p>Clients, builds, subscriptions, and requests—without digging through five services.</p>
+      </section>
+
+      {(adminError || data.error) && <p class="notice notice--attention" role="status">{adminError ?? data.error}</p>}
+
+      <section class="admin-metrics" aria-label="Studio summary">
+        <article><span>Clients</span><strong>{data.workspaces.length}</strong><small>{data.workspaces.filter((workspace) => workspace.status === 'active').length} active</small></article>
+        <article><span>Live plans</span><strong>{activeSubscriptions.length}</strong><small>monthly subscriptions</small></article>
+        <article><span>Open requests</span><strong>{openRequests.length}</strong><small>waiting on action</small></article>
+        <article><span>Projects</span><strong>{data.projects.length}</strong><small>across every stage</small></article>
+      </section>
+
+      <section class="admin-section" id="clients">
+        <div class="admin-section__heading"><div><p class="eyebrow">Clients</p><h2>Photography studios</h2></div><span>{data.workspaces.length} total</span></div>
+        <div class="admin-table" role="table" aria-label="Client workspaces">
+          <div class="admin-table__head" role="row"><span role="columnheader">Studio</span><span role="columnheader">Status</span><span role="columnheader">Plan</span><span role="columnheader">Updated</span></div>
+          {data.workspaces.length ? data.workspaces.map((workspace) => {
+            const subscription = data.subscriptions.find((item) => item.workspace_id === workspace.id);
+            return (
+              <article class="admin-table__row" role="row">
+                <strong role="cell">{workspace.name}<small>{workspace.slug}</small></strong>
+                <span role="cell" class={`status-tag status-tag--${workspace.status}`}>{workspace.status}</span>
+                <span role="cell">{subscription?.plan_key ?? 'Not started'}</span>
+                <span role="cell">{date(workspace.updated_at)}</span>
+              </article>
+            );
+          }) : <p class="admin-empty">New client workspaces will appear here.</p>}
+        </div>
+      </section>
+
+      <section class="admin-section" id="projects">
+        <div class="admin-section__heading"><div><p class="eyebrow">Projects</p><h2>Build progress</h2></div></div>
+        <div class="admin-project-grid">
+          {data.projects.length ? data.projects.map((project) => (
+            <article>
+              <div><span>{workspaceNames.get(project.workspace_id) ?? 'Client'}</span><span>{project.status}</span></div>
+              <h3>{project.name}</h3>
+              <div class="admin-progress"><span style={`width:${project.progress}%`}></span></div>
+              <footer><strong>{project.progress}%</strong><small>Updated {date(project.updated_at)}</small></footer>
+            </article>
+          )) : <p class="admin-empty">No projects yet.</p>}
+        </div>
+      </section>
+
+      <section class="admin-section" id="requests">
+        <div class="admin-section__heading"><div><p class="eyebrow">Requests</p><h2>Client updates</h2></div><span>{openRequests.length} open</span></div>
+        <div class="admin-request-list">
+          {data.requests.length ? data.requests.map((request) => (
+            <article>
+              <span>{request.status}</span>
+              <div><strong>{request.subject}</strong><small>{workspaceNames.get(request.workspace_id) ?? 'Client'} · {date(request.created_at)}</small></div>
+            </article>
+          )) : <p class="admin-empty">No update requests yet.</p>}
+        </div>
+      </section>
+    </main>
+  </div>
+</DashboardLayout>
