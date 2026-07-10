@@ -12,7 +12,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <div class="auth-page__panel">
       <p class="eyebrow">Client access</p>
       <h1>Welcome back.</h1>
-      <SignIn path="/sign-in" routing="path" />
+      <SignIn
+        path="/sign-in"
+        routing="path"
+        signUpUrl="/sign-up"
+        forceRedirectUrl="/dashboard"
+      />
     </div>
   </main>
 </DashboardLayout>
