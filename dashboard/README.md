@@ -5,8 +5,10 @@ This is the separate server-rendered account area for photography clients. It de
 ## What is implemented
 
 - Clerk Astro middleware and protected dashboard routes
+- Dedicated sign-in and sign-up screens with email-only onboarding
 - Clerk Organization requirement before workspace data is shown
 - Supabase client access using the current Clerk session token
+- A protected `/admin` studio overview restricted to Leon's immutable Clerk user ID
 - Organization-scoped project, request, subscription, and connected-payment status
 - Tested Essential `$25`, Studio `$30`, and Signature `$40` monthly plan map
 - Server endpoints for Stripe Checkout and the Stripe Customer Portal
@@ -17,7 +19,7 @@ This is the separate server-rendered account area for photography clients. It de
 
 Copy `.env.example` to `.env` for local work. The Supabase URL, publishable key, and function URLs are safe browser values and are already recorded. Add Clerk **test-mode** keys locally; never commit `CLERK_SECRET_KEY`.
 
-Cloudflare Worker secrets and variables:
+Vercel environment variables:
 
 ```text
 PUBLIC_CLERK_PUBLISHABLE_KEY
@@ -50,5 +52,7 @@ pnpm test
 pnpm build
 pnpm test:e2e
 ```
+
+The production dashboard is deployed as its own Vercel project from the `dashboard` directory and is intended to use `https://app.leonsites.org`.
 
 No live Stripe secret, live price, or live webhook should be configured until all test-mode flows pass.
