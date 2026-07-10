@@ -2,6 +2,7 @@
 import { OrganizationSwitcher, SignOutButton, UserButton } from '@clerk/astro/components';
 
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { checkAppAdmin } from '../../lib/admin';
 import { decideDashboardAccess } from '../../lib/access';
 import { canStartCheckout, plans } from '../../lib/billing';
 import { normalizeDashboardState } from '../../lib/dashboard-state';
@@ -10,6 +11,16 @@ import { createClerkSupabaseClient } from '../../lib/supabase';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
+let supabase: ReturnType<typeof createClerkSupabaseClient> = null;
+let isAdmin = isPreview;
+
+if (!isPreview && auth?.userId) {
+  supabase = createClerkSupabaseClient(async () => (await auth.getToken()) ?? null);
+  isAdmin = (await checkAppAdmin(supabase, auth.userId)).isAdmin;
+
+  if (isAdmin && !auth.orgId) return Astro.redirect('/admin');
+}
+
 const access = isPreview
   ? ({ kind: 'workspace', userId: 'preview_user', orgId: 'preview_org' } as const)
   : decideDashboardAccess({ userId: auth?.userId ?? null, orgId: auth?.orgId ?? null });
@@ -44,7 +55,6 @@ if (isPreview) {
     error: null,
   };
 } else if (access.kind === 'workspace' && auth) {
-  const supabase = createClerkSupabaseClient(async () => (await auth.getToken()) ?? null);
   dashboardData = await loadDashboardData(supabase, access.orgId);
 }
 
@@ -89,6 +99,7 @@ const periodEnd = dashboardData.subscription?.current_period_end
           <span>{state.workspaceName}</span>
         </div>
         <div class="app-topbar__account">
+          {isAdmin && <a class="admin-shortcut" href="/admin">Admin</a>}
           {!isPreview && access.kind === 'workspace' && <OrganizationSwitcher />}
           {!isPreview && <UserButton />}
         </div>
