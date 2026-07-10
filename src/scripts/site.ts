@@ -9,7 +9,32 @@ const updateHeader = () => header?.classList.toggle('site-header--scrolled', win
 updateHeader();
 window.addEventListener('scroll', updateHeader, { passive: true });
 
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const motionPreferenceKey = 'sites-by-leon-motion';
+const systemPrefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const motionToggle = document.querySelector<HTMLButtonElement>('[data-motion-toggle]');
+const motionToggleLabel = motionToggle?.querySelector<HTMLElement>('[data-motion-toggle-label]');
+
+const getStoredMotionPreference = () => {
+  try {
+    const preference = window.sessionStorage.getItem(motionPreferenceKey);
+    return preference === 'on' || preference === 'off' ? preference : null;
+  } catch {
+    return null;
+  }
+};
+
+const setStoredMotionPreference = (preference: 'on' | 'off') => {
+  try {
+    window.sessionStorage.setItem(motionPreferenceKey, preference);
+  } catch {
+    // Keep the system preference when storage is unavailable.
+  }
+};
+
+const storedMotionPreference = getStoredMotionPreference();
+const motionIsEnabled =
+  storedMotionPreference === 'on' ||
+  (storedMotionPreference !== 'off' && !systemPrefersReducedMotion);
 const revealItems = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
 
 const showWithoutMotion = () => {
@@ -234,11 +259,24 @@ const initializeScrollMotion = () => {
   window.addEventListener('load', () => ScrollTrigger.refresh(), { once: true });
 };
 
-if (prefersReducedMotion) {
-  document.documentElement.dataset.motion = 'reduced';
-  showWithoutMotion();
-} else {
+if (motionIsEnabled) {
   initializeScrollMotion();
+} else {
+  document.documentElement.dataset.motion = 'reduced';
+  delete document.documentElement.dataset.motionScenes;
+  showWithoutMotion();
+}
+
+if (motionToggle) {
+  motionToggle.hidden = false;
+  motionToggle.setAttribute('aria-pressed', String(motionIsEnabled));
+  motionToggle.setAttribute('aria-label', motionIsEnabled ? 'Disable motion' : 'Enable motion');
+  if (motionToggleLabel) motionToggleLabel.textContent = motionIsEnabled ? 'Motion on' : 'Motion off';
+
+  motionToggle.addEventListener('click', () => {
+    setStoredMotionPreference(motionIsEnabled ? 'off' : 'on');
+    window.location.reload();
+  });
 }
 
 const form = document.querySelector<HTMLFormElement>('[data-contact-form]');

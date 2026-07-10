@@ -20,6 +20,17 @@ const resolveHref = (href: string) => (home ? href : `/${href}`);
           <li><a href={resolveHref(item.href)}>{item.label}</a></li>
         ))}
       </ul>
+      <button
+        class="motion-toggle"
+        type="button"
+        data-motion-toggle
+        aria-label="Enable motion"
+        aria-pressed="false"
+        hidden
+      >
+        <span class="motion-toggle__dot" aria-hidden="true"></span>
+        <span data-motion-toggle-label>Motion off</span>
+      </button>
       <a class="button button--small" href={resolveHref('#contact')}>Contact</a>
     </nav>
   </div>

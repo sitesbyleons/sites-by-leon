@@ -165,3 +165,19 @@ test('shows content without motion when reduced motion is preferred', async ({ p
   await expect(firstConcept).toBeVisible();
   await expect(firstConcept).toHaveCSS('transform', 'none');
 });
+
+test('lets visitors enable scroll motion when their browser prefers reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+
+  const motionToggle = page.getByRole('button', { name: 'Enable motion' });
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
+  await expect(motionToggle).toHaveAttribute('aria-pressed', 'false');
+
+  await motionToggle.click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'gsap-scrolltrigger');
+  await expect(page.locator('html')).toHaveAttribute('data-motion-scenes', 'hero-depth concept-3d pricing-3d');
+  await expect(page.getByRole('button', { name: 'Disable motion' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-motion-depth="concept"]').first()).not.toHaveCSS('transform', 'none');
+});
