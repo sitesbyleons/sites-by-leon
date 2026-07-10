@@ -1,0 +1,24 @@
+---
+import { SignUp } from '@clerk/astro/components';
+
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Create your account">
+  <main class="auth-page">
+    <a class="portal-brand" href="/" aria-label="Sites By Leon dashboard home">
+      <span>Sites</span><span>By</span><span>Leon</span>
+    </a>
+    <div class="auth-page__panel">
+      <p class="eyebrow">Client access</p>
+      <h1>Start simply.</h1>
+      <p class="auth-page__intro">Create your secure account. Leon will connect it to your photography studio.</p>
+      <SignUp
+        path="/sign-up"
+        routing="path"
+        signInUrl="/sign-in"
+        forceRedirectUrl="/dashboard"
+      />
+    </div>
+  </main>
+</DashboardLayout>
