@@ -32,8 +32,30 @@ test('keeps the preview dashboard within a mobile viewport', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Send request' })).toBeVisible();
 });
 
+test('shows Leon the studio-wide admin overview', async ({ page }) => {
+  await page.goto('/admin?preview=true');
+
+  await expect(page.getByRole('heading', { name: /everything in one view/i })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Client workspaces' })).toBeVisible();
+  await expect(page.getByText('Northline Portraits').first()).toBeVisible();
+  await expect(page.getByText('Replace the featured gallery')).toBeVisible();
+});
+
+test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/admin?preview=true');
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    content: document.documentElement.scrollWidth,
+  }));
+
+  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
+  await expect(page.getByRole('navigation', { name: 'Admin dashboard' })).toBeVisible();
+});
+
 test('has no serious or critical accessibility violations on the client surfaces', async ({ page }) => {
-  for (const path of ['/?preview=true', '/dashboard?preview=true']) {
+  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true']) {
     await page.goto(path);
     const results = await new AxeBuilder({ page }).analyze();
     const important = results.violations.filter((violation) =>
