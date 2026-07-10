@@ -1,0 +1,27 @@
+---
+import BrandMark from './BrandMark.astro';
+import { concepts, contactEmail } from '../content/site';
+
+const images = [concepts[0].images[0], concepts[1].images[0], concepts[2].images[0]];
+---
+
+<main class="coming-soon" id="main">
+  <div class="coming-soon__gallery" aria-hidden="true">
+    {images.map((image, index) => (
+      <figure class={`coming-soon__image coming-soon__image--${index + 1}`}>
+        <img src={image.src} alt="" width="1536" height="1024" loading={index === 0 ? 'eager' : 'lazy'} />
+      </figure>
+    ))}
+  </div>
+
+  <div class="coming-soon__veil"></div>
+
+  <div class="coming-soon__content">
+    <BrandMark large />
+    <div>
+      <p>Websites for photographers</p>
+      <h1>Coming soon.</h1>
+    </div>
+    <a href={`mailto:${contactEmail}`}>sites.by.leon@gmail.com <span aria-hidden="true">↗</span></a>
+  </div>
+</main>
