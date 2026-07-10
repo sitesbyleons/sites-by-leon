@@ -1,6 +1,4 @@
 ---
-import { SignInButton } from '@clerk/astro/components';
-
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -26,12 +24,13 @@ const marketingSite = import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://site
         {isPreview ? (
           <a class="button button--blue" href="/dashboard?preview=true">Open your dashboard</a>
         ) : (
-          <SignInButton mode="modal">
-            <button class="button button--blue" type="button">Open your dashboard</button>
-          </SignInButton>
+          <>
+            <a class="button button--blue" href="/sign-in">Sign in</a>
+            <a class="button button--ghost" href="/sign-up">Create account</a>
+          </>
         )}
-        <a class="text-link" href="mailto:sites.by.leon@gmail.com">Need an invitation?</a>
       </div>
+      <a class="text-link portal-help" href="mailto:sites.by.leon@gmail.com">Already a client and need an invitation?</a>
     </section>
 
     <aside class="portal-preview" aria-label="Dashboard preview">
@@ -53,7 +52,7 @@ const marketingSite = import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://site
     <footer class="portal-landing__footer">
       <span>Designed for photographers</span>
       <span>Managed by Leon</span>
-      <span>$25–$40 monthly</span>
+      <span>Simple monthly hosting</span>
     </footer>
   </main>
 </DashboardLayout>
