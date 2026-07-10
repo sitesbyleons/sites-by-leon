@@ -1,0 +1,59 @@
+---
+interface Props {
+  index: string;
+  name: string;
+  focus: string;
+  label: string;
+  description: string;
+  imageSrc: string;
+  imageAlt: string;
+  tone: 'ivory' | 'blue' | 'silver';
+}
+
+const { index, name, focus, label, description, imageSrc, imageAlt, tone } = Astro.props;
+const monogram = name
+  .split(/\s|&/)
+  .filter(Boolean)
+  .map((word) => word[0])
+  .join('')
+  .slice(0, 2);
+---
+
+<article class:list={['concept', `concept--${tone}`]} style={`--concept-image: url('${imageSrc}')`} data-reveal>
+  <div class="concept__copy">
+    <div class="concept__meta">
+      <span>{index}</span>
+      <span class="concept-label">{label}</span>
+    </div>
+    <p class="concept__focus">{focus}</p>
+    <h3>{name}</h3>
+    <p class="concept__description">{description}</p>
+    <dl class="concept__details">
+      <div><dt>Direction</dt><dd>{tone === 'ivory' ? 'Quiet editorial' : tone === 'blue' ? 'Electric character' : 'Structured restraint'}</dd></div>
+      <div><dt>Built for</dt><dd>Portfolio + inquiry</dd></div>
+    </dl>
+  </div>
+
+  <div class="concept__presentation">
+    <div class="concept-browser">
+      <div class="browser-chrome browser-chrome--light" aria-hidden="true">
+        <span class="browser-chrome__dots"><i></i><i></i><i></i></span>
+        <span class="browser-chrome__address">{name.toLowerCase().replaceAll(' ', '')}.studio</span>
+        <span class="browser-chrome__menu">•••</span>
+      </div>
+      <div class="concept-browser__screen">
+        <img src={imageSrc} alt={imageAlt} width="1600" height="1050" loading="lazy" decoding="async" />
+        <div class="concept-site">
+          <div class="concept-site__nav"><span>{monogram}</span><span>Work&nbsp;&nbsp; About&nbsp;&nbsp; Contact</span></div>
+          <div class="concept-site__headline"><small>Selected stories</small><strong>{name}</strong></div>
+          <span class="concept-site__index">01 — 08</span>
+        </div>
+      </div>
+    </div>
+    <div class="concept-device" aria-hidden="true">
+      <span>{monogram}</span>
+      <div></div>
+      <small>View project</small>
+    </div>
+  </div>
+</article>

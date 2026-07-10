@@ -1,0 +1,126 @@
+---
+import type { Concept } from '../content/site';
+
+interface Props {
+  concept: Concept;
+}
+
+const { concept } = Astro.props;
+---
+
+<article id={concept.slug} class:list={['portfolio-story', 'website-concept', `website-concept--${concept.slug}`]} data-reveal>
+  <header class="portfolio-story__intro">
+    <p><span>{concept.label}</span><span>{concept.focus}</span></p>
+    {concept.slug === 'fieldwork-commercial' ? (
+      <h3 class="concept-title" aria-label={concept.name}>
+        <span class="concept-title__line" aria-hidden="true">Fieldwork</span>
+        <span class="concept-title__line" aria-hidden="true">Commercial</span>
+      </h3>
+    ) : <h3 class="concept-title">{concept.name}</h3>}
+    <p>{concept.description}</p>
+  </header>
+
+  <div class="concept-browser" data-scroll-scene>
+    <div class="concept-browser__chrome" aria-label={`Website preview at ${concept.domain}`}>
+      <span class="concept-browser__lights" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="concept-browser__address">{concept.domain}</span>
+      <span class="concept-browser__open" aria-hidden="true">↗</span>
+      <span class="concept-browser__progress" aria-hidden="true"></span>
+    </div>
+    <div class="concept-browser__viewport">
+      {concept.slug === 'vow-and-light' && (
+        <div class="concept-canvas wedding-site">
+      <div class="concept-mast concept-mast--wedding">
+        <span class="wedding-wordmark">Vow &amp; Light</span>
+        <div class="concept-nav" aria-hidden="true">
+          <span>Stories</span><span>Experience</span><strong>Inquire</strong>
+        </div>
+      </div>
+
+      <div class="wedding-site__hero">
+        <figure><img src={concept.images[0].src} alt={concept.images[0].alt} width="1536" height="1024" loading="eager" decoding="async" /></figure>
+        <div class="wedding-site__title">
+          <p>Editorial wedding photography</p>
+          <h4>Held in light.</h4>
+          <span class="concept-action">Check your date</span>
+        </div>
+      </div>
+
+      <div class="wedding-site__story">
+        <figure><img src={concept.images[1].src} alt={concept.images[1].alt} width="1536" height="1024" loading="eager" decoding="async" /></figure>
+        <div class="wedding-site__inquiry">
+          <p>Now booking</p>
+          <strong>Tell us where the day takes place.</strong>
+          <span>Share your date →</span>
+        </div>
+        <figure><img src={concept.images[2].src} alt={concept.images[2].alt} width="1536" height="1024" loading="eager" decoding="async" /></figure>
+      </div>
+        </div>
+      )}
+
+      {concept.slug === 'northline-portraits' && (
+        <div class="concept-canvas portrait-site">
+      <div class="concept-mast concept-mast--portrait">
+        <span class="portrait-wordmark">Northline®</span>
+        <div class="concept-nav" aria-hidden="true">
+          <span>Work</span><span>Sessions</span><strong>Book</strong>
+        </div>
+      </div>
+
+      <div class="portrait-site__grid">
+        <figure class="portrait-site__lead"><img src={concept.images[0].src} alt={concept.images[0].alt} width="1536" height="1024" loading="eager" decoding="async" /></figure>
+        <div class="portrait-site__statement">
+          <p>Portrait studio · Indianapolis</p>
+          <h4>Make your presence impossible to miss.</h4>
+          <span class="concept-action concept-action--light">View the work</span>
+        </div>
+        <figure class="portrait-site__maker"><img src={concept.images[1].src} alt={concept.images[1].alt} width="1536" height="1024" loading="eager" decoding="async" /></figure>
+        <div class="portrait-site__booking">
+          <p>Signature session</p>
+          <strong>90 minutes.<br />One clear point of view.</strong>
+          <span class="concept-action concept-action--dark">Book a session</span>
+          <small>Deposit secures your date</small>
+        </div>
+        <figure class="portrait-site__artist"><img src={concept.images[2].src} alt={concept.images[2].alt} width="1536" height="1024" loading="eager" decoding="async" /></figure>
+      </div>
+        </div>
+      )}
+
+      {concept.slug === 'fieldwork-commercial' && (
+        <div class="concept-canvas commercial-site">
+      <div class="concept-mast concept-mast--commercial">
+        <span class="commercial-wordmark">FIELDWORK / CO</span>
+        <div class="concept-nav" aria-hidden="true">
+          <span>Projects</span><span>Services</span><strong>Start a brief</strong>
+        </div>
+      </div>
+
+      <div class="commercial-site__intro">
+        <p>Still life · Product · Campaign</p>
+        <h4>Built for the brief.</h4>
+        <span>Selected work / 2026</span>
+      </div>
+
+      <div class="commercial-site__projects">
+        {concept.images.map((image, index) => (
+          <figure>
+            <img src={image.src} alt={image.alt} width="1536" height="1024" loading="eager" decoding="async" />
+            <figcaption><span>0{index + 1}</span><span>{index === 0 ? 'Fragrance' : index === 1 ? 'Audio' : 'Jewelry'}</span></figcaption>
+          </figure>
+        ))}
+        <aside class="commercial-site__portal" aria-label="Client payment portal concept">
+          <p>Client portal</p>
+          <strong>Campaign 04</strong>
+          <dl>
+            <div><dt>Status</dt><dd>In progress</dd></div>
+            <div><dt>Deposit</dt><dd>Deposit received</dd></div>
+            <div><dt>Next</dt><dd>Final invoice</dd></div>
+          </dl>
+          <span class="concept-action concept-action--dark">View project</span>
+        </aside>
+      </div>
+        </div>
+      )}
+    </div>
+  </div>
+</article>

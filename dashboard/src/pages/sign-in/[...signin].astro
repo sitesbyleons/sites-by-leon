@@ -1,0 +1,18 @@
+---
+import { SignIn } from '@clerk/astro/components';
+
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Sign in">
+  <main class="auth-page">
+    <a class="portal-brand" href="/" aria-label="Sites By Leon dashboard home">
+      <span>Sites</span><span>By</span><span>Leon</span>
+    </a>
+    <div class="auth-page__panel">
+      <p class="eyebrow">Client access</p>
+      <h1>Welcome back.</h1>
+      <SignIn path="/sign-in" routing="path" />
+    </div>
+  </main>
+</DashboardLayout>

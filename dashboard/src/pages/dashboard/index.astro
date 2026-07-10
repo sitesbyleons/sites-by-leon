@@ -1,0 +1,237 @@
+---
+import { OrganizationSwitcher, SignOutButton, UserButton } from '@clerk/astro/components';
+
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { decideDashboardAccess } from '../../lib/access';
+import { canStartCheckout, plans } from '../../lib/billing';
+import { normalizeDashboardState } from '../../lib/dashboard-state';
+import { loadDashboardData } from '../../lib/load-dashboard';
+import { createClerkSupabaseClient } from '../../lib/supabase';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const access = isPreview
+  ? ({ kind: 'workspace', userId: 'preview_user', orgId: 'preview_org' } as const)
+  : decideDashboardAccess({ userId: auth?.userId ?? null, orgId: auth?.orgId ?? null });
+
+if (access.kind === 'redirect') return Astro.redirect(access.location);
+
+let dashboardData = {
+  workspace: null,
+  project: null,
+  subscription: null,
+  error: null,
+} as Awaited<ReturnType<typeof loadDashboardData>>;
+
+if (isPreview) {
+  dashboardData = {
+    workspace: { id: 'preview_workspace', name: 'Northline Portraits', status: 'approved' },
+    project: {
+      id: 'preview_project',
+      name: 'Northline Portfolio',
+      status: 'review',
+      progress: 72,
+      next_step: 'Review the mobile gallery and send Leon your final image order.',
+      live_url: null,
+      updated_at: new Date().toISOString(),
+    },
+    subscription: {
+      plan_key: 'studio',
+      status: 'active',
+      current_period_end: '2026-08-10T00:00:00.000Z',
+      cancel_at_period_end: false,
+    },
+    error: null,
+  };
+} else if (access.kind === 'workspace' && auth) {
+  const supabase = createClerkSupabaseClient(async () => (await auth.getToken()) ?? null);
+  dashboardData = await loadDashboardData(supabase, access.orgId);
+}
+
+const state = normalizeDashboardState(dashboardData);
+const checkoutReady = canStartCheckout({
+  userId: auth?.userId ?? (isPreview ? 'preview_user' : null),
+  orgId: auth?.orgId ?? (isPreview ? 'preview_org' : null),
+  workspaceStatus: dashboardData.workspace?.status ?? null,
+  subscriptionStatus: dashboardData.subscription?.status ?? null,
+});
+const portalReady = Boolean(dashboardData.subscription);
+const periodEnd = dashboardData.subscription?.current_period_end
+  ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
+      new Date(dashboardData.subscription.current_period_end),
+    )
+  : null;
+---
+
+<DashboardLayout title="Overview" shell>
+  <div class="app-frame">
+    <aside class="app-sidebar">
+      <a class="portal-brand portal-brand--small" href="/dashboard" aria-label="Sites By Leon dashboard">
+        <span>Sites</span><span>By</span><span>Leon</span>
+      </a>
+      <nav aria-label="Dashboard">
+        <a class="is-active" href="#overview"><span>01</span>Overview</a>
+        <a href="#project"><span>02</span>Project</a>
+        <a href="#requests"><span>03</span>Requests</a>
+        <a href="#billing"><span>04</span>Billing</a>
+      </nav>
+      <div class="sidebar-support">
+        <span class="status-dot"></span>
+        <p><strong>Leon is available</strong><br />Usually replies within one business day.</p>
+        <a href="mailto:sites.by.leon@gmail.com">Email Leon</a>
+      </div>
+    </aside>
+
+    <main class="app-main" id="overview">
+      <header class="app-topbar">
+        <div>
+          <p class="eyebrow">Client dashboard</p>
+          <span>{state.workspaceName}</span>
+        </div>
+        <div class="app-topbar__account">
+          {!isPreview && access.kind === 'workspace' && <OrganizationSwitcher />}
+          {!isPreview && <UserButton />}
+        </div>
+      </header>
+
+      {access.kind === 'select-organization' ? (
+        <section class="empty-scene">
+          <p class="eyebrow">Invitation needed</p>
+          <h1>Your private space is almost ready.</h1>
+          <p>
+            Sign in with the email Leon invited, then choose your photography business. If you have not
+            received an invitation yet, contact Leon and he will set up the workspace.
+          </p>
+          <OrganizationSwitcher />
+          <div class="empty-scene__actions">
+            <a class="button button--blue" href="mailto:sites.by.leon@gmail.com">Contact Leon</a>
+            <SignOutButton><button class="button button--ghost" type="button">Sign out</button></SignOutButton>
+          </div>
+        </section>
+      ) : (
+        <>
+          <section class="app-hero">
+            <div>
+              <p class="eyebrow">Good to see you</p>
+              <h1>Your website is <em>{state.projectStatus.toLowerCase()}.</em></h1>
+              <p>{state.nextStep}</p>
+            </div>
+            <div class="progress-orbit" style={`--progress: ${state.progress * 3.6}deg`}>
+              <div><strong>{state.progress}%</strong><span>complete</span></div>
+            </div>
+          </section>
+
+          {dashboardData.error && <p class="notice notice--attention" role="status">{dashboardData.error}</p>}
+
+          <section class="metric-grid" aria-label="Account summary">
+            <article>
+              <span>Project status</span>
+              <strong>{state.projectStatus}</strong>
+              <small>Updated as Leon moves the build forward.</small>
+            </article>
+            <article>
+              <span>Monthly plan</span>
+              <strong>{state.planName ?? 'Not started'}</strong>
+              <small>{periodEnd ? `Current period ends ${periodEnd}.` : 'Choose a plan after your project is approved.'}</small>
+            </article>
+            <article>
+              <span>Support</span>
+              <strong>Personal</strong>
+              <small>You always talk directly with Leon.</small>
+            </article>
+          </section>
+
+          <section class="project-panel" id="project">
+            <div class="panel-heading">
+              <div><p class="eyebrow">Your project</p><h2>{dashboardData.project?.name ?? 'Website build'}</h2></div>
+              <span class="status-pill">{state.projectStatus}</span>
+            </div>
+            <div class="project-timeline">
+              {['Direction', 'Design', 'Review', 'Launch'].map((label, index) => (
+                <article class:list={{ 'is-complete': state.progress >= index * 25 + 20 }}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <strong>{label}</strong>
+                </article>
+              ))}
+            </div>
+            <div class="project-next">
+              <span>Next step</span>
+              <p>{state.nextStep}</p>
+              {dashboardData.project?.live_url && (
+                <a class="text-link" href={dashboardData.project.live_url} target="_blank" rel="noreferrer">View your live website ↗</a>
+              )}
+            </div>
+          </section>
+
+          <section class="split-panels">
+            <article class="request-panel" id="requests">
+              <p class="eyebrow">Request an update</p>
+              <h2>Send the change. Leon handles the rest.</h2>
+              <form data-content-request>
+                <label>What needs updating?<input name="subject" minlength="5" maxlength="120" required placeholder="New gallery, pricing, copy…" /></label>
+                <label>Details<textarea name="details" minlength="20" maxlength="2000" required placeholder="Tell Leon what should change and where."></textarea></label>
+                <div><button class="button button--dark" type="submit">Send request</button><p data-form-status aria-live="polite"></p></div>
+              </form>
+            </article>
+
+            <article class="billing-panel" id="billing">
+              <p class="eyebrow">Billing</p>
+              <h2>{portalReady ? 'Your monthly plan' : 'Simple monthly hosting'}</h2>
+              {portalReady ? (
+                <>
+                  <div class:list={['billing-state', `billing-state--${state.billingTone}`]}>
+                    <span></span><p><strong>{state.planName}</strong><br />Subscription {dashboardData.subscription?.status.replace('_', ' ')}</p>
+                  </div>
+                  <form method="POST" action="/api/billing/portal">
+                    <button class="button button--blue" type="submit">Manage billing</button>
+                  </form>
+                  <small>Payment details open securely in Stripe. Sites By Leon never stores card numbers.</small>
+                </>
+              ) : (
+                <>
+                  <div class="plan-list">
+                    {plans.map((plan) => (
+                      <form method="POST" action="/api/billing/checkout">
+                        <input type="hidden" name="plan" value={plan.key} />
+                        <span><strong>{plan.name}</strong><small>${plan.monthlyUsd}/month</small></span>
+                        <button type="submit" disabled={!checkoutReady}>{checkoutReady ? 'Choose' : 'After approval'}</button>
+                      </form>
+                    ))}
+                  </div>
+                  <small>No separate build fee. Checkout unlocks after Leon approves the project details.</small>
+                </>
+              )}
+            </article>
+          </section>
+        </>
+      )}
+    </main>
+  </div>
+
+  <script>
+    const requestForm = document.querySelector<HTMLFormElement>('[data-content-request]');
+    const status = document.querySelector<HTMLElement>('[data-form-status]');
+
+    requestForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!status) return;
+      status.textContent = 'Sending…';
+
+      const formData = new FormData(requestForm);
+      const response = await fetch('/api/content-requests', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ subject: formData.get('subject'), details: formData.get('details') }),
+      }).catch(() => null);
+
+      if (!response?.ok) {
+        const payload = await response?.json().catch(() => null);
+        status.textContent = payload?.message ?? 'That did not send. Email sites.by.leon@gmail.com and your request will not be lost.';
+        return;
+      }
+
+      requestForm.reset();
+      status.textContent = 'Request sent. Leon will follow up personally.';
+    });
+  </script>
+</DashboardLayout>

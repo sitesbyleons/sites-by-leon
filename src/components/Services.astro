@@ -1,0 +1,28 @@
+---
+import { services } from '../content/site';
+---
+
+<section class="section services" id="services" aria-labelledby="services-title">
+  <div class="container">
+    <header class="section-head" data-reveal>
+      <p class="section-kicker">What you get</p>
+      <h2 id="services-title">Design, hosting, <em>and care.</em></h2>
+      <p class="section-head__aside">The site and the technical work stay in one place.</p>
+    </header>
+
+    <div class="service-list">
+      {services.map((service) => (
+        <article data-reveal>
+          <h3>{service.title}</h3>
+          <p>{service.description}</p>
+        </article>
+      ))}
+    </div>
+
+    <aside class="payments-note" data-reveal>
+      <h3>Taking deposits or client payments?</h3>
+      <p>Ask about adding secure payments to your website.</p>
+      <a href="#contact">Ask Leon <span aria-hidden="true">↗</span></a>
+    </aside>
+  </div>
+</section>

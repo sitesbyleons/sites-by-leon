@@ -1,0 +1,30 @@
+---
+import '../styles/dashboard.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  shell?: boolean;
+}
+
+const {
+  title,
+  description = 'A calm place to follow your website, request updates, and manage hosting.',
+  shell = false,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} | Sites By Leon</title>
+  </head>
+  <body class:list={{ 'dashboard-shell': shell }}>
+    <slot />
+  </body>
+</html>

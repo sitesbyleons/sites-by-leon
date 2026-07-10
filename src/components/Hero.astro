@@ -1,0 +1,35 @@
+---
+import { concepts } from '../content/site';
+
+const heroImages = [concepts[0].images[0], concepts[1].images[0], concepts[2].images[0]];
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container hero__shell">
+    <div class="hero__copy" data-reveal>
+      <p class="hero__eyebrow">Web design + hosting for photographers</p>
+      <h1 id="hero-title"><span>Your work.</span>{' '}<em>Beautifully online.</em></h1>
+      <p class="hero__lede">You send the images. I design, launch, host, and look after the website.</p>
+      <div class="hero__actions">
+        <a class="button" href="#contact">Contact Leon <span aria-hidden="true">↗</span></a>
+        <a class="text-link" href="#work">View concept work</a>
+      </div>
+      <p class="hero__price">Monthly plans from $30 to $100 · No build fee</p>
+    </div>
+
+    <div class="hero-gallery" data-reveal aria-label="Wedding, portrait, and commercial photography concepts">
+      {heroImages.map((image, index) => (
+        <figure class={`hero-gallery__image hero-gallery__image--${index + 1}`}>
+          <img
+            src={image.src}
+            alt={image.alt}
+            width="1536"
+            height="1024"
+            loading={index === 0 ? 'eager' : 'lazy'}
+            fetchpriority={index === 0 ? 'high' : 'auto'}
+          />
+        </figure>
+      ))}
+    </div>
+  </div>
+</section>

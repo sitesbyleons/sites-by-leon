@@ -1,0 +1,32 @@
+---
+import WebsiteConcept from './WebsiteConcept.astro';
+import { concepts } from '../content/site';
+---
+
+<section class="section work" id="work" aria-labelledby="work-title">
+  <div class="container">
+    <header class="section-head" data-reveal>
+      <p class="section-kicker">Concept work</p>
+      <h2 id="work-title">Three styles. <em>None templated.</em></h2>
+      <div class="section-head__aside">
+        <p>Three complete website directions—built to show the work, capture inquiries, and move clients forward.</p>
+      </div>
+    </header>
+
+    <ul class="concept-capabilities" aria-label="Capabilities shown in the website concepts" data-reveal>
+      <li>Portfolio</li>
+      <li>Client inquiries</li>
+      <li>Booking &amp; deposits</li>
+      <li>Client portal &amp; payments</li>
+    </ul>
+
+    <div class="portfolio-list">
+      {concepts.map((concept) => <WebsiteConcept concept={concept} />)}
+    </div>
+
+    <div class="work__cta" data-reveal>
+      <p>Your site would be designed around your own images and style.</p>
+      <a class="text-link text-link--dark" href="#contact">Talk about your site</a>
+    </div>
+  </div>
+</section>

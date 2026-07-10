@@ -1,0 +1,59 @@
+---
+import { SignInButton } from '@clerk/astro/components';
+
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const userId = isPreview ? null : Astro.locals.auth().userId;
+if (userId) return Astro.redirect('/dashboard');
+
+const marketingSite = import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://sites-by-leon.pages.dev';
+---
+
+<DashboardLayout title="Client dashboard">
+  <main class="portal-landing">
+    <a class="portal-brand" href={marketingSite} aria-label="Sites By Leon home">
+      <span>Sites</span><span>By</span><span>Leon</span>
+    </a>
+
+    <section class="portal-landing__copy">
+      <p class="eyebrow">Private client space</p>
+      <h1>Your website, <em>without the guesswork.</em></h1>
+      <p>
+        Follow the build, send updates, and manage your monthly hosting from one calm place.
+      </p>
+      <div class="portal-actions">
+        {isPreview ? (
+          <a class="button button--blue" href="/dashboard?preview=true">Open your dashboard</a>
+        ) : (
+          <SignInButton mode="modal">
+            <button class="button button--blue" type="button">Open your dashboard</button>
+          </SignInButton>
+        )}
+        <a class="text-link" href="mailto:sites.by.leon@gmail.com">Need an invitation?</a>
+      </div>
+    </section>
+
+    <aside class="portal-preview" aria-label="Dashboard preview">
+      <div class="portal-preview__bar">
+        <span></span><span></span><span></span>
+        <small>CLIENT / OVERVIEW</small>
+      </div>
+      <div class="portal-preview__content">
+        <p>Website progress</p>
+        <strong>72%</strong>
+        <div class="progress"><span style="width: 72%"></span></div>
+        <div class="portal-preview__grid">
+          <article><small>STATUS</small><b>In design</b></article>
+          <article><small>NEXT</small><b>Review mobile</b></article>
+        </div>
+      </div>
+    </aside>
+
+    <footer class="portal-landing__footer">
+      <span>Designed for photographers</span>
+      <span>Managed by Leon</span>
+      <span>$30–$100 monthly</span>
+    </footer>
+  </main>
+</DashboardLayout>

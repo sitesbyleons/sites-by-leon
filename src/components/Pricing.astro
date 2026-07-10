@@ -1,0 +1,35 @@
+---
+import { plans } from '../content/site';
+---
+
+<section class="section pricing" id="pricing" aria-labelledby="pricing-title">
+  <div class="container">
+    <header class="section-head" data-reveal>
+      <p class="section-kicker">Monthly plans</p>
+      <h2 id="pricing-title">Pick a <em>starting point.</em></h2>
+      <div class="section-head__aside">
+        <p>Monthly only. No separate build fee.</p>
+      </div>
+    </header>
+
+    <div class="pricing-ledger" data-reveal>
+      {plans.map((plan, index) => (
+        <article class:list={['pricing-ledger__row', { 'pricing-ledger__row--featured': plan.featured }] }>
+          <div class="pricing-ledger__name">
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <h3>{plan.name}</h3>
+            {plan.featured && <small>Most flexible</small>}
+          </div>
+          <p>{plan.description}</p>
+          <ul>{plan.features.map((feature) => <li>{feature}</li>)}</ul>
+          <div class="pricing-ledger__price">
+            <p><sup>$</sup>{plan.monthlyPrice}<span>/mo</span></p>
+            <a href="#contact" aria-label={`Contact about ${plan.name}`}>Contact <span aria-hidden="true">↗</span></a>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <p class="pricing__note" data-reveal>Every plan includes hosting, routine maintenance, and direct support.</p>
+  </div>
+</section>

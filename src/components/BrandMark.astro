@@ -1,0 +1,22 @@
+---
+interface Props {
+  href?: string;
+  large?: boolean;
+}
+
+const { href, large = false } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+
+<Tag
+  class:list={['brand-mark', { 'brand-mark--large': large }]}
+  href={href}
+  aria-label={href ? 'Sites by Leon, home' : undefined}
+>
+  <span class="brand-mark__stack" aria-hidden="true">
+    <span>Sites</span>
+    <span>By</span>
+    <span>Leon</span>
+  </span>
+  <span class="sr-only">Sites by Leon</span>
+</Tag>

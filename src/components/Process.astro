@@ -1,0 +1,21 @@
+---
+import { processSteps } from '../content/site';
+---
+
+<section class="section process" aria-labelledby="process-title">
+  <div class="container">
+    <header class="section-head" data-reveal>
+      <p class="section-kicker">Simple process</p>
+      <h2 id="process-title">From first email <em>to live site.</em></h2>
+    </header>
+
+    <ol class="process-list">
+      {processSteps.map((step) => (
+        <li data-reveal>
+          <span class="process-list__index">{step.index}</span>
+          <h3>{step.title}</h3>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
