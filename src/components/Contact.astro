@@ -1,62 +1,14 @@
 ---
 import { contactEmail } from '../content/site';
-
-const endpoint = import.meta.env.PUBLIC_CONTACT_FUNCTION_URL ?? '';
 ---
 
-<section class="section contact" id="contact" aria-labelledby="contact-title">
-  <div class="container contact__grid">
-    <div class="contact__intro" data-reveal>
-      <p class="section-kicker">Contact</p>
-      <h2 id="contact-title">Let’s build your site.</h2>
-      <p>Send the basics. I’ll reply directly.</p>
-      <div class="contact__email">
-        <span>Email directly</span>
-        <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
-      </div>
-      <p class="contact__reply"><span aria-hidden="true">↳</span> No sales team. Just Leon.</p>
-    </div>
-
-    <form
-      class="contact-form"
-      action={`mailto:${contactEmail}`}
-      method="post"
-      enctype="text/plain"
-      data-contact-form
-      data-endpoint={endpoint}
-      data-reveal
-    >
-      <div class="form-row">
-        <div class="field">
-          <label for="contact-name">Name</label>
-          <input id="contact-name" name="name" type="text" autocomplete="name" minlength="2" maxlength="80" required aria-describedby="error-name" />
-          <span class="field__error" id="error-name" data-error-for="name"></span>
-        </div>
-        <div class="field">
-          <label for="contact-email">Email</label>
-          <input id="contact-email" name="email" type="email" autocomplete="email" maxlength="254" required aria-describedby="error-email" />
-          <span class="field__error" id="error-email" data-error-for="email"></span>
-        </div>
-      </div>
-
-      <input name="focus" type="hidden" value="Photography website" />
-
-      <div class="field">
-        <label for="contact-message">Tell me what you need</label>
-        <textarea id="contact-message" name="message" rows="4" placeholder="A portfolio, booking, payments, or a full custom site…" minlength="20" maxlength="2000" required aria-describedby="error-message"></textarea>
-        <span class="field__error" id="error-message" data-error-for="message"></span>
-      </div>
-
-      <div class="honeypot" aria-hidden="true">
-        <label for="contact-company">Company website</label>
-        <input id="contact-company" name="company" type="text" tabindex="-1" autocomplete="off" />
-      </div>
-
-      <div class="contact-form__footer">
-        <button class="button button--ink" type="submit">Send inquiry <span aria-hidden="true">↗</span></button>
-        <p>By sending this, you agree that Leon may reply about your project. No mailing list.</p>
-      </div>
-      <p class="form-status" data-form-status role="status" aria-live="polite"></p>
-    </form>
+<section class="section contact contact--simple" id="contact" aria-labelledby="contact-title">
+  <div class="container contact-simple" data-reveal>
+    <p class="section-kicker">Contact</p>
+    <h2 id="contact-title">Let’s make your work impossible to scroll past.</h2>
+    <a class="button button--ink" href={`mailto:${contactEmail}`}>
+      Email Leon <span aria-hidden="true">↗</span>
+    </a>
   </div>
 </section>
+
