@@ -7,14 +7,14 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "wrangler dev",
+    "preview": "astro preview",
     "check": "astro check",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "13.7.0",
+    "@astrojs/vercel": "10.0.8",
     "@clerk/astro": "3.4.15",
     "@fontsource-variable/cormorant": "5.2.8",
     "@fontsource-variable/manrope": "5.2.8",
@@ -27,7 +27,6 @@
     "@playwright/test": "1.61.1",
     "@types/node": "24.10.1",
     "typescript": "6.0.3",
-    "vitest": "4.1.10",
-    "wrangler": "4.110.0"
+    "vitest": "4.1.10"
   }
 }
