@@ -10,9 +10,8 @@ const { concept } = Astro.props;
 
 <article id={concept.slug} class:list={['portfolio-story', 'website-concept', `website-concept--${concept.slug}`]} data-reveal>
   <header class="portfolio-story__intro">
-    <p><span>{concept.label}</span><span>{concept.focus}</span></p>
+    <p>{concept.focus}</p>
     <h3 class="concept-title">{concept.name}</h3>
-    <p>{concept.description}</p>
   </header>
 
   <div class="concept-browser" data-scroll-scene data-motion-depth="concept">
@@ -119,3 +118,4 @@ const { concept } = Astro.props;
     </div>
   </div>
 </article>
+
