@@ -12,7 +12,6 @@ export function getPlan(value: string) {
 
 type CheckoutContext = {
   userId: string | null;
-  orgId: string | null;
   workspaceStatus: string | null;
   subscriptionStatus: string | null;
 };
@@ -20,8 +19,8 @@ type CheckoutContext = {
 export function canStartCheckout(context: CheckoutContext) {
   return Boolean(
     context.userId &&
-      context.orgId &&
-      context.workspaceStatus === 'approved' &&
+      (context.workspaceStatus === 'approved' || context.workspaceStatus === 'active') &&
       !context.subscriptionStatus,
   );
 }
+
