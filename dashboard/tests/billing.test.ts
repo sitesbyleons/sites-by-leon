@@ -21,7 +21,6 @@ describe('canStartCheckout', () => {
     expect(
       canStartCheckout({
         userId: 'user_123',
-        orgId: 'org_456',
         workspaceStatus: 'approved',
         subscriptionStatus: null,
       }),
@@ -30,7 +29,6 @@ describe('canStartCheckout', () => {
     expect(
       canStartCheckout({
         userId: 'user_123',
-        orgId: 'org_456',
         workspaceStatus: 'lead',
         subscriptionStatus: null,
       }),
@@ -39,10 +37,10 @@ describe('canStartCheckout', () => {
     expect(
       canStartCheckout({
         userId: 'user_123',
-        orgId: 'org_456',
         workspaceStatus: 'approved',
         subscriptionStatus: 'active',
       }),
     ).toBe(false);
   });
 });
+
