@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { normalizeDashboardState } from '../src/lib/dashboard-state';
 
 describe('normalizeDashboardState', () => {
-  it('shows a guided onboarding state when the Clerk organization has no workspace yet', () => {
+  it('shows a guided onboarding state when a personal account has no workspace yet', () => {
     expect(normalizeDashboardState({ workspace: null, project: null, subscription: null })).toEqual({
       mode: 'onboarding',
       workspaceName: 'Your studio',
@@ -48,3 +48,4 @@ describe('normalizeDashboardState', () => {
     });
   });
 });
+
