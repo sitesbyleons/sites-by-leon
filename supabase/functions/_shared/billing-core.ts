@@ -38,7 +38,7 @@ export function readClerkIdentity(jwt: string) {
           ? compactOrg
           : null;
 
-    return userId && orgId ? { userId, orgId } : null;
+    return userId ? { userId, orgId } : null;
   } catch {
     return null;
   }
@@ -130,3 +130,4 @@ export function normalizeSubscription(subscription: StripeSubscriptionLike) {
     cancel_at_period_end: subscription.cancel_at_period_end === true,
   };
 }
+
