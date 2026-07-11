@@ -24,7 +24,7 @@ Deno.serve(async (request: Request) => {
   if (!allowedDashboardRequest(request)) return json(origin, { message: 'Origin not allowed.' }, 403);
 
   const identity = readClerkIdentity(bearerToken(request));
-  if (!identity) return json(origin, { message: 'A Clerk organization session is required.' }, 401);
+  if (!identity) return json(origin, { message: 'Sign in to manage billing.' }, 401);
 
   const stripe = createStripe();
   const supabase = createSupabaseAdmin();
@@ -32,11 +32,32 @@ Deno.serve(async (request: Request) => {
     return json(origin, { message: 'Billing management is not configured yet.' }, 503);
   }
 
-  const { data: workspace, error } = await supabase
-    .from('client_workspaces')
-    .select('stripe_customer_id')
-    .eq('clerk_org_id', identity.orgId)
-    .maybeSingle();
+  let workspaceId: string | null = null;
+  if (identity.orgId) {
+    const organizationWorkspace = await supabase
+      .from('client_workspaces')
+      .select('id')
+      .eq('clerk_org_id', identity.orgId)
+      .maybeSingle();
+    workspaceId = organizationWorkspace.data?.id ?? null;
+  }
+  if (!workspaceId) {
+    const membership = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('clerk_user_id', identity.userId)
+      .limit(1)
+      .maybeSingle();
+    workspaceId = membership.data?.workspace_id ?? null;
+  }
+
+  const { data: workspace, error } = workspaceId
+    ? await supabase
+        .from('client_workspaces')
+        .select('stripe_customer_id')
+        .eq('id', workspaceId)
+        .maybeSingle()
+    : { data: null, error: null };
 
   if (error || !workspace?.stripe_customer_id) {
     return json(origin, { message: 'No Stripe billing customer is connected to this workspace.' }, 404);
@@ -49,3 +70,4 @@ Deno.serve(async (request: Request) => {
 
   return json(origin, { url: session.url });
 });
+
