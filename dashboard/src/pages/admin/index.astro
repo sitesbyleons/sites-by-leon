@@ -1,9 +1,11 @@
 ---
 import { SignOutButton, UserButton } from '@clerk/astro/components';
+import { clerkClient } from '@clerk/astro/server';
 
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { checkAppAdmin, loadAdminData, type AdminData } from '../../lib/admin';
+import { checkAppAdmin, loadAdminData, loadAdminUsers, type AdminData, type AdminUser } from '../../lib/admin';
 import { decideAdminAccess } from '../../lib/access';
+import { getPlan } from '../../lib/billing';
 import { createClerkSupabaseClient } from '../../lib/supabase';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -28,6 +30,7 @@ const access = decideAdminAccess({
 if (access.kind !== 'admin') return Astro.redirect(access.location);
 
 let data: AdminData;
+let users: AdminUser[] = [];
 
 if (isPreview) {
   data = {
@@ -47,102 +50,130 @@ if (isPreview) {
       { id: 'req_1', workspace_id: 'ws_northline', subject: 'Replace the featured gallery', status: 'new', created_at: '2026-07-10T16:00:00.000Z' },
       { id: 'req_2', workspace_id: 'ws_vow', subject: 'Add fall mini sessions', status: 'planned', created_at: '2026-07-09T14:00:00.000Z' },
     ],
+    members: [
+      { workspace_id: 'ws_northline', clerk_user_id: 'user_northline', role: 'owner' },
+      { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
+    ],
     error: null,
   };
+  users = [
+    { id: 'user_northline', name: 'Maya Carter', email: 'maya@northline.test', createdAt: Date.parse('2026-07-08') },
+    { id: 'user_vow', name: 'Elliot Lane', email: 'elliot@vowandlight.test', createdAt: Date.parse('2026-07-09') },
+    { id: 'user_waiting', name: 'New client', email: 'hello@newstudio.test', createdAt: Date.parse('2026-07-10') },
+  ];
 } else {
   data = await loadAdminData(supabase);
+  try {
+    users = await loadAdminUsers(clerkClient(Astro));
+  } catch {
+    adminError = adminError ?? 'User accounts could not be loaded.';
+  }
 }
 
 const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
+const memberWorkspaces = new Map(data.members.map((member) => [member.clerk_user_id, workspaceNames.get(member.workspace_id) ?? 'Client']));
+const openTickets = data.requests.filter((request) => !['completed', 'declined'].includes(request.status));
 const activeSubscriptions = data.subscriptions.filter((subscription) => ['active', 'trialing'].includes(subscription.status));
-const openRequests = data.requests.filter((request) => !['completed', 'declined'].includes(request.status));
-const date = (value: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value));
+const date = (value: string | number | null) => value
+  ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
+  : '—';
 ---
 
-<DashboardLayout title="Studio admin" shell>
-  <div class="admin-shell">
-    <aside class="admin-rail">
+<DashboardLayout title="Admin" shell>
+  <div class="studio-admin">
+    <header class="studio-admin__header">
       <a class="portal-brand portal-brand--small" href="/admin" aria-label="Sites By Leon admin">
         <span>Sites</span><span>By</span><span>Leon</span>
       </a>
       <nav aria-label="Admin dashboard">
-        <a class="is-active" href="#overview">Overview</a>
-        <a href="#clients">Clients</a>
-        <a href="#projects">Projects</a>
-        <a href="#requests">Requests</a>
+        <a href="#users">Users</a>
+        <a href="#tickets">Tickets</a>
+        <a href="#subscriptions">Subscriptions</a>
+        <a href="#sites">Sites</a>
       </nav>
-      <div class="admin-rail__footer">
-        <a href="/dashboard">Client view</a>
-        {!isPreview && <SignOutButton><button type="button">Sign out</button></SignOutButton>}
-      </div>
-    </aside>
-
-    <main class="admin-main" id="overview">
-      <header class="admin-topbar">
-        <div><p class="eyebrow">Studio control</p><span>Sites By Leon</span></div>
+      <div class="studio-admin__account">
         {!isPreview && <UserButton />}
-      </header>
+      </div>
+    </header>
 
-      <section class="admin-hero">
-        <div>
-          <p class="eyebrow">Good morning, Leon</p>
-          <h1>Everything in <em>one view.</em></h1>
+    <main class="studio-admin__main">
+      <section class="admin-intro">
+        <div><span>Sites By Leon</span><h1>Admin</h1></div>
+        <p>Users, support, and monthly hosting in one place.</p>
+      </section>
+
+      {(adminError || data.error) && <p class="simple-notice" role="status">{adminError ?? data.error}</p>}
+
+      <section class="admin-summary" aria-label="Business summary">
+        <article><span>Users</span><strong>{users.length}</strong></article>
+        <article><span>Open tickets</span><strong>{openTickets.length}</strong></article>
+        <article><span>Active subscriptions</span><strong>{activeSubscriptions.length}</strong></article>
+      </section>
+
+      <section class="admin-list-section" id="users">
+        <header><div><span>Accounts</span><h2>Users</h2></div><p>{users.length} total</p></header>
+        <div class="business-table" role="table" aria-label="User accounts">
+          <div class="business-table__head" role="row"><span role="columnheader">Name</span><span role="columnheader">Client</span><span role="columnheader">Joined</span></div>
+          {users.length ? users.map((user) => (
+            <article class="business-table__row" role="row">
+              <div role="cell"><strong>{user.name}</strong><small>{user.email}</small></div>
+              <span role="cell">{memberWorkspaces.get(user.id) ?? 'Not connected'}</span>
+              <span role="cell">{date(user.createdAt)}</span>
+            </article>
+          )) : <p class="simple-empty">No users yet.</p>}
         </div>
-        <p>Clients, builds, subscriptions, and requests—without digging through five services.</p>
       </section>
 
-      {(adminError || data.error) && <p class="notice notice--attention" role="status">{adminError ?? data.error}</p>}
-
-      <section class="admin-metrics" aria-label="Studio summary">
-        <article><span>Clients</span><strong>{data.workspaces.length}</strong><small>{data.workspaces.filter((workspace) => workspace.status === 'active').length} active</small></article>
-        <article><span>Live plans</span><strong>{activeSubscriptions.length}</strong><small>monthly subscriptions</small></article>
-        <article><span>Open requests</span><strong>{openRequests.length}</strong><small>waiting on action</small></article>
-        <article><span>Projects</span><strong>{data.projects.length}</strong><small>across every stage</small></article>
+      <section class="admin-list-section" id="tickets">
+        <header><div><span>Support</span><h2>Tickets</h2></div><p>{openTickets.length} open</p></header>
+        <div class="ticket-list">
+          {data.requests.length ? data.requests.map((ticket) => (
+            <article>
+              <span class={`ticket-status ticket-status--${ticket.status}`}>{ticket.status.replace('_', ' ')}</span>
+              <div><strong>{ticket.subject}</strong><small>{workspaceNames.get(ticket.workspace_id) ?? 'Client'} · {date(ticket.created_at)}</small></div>
+            </article>
+          )) : <p class="simple-empty">No support tickets.</p>}
+        </div>
       </section>
 
-      <section class="admin-section" id="clients">
-        <div class="admin-section__heading"><div><p class="eyebrow">Clients</p><h2>Photography studios</h2></div><span>{data.workspaces.length} total</span></div>
-        <div class="admin-table" role="table" aria-label="Client workspaces">
-          <div class="admin-table__head" role="row"><span role="columnheader">Studio</span><span role="columnheader">Status</span><span role="columnheader">Plan</span><span role="columnheader">Updated</span></div>
-          {data.workspaces.length ? data.workspaces.map((workspace) => {
-            const subscription = data.subscriptions.find((item) => item.workspace_id === workspace.id);
+      <section class="admin-list-section" id="subscriptions">
+        <header><div><span>Stripe billing</span><h2>Subscriptions</h2></div><p>{activeSubscriptions.length} active</p></header>
+        <div class="business-table business-table--subscriptions" role="table" aria-label="Client subscriptions">
+          <div class="business-table__head" role="row"><span role="columnheader">Client</span><span role="columnheader">Plan</span><span role="columnheader">Status</span><span role="columnheader">Renews</span></div>
+          {data.subscriptions.length ? data.subscriptions.map((subscription) => {
+            const plan = getPlan(subscription.plan_key);
             return (
-              <article class="admin-table__row" role="row">
-                <strong role="cell">{workspace.name}<small>{workspace.slug}</small></strong>
-                <span role="cell" class={`status-tag status-tag--${workspace.status}`}>{workspace.status}</span>
-                <span role="cell">{subscription?.plan_key ?? 'Not started'}</span>
-                <span role="cell">{date(workspace.updated_at)}</span>
+              <article class="business-table__row" role="row">
+                <div role="cell"><strong>{workspaceNames.get(subscription.workspace_id) ?? 'Client'}</strong><small>Managed hosting</small></div>
+                <span role="cell">{plan ? `${plan.name} · $${plan.monthlyUsd}/mo` : subscription.plan_key}</span>
+                <span role="cell" class={`ticket-status ticket-status--${subscription.status}`}>{subscription.status.replace('_', ' ')}</span>
+                <span role="cell">{date(subscription.current_period_end)}</span>
               </article>
             );
-          }) : <p class="admin-empty">New client workspaces will appear here.</p>}
+          }) : <p class="simple-empty">No subscriptions yet.</p>}
         </div>
       </section>
 
-      <section class="admin-section" id="projects">
-        <div class="admin-section__heading"><div><p class="eyebrow">Projects</p><h2>Build progress</h2></div></div>
-        <div class="admin-project-grid">
+      <section class="admin-list-section" id="sites">
+        <header><div><span>Client websites</span><h2>Sites</h2></div><p>{data.projects.length} projects</p></header>
+        <div class="site-list">
           {data.projects.length ? data.projects.map((project) => (
             <article>
-              <div><span>{workspaceNames.get(project.workspace_id) ?? 'Client'}</span><span>{project.status}</span></div>
-              <h3>{project.name}</h3>
-              <div class="admin-progress"><span style={`width:${project.progress}%`}></span></div>
-              <footer><strong>{project.progress}%</strong><small>Updated {date(project.updated_at)}</small></footer>
+              <div><strong>{project.name}</strong><small>{workspaceNames.get(project.workspace_id) ?? 'Client'}</small></div>
+              <div class="site-progress"><span style={`width:${project.progress}%`}></span></div>
+              <span>{project.status} · {project.progress}%</span>
             </article>
-          )) : <p class="admin-empty">No projects yet.</p>}
+          )) : <p class="simple-empty">No sites yet.</p>}
         </div>
       </section>
 
-      <section class="admin-section" id="requests">
-        <div class="admin-section__heading"><div><p class="eyebrow">Requests</p><h2>Client updates</h2></div><span>{openRequests.length} open</span></div>
-        <div class="admin-request-list">
-          {data.requests.length ? data.requests.map((request) => (
-            <article>
-              <span>{request.status}</span>
-              <div><strong>{request.subject}</strong><small>{workspaceNames.get(request.workspace_id) ?? 'Client'} · {date(request.created_at)}</small></div>
-            </article>
-          )) : <p class="admin-empty">No update requests yet.</p>}
-        </div>
-      </section>
+      {!isPreview && (
+        <footer class="studio-admin__footer">
+          <a href="/dashboard">Client view</a>
+          <SignOutButton><button type="button">Sign out</button></SignOutButton>
+        </footer>
+      )}
     </main>
   </div>
 </DashboardLayout>
+
