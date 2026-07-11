@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import { validateContentRequest } from '../../lib/content-request';
 import { isTrustedOrigin } from '../../lib/request-security';
 import { createClerkSupabaseClient } from '../../lib/supabase';
+import { resolveClientWorkspace } from '../../lib/workspaces';
 
 export const POST: APIRoute = async ({ request, locals, url }) => {
   if (!isTrustedOrigin(request.headers.get('origin'), url.origin)) {
@@ -10,7 +11,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   }
 
   const auth = locals.auth();
-  if (!auth.userId || !auth.orgId) {
+  if (!auth.userId) {
     return Response.json({ message: 'Sign in to send an update request.' }, { status: 401 });
   }
 
@@ -29,11 +30,10 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     return Response.json({ message: 'Online requests are not connected yet. Please email Leon.' }, { status: 503 });
   }
 
-  const { data: workspace, error: workspaceError } = await supabase
-    .from('client_workspaces')
-    .select('id')
-    .eq('clerk_org_id', auth.orgId)
-    .maybeSingle<{ id: string }>();
+  const { workspace, error: workspaceError } = await resolveClientWorkspace(supabase, {
+    userId: auth.userId,
+    orgId: auth.orgId ?? null,
+  });
 
   if (workspaceError || !workspace) {
     return Response.json({ message: 'This client workspace is not ready yet. Please email Leon.' }, { status: 409 });
@@ -50,3 +50,4 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     ? Response.json({ message: 'That did not send. Please email Leon.' }, { status: 500 })
     : Response.json({ ok: true }, { status: 201 });
 };
+
