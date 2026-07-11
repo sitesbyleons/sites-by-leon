@@ -2,23 +2,46 @@
 import { SignUp } from '@clerk/astro/components';
 
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+
+const appearance = {
+  variables: {
+    colorPrimary: '#15171a',
+    colorBackground: '#ffffff',
+    colorText: '#15171a',
+    colorTextSecondary: '#686b70',
+    colorInputBackground: '#ffffff',
+    colorInputText: '#15171a',
+    borderRadius: '8px',
+    fontFamily: 'Manrope Variable, sans-serif',
+  },
+  elements: {
+    rootBox: 'clerk-root',
+    cardBox: 'clerk-card-box',
+    card: 'clerk-card',
+    footer: 'clerk-footer',
+  },
+};
 ---
 
 <DashboardLayout title="Create your account">
-  <main class="auth-page">
-    <a class="portal-brand" href="/" aria-label="Sites By Leon dashboard home">
-      <span>Sites</span><span>By</span><span>Leon</span>
-    </a>
-    <div class="auth-page__panel">
-      <p class="eyebrow">Client access</p>
-      <h1>Start simply.</h1>
-      <p class="auth-page__intro">Create your secure account. Leon will connect it to your photography studio.</p>
+  <main class="auth-page auth-page--simple">
+    <div class="auth-card">
+      <a class="portal-brand portal-brand--small" href="/" aria-label="Sites By Leon dashboard home">
+        <span>Sites</span><span>By</span><span>Leon</span>
+      </a>
+      <div class="auth-card__heading">
+        <h1>Create account</h1>
+        <p>Sign up once. Leon connects your photography website.</p>
+      </div>
       <SignUp
         path="/sign-up"
         routing="path"
         signInUrl="/sign-in"
         forceRedirectUrl="/dashboard"
+        {appearance}
       />
+      <a class="auth-card__back" href={import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://leonsites.org'}>← Back to leonsites.org</a>
     </div>
   </main>
 </DashboardLayout>
+
