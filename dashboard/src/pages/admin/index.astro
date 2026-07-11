@@ -1,179 +1,77 @@
 ---
-import { SignOutButton, UserButton } from '@clerk/astro/components';
 import { clerkClient } from '@clerk/astro/server';
 
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { checkAppAdmin, loadAdminData, loadAdminUsers, type AdminData, type AdminUser } from '../../lib/admin';
+import AdminFrame from '../../components/AdminFrame.astro';
 import { decideAdminAccess } from '../../lib/access';
-import { getPlan } from '../../lib/billing';
-import { createClerkSupabaseClient } from '../../lib/supabase';
+import { loadAdminSession } from '../../lib/admin';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
-
-let isAdmin = isPreview;
-let adminError: string | null = null;
-let supabase = null;
-
-if (!isPreview && auth?.userId) {
-  supabase = createClerkSupabaseClient(async () => (await auth.getToken()) ?? null);
-  const adminCheck = await checkAppAdmin(supabase, auth.userId);
-  isAdmin = adminCheck.isAdmin;
-  adminError = adminCheck.error;
-}
-
+const session = await loadAdminSession({
+  isPreview,
+  userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
+  getToken: async () => (auth ? (await auth.getToken()) ?? null : null),
+  includeUsers: true,
+  userClient: isPreview ? undefined : clerkClient(Astro),
+});
 const access = decideAdminAccess({
   userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
-  isAdmin,
+  isAdmin: session.isAdmin,
 });
-
 if (access.kind !== 'admin') return Astro.redirect(access.location);
 
-let data: AdminData;
-let users: AdminUser[] = [];
-
-if (isPreview) {
-  data = {
-    workspaces: [
-      { id: 'ws_northline', name: 'Northline Portraits', slug: 'northline', status: 'active', updated_at: '2026-07-10T17:00:00.000Z' },
-      { id: 'ws_vow', name: 'Vow & Light', slug: 'vow-and-light', status: 'approved', updated_at: '2026-07-09T15:00:00.000Z' },
-      { id: 'ws_fieldwork', name: 'Fieldwork Commercial', slug: 'fieldwork', status: 'lead', updated_at: '2026-07-08T13:00:00.000Z' },
-    ],
-    projects: [
-      { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, updated_at: '2026-07-10T17:00:00.000Z' },
-      { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, updated_at: '2026-07-09T15:00:00.000Z' },
-    ],
-    subscriptions: [
-      { workspace_id: 'ws_northline', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
-    ],
-    requests: [
-      { id: 'req_1', workspace_id: 'ws_northline', subject: 'Replace the featured gallery', status: 'new', created_at: '2026-07-10T16:00:00.000Z' },
-      { id: 'req_2', workspace_id: 'ws_vow', subject: 'Add fall mini sessions', status: 'planned', created_at: '2026-07-09T14:00:00.000Z' },
-    ],
-    members: [
-      { workspace_id: 'ws_northline', clerk_user_id: 'user_northline', role: 'owner' },
-      { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
-    ],
-    error: null,
-  };
-  users = [
-    { id: 'user_northline', name: 'Maya Carter', email: 'maya@northline.test', createdAt: Date.parse('2026-07-08') },
-    { id: 'user_vow', name: 'Elliot Lane', email: 'elliot@vowandlight.test', createdAt: Date.parse('2026-07-09') },
-    { id: 'user_waiting', name: 'New client', email: 'hello@newstudio.test', createdAt: Date.parse('2026-07-10') },
-  ];
-} else {
-  data = await loadAdminData(supabase);
-  try {
-    users = await loadAdminUsers(clerkClient(Astro));
-  } catch {
-    adminError = adminError ?? 'User accounts could not be loaded.';
-  }
-}
-
+const data = session.data!;
 const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
-const memberWorkspaces = new Map(data.members.map((member) => [member.clerk_user_id, workspaceNames.get(member.workspace_id) ?? 'Client']));
 const openTickets = data.requests.filter((request) => !['completed', 'declined'].includes(request.status));
 const activeSubscriptions = data.subscriptions.filter((subscription) => ['active', 'trialing'].includes(subscription.status));
+const recentTickets = openTickets.slice(0, 4);
+const recentSites = data.projects.slice(0, 3);
+const preview = isPreview ? '?preview=true' : '';
 const date = (value: string | number | null) => value
-  ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
+  ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value))
   : '—';
 ---
 
-<DashboardLayout title="Admin" shell>
-  <div class="studio-admin">
-    <header class="studio-admin__header">
-      <a class="portal-brand portal-brand--small" href="/admin" aria-label="Sites By Leon admin">
-        <span>Sites</span><span>By</span><span>Leon</span>
-      </a>
-      <nav aria-label="Admin dashboard">
-        <a href="#users">Users</a>
-        <a href="#tickets">Tickets</a>
-        <a href="#subscriptions">Subscriptions</a>
-        <a href="#sites">Sites</a>
-      </nav>
-      <div class="studio-admin__account">
-        {!isPreview && <UserButton />}
+<AdminFrame
+  active="overview"
+  title="Overview"
+  eyebrow="Sites By Leon"
+  description="The few things that need your attention today."
+  isPreview={isPreview}
+  error={session.error}
+>
+  <section class="admin-summary admin-summary--four" aria-label="Business summary">
+    <a href={`/admin/users${preview}`}><span>Users</span><strong>{session.users.length}</strong><small>View accounts</small></a>
+    <a href={`/admin/tickets${preview}`}><span>Open tickets</span><strong>{openTickets.length}</strong><small>Sort support</small></a>
+    <a href={`/admin/subscriptions${preview}`}><span>Active subscriptions</span><strong>{activeSubscriptions.length}</strong><small>Review billing</small></a>
+    <a href={`/admin/sites${preview}`}><span>Sites</span><strong>{data.projects.length}</strong><small>Track builds</small></a>
+  </section>
+
+  <div class="admin-overview-grid">
+    <section class="admin-list-section">
+      <header><div><span>Needs attention</span><h2>Open tickets</h2></div><a href={`/admin/tickets${preview}`}>View all</a></header>
+      <div class="ticket-list">
+        {recentTickets.length ? recentTickets.map((ticket) => (
+          <article>
+            <span class={`ticket-status ticket-status--${ticket.status}`}>{ticket.status.replace('_', ' ')}</span>
+            <div><strong>{ticket.subject}</strong><small>{workspaceNames.get(ticket.workspace_id) ?? 'Client'} · {date(ticket.created_at)}</small></div>
+          </article>
+        )) : <p class="simple-empty">No open support tickets.</p>}
       </div>
-    </header>
+    </section>
 
-    <main class="studio-admin__main">
-      <section class="admin-intro">
-        <div><span>Sites By Leon</span><h1>Admin</h1></div>
-        <p>Users, support, and monthly hosting in one place.</p>
-      </section>
-
-      {(adminError || data.error) && <p class="simple-notice" role="status">{adminError ?? data.error}</p>}
-
-      <section class="admin-summary" aria-label="Business summary">
-        <article><span>Users</span><strong>{users.length}</strong></article>
-        <article><span>Open tickets</span><strong>{openTickets.length}</strong></article>
-        <article><span>Active subscriptions</span><strong>{activeSubscriptions.length}</strong></article>
-      </section>
-
-      <section class="admin-list-section" id="users">
-        <header><div><span>Accounts</span><h2>Users</h2></div><p>{users.length} total</p></header>
-        <div class="business-table" role="table" aria-label="User accounts">
-          <div class="business-table__head" role="row"><span role="columnheader">Name</span><span role="columnheader">Client</span><span role="columnheader">Joined</span></div>
-          {users.length ? users.map((user) => (
-            <article class="business-table__row" role="row">
-              <div role="cell"><strong>{user.name}</strong><small>{user.email}</small></div>
-              <span role="cell">{memberWorkspaces.get(user.id) ?? 'Not connected'}</span>
-              <span role="cell">{date(user.createdAt)}</span>
-            </article>
-          )) : <p class="simple-empty">No users yet.</p>}
-        </div>
-      </section>
-
-      <section class="admin-list-section" id="tickets">
-        <header><div><span>Support</span><h2>Tickets</h2></div><p>{openTickets.length} open</p></header>
-        <div class="ticket-list">
-          {data.requests.length ? data.requests.map((ticket) => (
-            <article>
-              <span class={`ticket-status ticket-status--${ticket.status}`}>{ticket.status.replace('_', ' ')}</span>
-              <div><strong>{ticket.subject}</strong><small>{workspaceNames.get(ticket.workspace_id) ?? 'Client'} · {date(ticket.created_at)}</small></div>
-            </article>
-          )) : <p class="simple-empty">No support tickets.</p>}
-        </div>
-      </section>
-
-      <section class="admin-list-section" id="subscriptions">
-        <header><div><span>Stripe billing</span><h2>Subscriptions</h2></div><p>{activeSubscriptions.length} active</p></header>
-        <div class="business-table business-table--subscriptions" role="table" aria-label="Client subscriptions">
-          <div class="business-table__head" role="row"><span role="columnheader">Client</span><span role="columnheader">Plan</span><span role="columnheader">Status</span><span role="columnheader">Renews</span></div>
-          {data.subscriptions.length ? data.subscriptions.map((subscription) => {
-            const plan = getPlan(subscription.plan_key);
-            return (
-              <article class="business-table__row" role="row">
-                <div role="cell"><strong>{workspaceNames.get(subscription.workspace_id) ?? 'Client'}</strong><small>Managed hosting</small></div>
-                <span role="cell">{plan ? `${plan.name} · $${plan.monthlyUsd}/mo` : subscription.plan_key}</span>
-                <span role="cell" class={`ticket-status ticket-status--${subscription.status}`}>{subscription.status.replace('_', ' ')}</span>
-                <span role="cell">{date(subscription.current_period_end)}</span>
-              </article>
-            );
-          }) : <p class="simple-empty">No subscriptions yet.</p>}
-        </div>
-      </section>
-
-      <section class="admin-list-section" id="sites">
-        <header><div><span>Client websites</span><h2>Sites</h2></div><p>{data.projects.length} projects</p></header>
-        <div class="site-list">
-          {data.projects.length ? data.projects.map((project) => (
-            <article>
-              <div><strong>{project.name}</strong><small>{workspaceNames.get(project.workspace_id) ?? 'Client'}</small></div>
-              <div class="site-progress"><span style={`width:${project.progress}%`}></span></div>
-              <span>{project.status} · {project.progress}%</span>
-            </article>
-          )) : <p class="simple-empty">No sites yet.</p>}
-        </div>
-      </section>
-
-      {!isPreview && (
-        <footer class="studio-admin__footer">
-          <a href="/dashboard">Client view</a>
-          <SignOutButton><button type="button">Sign out</button></SignOutButton>
-        </footer>
-      )}
-    </main>
+    <section class="admin-list-section">
+      <header><div><span>In production</span><h2>Sites</h2></div><a href={`/admin/sites${preview}`}>View all</a></header>
+      <div class="site-list site-list--compact">
+        {recentSites.length ? recentSites.map((project) => (
+          <article>
+            <div><strong>{project.name}</strong><small>{workspaceNames.get(project.workspace_id) ?? 'Client'}</small></div>
+            <div class="site-progress" role="progressbar" aria-label={`${project.progress}% complete`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={project.progress}><span style={`width:${project.progress}%`}></span></div>
+            <span>{project.status} · {project.progress}%</span>
+          </article>
+        )) : <p class="simple-empty">No sites yet.</p>}
+      </div>
+    </section>
   </div>
-</DashboardLayout>
+</AdminFrame>
 
