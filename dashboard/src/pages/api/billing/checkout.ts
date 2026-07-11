@@ -9,7 +9,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   }
 
   const auth = locals.auth();
-  if (!auth.userId || !auth.orgId) return auth.redirectToSignIn({ returnBackUrl: '/dashboard' });
+  if (!auth.userId) return auth.redirectToSignIn({ returnBackUrl: '/dashboard' });
 
   const form = await request.formData();
   const plan = getPlan(String(form.get('plan') ?? ''));
@@ -38,3 +38,4 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
 
   return Response.redirect(payload.url, 303);
 };
+
