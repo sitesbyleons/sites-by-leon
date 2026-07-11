@@ -61,15 +61,3 @@ jobs:
 
       - name: Run dashboard browser tests
         run: pnpm --dir dashboard test:e2e
-
-      - name: Type-check photographer site
-        run: pnpm --dir photographer-site check
-
-      - name: Run photographer site unit tests
-        run: pnpm --dir photographer-site test
-
-      - name: Build photographer site
-        run: pnpm --dir photographer-site build
-
-      - name: Run photographer site browser tests
-        run: pnpm --dir photographer-site test:e2e

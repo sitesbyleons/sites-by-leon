@@ -154,3 +154,4 @@ using (
     where admin.clerk_user_id = ((select auth.jwt()) ->> 'sub')
   )
 );
+

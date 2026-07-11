@@ -33,3 +33,4 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
 
   return Response.redirect(payload.url, 303);
 };
+

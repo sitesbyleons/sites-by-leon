@@ -23,3 +23,4 @@ export function canStartCheckout(context: CheckoutContext) {
       !context.subscriptionStatus,
   );
 }
+

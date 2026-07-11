@@ -130,3 +130,4 @@ export function normalizeSubscription(subscription: StripeSubscriptionLike) {
     cancel_at_period_end: subscription.cancel_at_period_end === true,
   };
 }
+
