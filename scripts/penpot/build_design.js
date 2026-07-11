@@ -213,228 +213,9 @@ function buildDesktop(page) {
   addEyebrow(board, '05 / Everything handled', 72, 5610, 260, true);
   addText(board, 'Services / Heading', 'Your website should create momentum,', 350, 5580, 820, 74, COLORS.graphite, { font: 'display', height: 90 });
   addText(board, 'Services / Heading accent', 'not another job.', 730, 5670, 520, 74, COLORS.blueDark, { font: 'display', italic: true, height: 90 });
-  const serviceItems = [
-    ['Designed around your work', 'Every layout is shaped around your images, voice, audience, and focus.'],
-    ['Hosted and maintained', 'Launch, routine technical care, and dependable hosting stay off your plate.'],
-    ['A real person to contact', 'When you need an update, you talk directly with Leon.'],
-  ];
-  serviceItems.forEach((item, index) => {
-    const y = 5890 + index * 145;
-    addLine(board, `Services / Row ${index + 1}`, 72, y, 1296, '#5D6068', 0.28);
-    addText(board, `Services / ${item[0]} / Index`, `0${index + 1}`, 72, y + 38, 80, 11, COLORS.blueDark, { height: 18 });
-    addText(board, `Services / ${item[0]}`, item[0], 220, y + 26, 430, 34, COLORS.graphite, { font: 'display', height: 45 });
-    addText(board, `Services / ${item[0]} / Copy`, item[1], 760, y + 30, 500, 14, '#555961', { lineHeight: 1.45, lines: 2 });
-  });
-  addRect(board, 'Payments / Callout', 72, 6380, 1296, 260, COLORS.blue, 18);
-  addEyebrow(board, 'Optional growth path', 130, 6440, 250, false);
-  addText(board, 'Payments / Title', 'Need deposits or client payments later?', 390, 6420, 480, 48, COLORS.graphite, { font: 'display', lineHeight: 0.9, lines: 2 });
-  addText(board, 'Payments / Copy', 'We can plan a payment-ready experience carefully.\nNo live payout feature is promised until it is tested.', 930, 6442, 340, 13, COLORS.graphite, { lineHeight: 1.45, lines: 3 });
-
-  addRect(board, 'Founder / Background', 0, 6720, 1440, 780, COLORS.graphite);
-  addEllipse(board, 'Founder / Orbit', 90, 6810, 560, 560, COLORS.blue, 0.08);
-  addText(board, 'Founder / Signature', 'Sites\nBy\nLeon', 190, 6925, 360, 105, COLORS.ivory, { font: 'signature', align: 'center', lineHeight: 0.56, lines: 3 });
-  addEyebrow(board, '06 / The person behind it', 760, 6840, 280);
-  addText(board, 'Founder / Heading', 'Small studio.\nDirect relationship.', 760, 6900, 560, 72, COLORS.ivory, { font: 'display', lineHeight: 0.86, lines: 2 });
-  addText(board, 'Founder / Copy', 'Iâ€™m Leon. I design and host websites for photographers who want\ntheir online presence handled without turning it into another job.', 760, 7100, 520, 17, COLORS.silverLight, { lineHeight: 1.5, lines: 3 });
-  addText(board, 'Founder / Link', 'START A CONVERSATION  â†—', 760, 7235, 300, 12, COLORS.ivory, { weight: 750, letterSpacing: 1, height: 22 });
-
-  addRect(board, 'Contact / Background', 0, 7500, 1440, 900, COLORS.blue);
-  addEyebrow(board, '07 / Contact', 72, 7610, 180, false);
-  addText(board, 'Contact / Heading', 'Letâ€™s make your work', 72, 7670, 620, 76, COLORS.graphite, { font: 'display', height: 90 });
-  addText(board, 'Contact / Heading accent', 'feel impossible to overlook.', 72, 7755, 620, 76, COLORS.graphite, { font: 'display', italic: true, lineHeight: 0.86, lines: 2 });
-  addText(board, 'Contact / Description', 'Tell me what you photograph and what you want your next site to do.', 72, 7980, 520, 15, COLORS.graphite, { lineHeight: 1.5, lines: 2 });
-  addLine(board, 'Contact / Email divider', 72, 8080, 520, COLORS.graphite, 0.3);
-  addText(board, 'Contact / Email label', 'PREFER A DIRECT EMAIL?', 72, 8115, 260, 11, COLORS.graphite, { weight: 750, letterSpacing: 1, height: 18 });
-  addText(board, 'Contact / Email', 'sites.by.leon@gmail.com', 72, 8155, 500, 30, COLORS.graphite, { font: 'display', weight: 600, height: 42 });
-  addRect(board, 'Contact / Form', 760, 7600, 608, 700, COLORS.ivory, 18);
-  [['NAME', 790, 7670, 250], ['EMAIL', 1080, 7670, 250], ['WHAT DO YOU PHOTOGRAPH?', 790, 7810, 540], ['WHAT ARE YOU LOOKING FOR?', 790, 7950, 540]].forEach((field, index) => {
-    addText(board, `Contact / Form / Field ${index + 1}`, field[0], field[1], field[2], field[3], 11, COLORS.graphite, { weight: 750, letterSpacing: 0.8, height: 18 });
-    addLine(board, `Contact / Form / Field line ${index + 1}`, field[1], field[2] + (index < 2 ? 55 : index === 2 ? 65 : 170), field[3], COLORS.graphite, 0.3);
-  });
-  addButton(board, 'Contact / Form / Submit', 'Send inquiry', 790, 8180, 150, COLORS.graphite, COLORS.ivory);
-
-  addRect(board, 'Footer / Background', 0, 8400, 1440, 260, COLORS.graphite);
-  addText(board, 'Footer / Brand', 'Sites\nBy\nLeon', 72, 8450, 120, 32, COLORS.ivory, { font: 'signature', align: 'center', lineHeight: 0.58, lines: 3 });
-  addText(board, 'Footer / Positioning', 'Websites and managed hosting for photographers who want the web handled.', 270, 8470, 520, 14, COLORS.silver, { lines: 2 });
-  addText(board, 'Footer / Email', 'sites.by.leon@gmail.com', 1030, 8470, 330, 22, COLORS.ivory, { font: 'display', align: 'right', height: 35 });
-  return board;
-}
-
-function buildMobile(page) {
-  const board = penpot.createBoard();
-  board.name = 'Homepage / Mobile / 390';
-  board.x = 1600;
-  board.y = 0;
-  board.resize(390, 10750);
-  board.fills = [{ fillColor: COLORS.graphite, fillOpacity: 1 }];
-  board.clipContent = true;
-  page.root.appendChild(board);
-
-  addRect(board, 'Mobile / Hero', 0, 0, 390, 1080, COLORS.graphite);
-  addRect(board, 'Mobile / Navigation', 16, 16, 358, 76, COLORS.graphite2, 16);
-  addText(board, 'Mobile / Brand', 'Sites\nBy\nLeon', 30, 25, 78, 23, COLORS.ivory, { font: 'signature', align: 'center', lineHeight: 0.56, lines: 3 });
-  addButton(board, 'Mobile / Contact CTA', 'Contact', 274, 28, 86, COLORS.blue, COLORS.graphite);
-  addEyebrow(board, 'Web design  â€¢  Managed hosting', 20, 140, 340);
-  addText(board, 'Mobile / Hero heading', 'Websites for\nphotographers,', 20, 186, 350, 53, COLORS.ivory, { font: 'display', lineHeight: 0.82, lines: 2 });
-  addText(board, 'Mobile / Hero accent', 'without the\nwebsite headache.', 34, 286, 330, 50, COLORS.blueLight, { font: 'display', italic: true, lineHeight: 0.84, lines: 2 });
-  addText(board, 'Mobile / Hero description', 'A cinematic home for your workâ€”designed, launched, hosted,\nand cared for by one person you can actually reach.', 20, 420, 350, 15, COLORS.silverLight, { lineHeight: 1.45, lines: 4 });
-  addButton(board, 'Mobile / Hero CTA', 'Contact', 20, 535, 350, COLORS.blue, COLORS.graphite);
-  addText(board, 'Mobile / Hero email', 'sites.by.leon@gmail.com  â†—', 20, 612, 350, 13, COLORS.ivory, { weight: 700, height: 22 });
-  addText(board, 'Mobile / Hero facts', 'MONTHLY ONLY   /   $25â€“$40   /   DOMAIN + PAYMENTS', 20, 680, 350, 9, COLORS.silver, { letterSpacing: 0.5, height: 18 });
-  addBrowser(board, 'Mobile / Hero browser', 20, 730, 350, 305, '#4C4138', 'Aster House');
-
-  addRect(board, 'Mobile / Promise', 0, 1080, 390, 330, COLORS.graphite2);
-  [['01', 'Effortless'], ['02', 'Photographer-specific'], ['03', 'Actually affordable']].forEach((item, index) => {
-    const y = 1115 + index * 94;
-    addLine(board, `Mobile / Promise / Line ${index}`, 20, y, 350, COLORS.silver, 0.2);
-    addText(board, `Mobile / Promise / ${item[1]} / Index`, item[0], 20, y + 25, 40, 10, COLORS.blueLight, { height: 18 });
-    addText(board, `Mobile / Promise / ${item[1]}`, item[1], 72, y + 16, 280, 25, COLORS.ivory, { font: 'display', height: 34 });
-  });
-
-  addRect(board, 'Mobile / Work', 0, 1410, 390, 2040, COLORS.ivory, 24);
-  addEyebrow(board, '02 / Selected directions', 20, 1510, 270, true);
-  addText(board, 'Mobile / Work heading', 'Three ways\nyour work\ncould own\nthe room.', 20, 1570, 350, 51, COLORS.graphite, { font: 'display', lineHeight: 0.86, lines: 4 });
-  addText(board, 'Mobile / Work note', 'Original concept projectsâ€”not client claims. Every example is clearly labeled.', 20, 1775, 350, 13, '#555961', { lineHeight: 1.45, lines: 4 });
-  const mobileConcepts = [
-    ['Vow & Light', 'EDITORIAL WEDDING PHOTOGRAPHY', '#4A4038'],
-    ['Northline Portraits', 'BOLD PORTRAIT STUDIO', '#172B64'],
-    ['Fieldwork Commercial', 'COMMERCIAL PHOTOGRAPHY', '#6B6F78'],
-  ];
-  mobileConcepts.forEach((item, index) => {
-    const y = 1930 + index * 480;
-    addLine(board, `Mobile / Work / ${item[0]} / Divider`, 20, y, 350, '#5D6068', 0.25);
-    addText(board, `Mobile / Work / ${item[0]} / Index`, `0${index + 1}`, 20, y + 25, 50, 10, '#5E6169', { height: 18 });
-    addText(board, `Mobile / Work / ${item[0]} / Label`, 'CONCEPT PROJECT', 220, y + 18, 150, 10, COLORS.graphite, { weight: 750, align: 'right', letterSpacing: 0.7, height: 18 });
-    addText(board, `Mobile / Work / ${item[0]} / Focus`, item[1], 20, y + 70, 350, 10, '#5E6169', { weight: 750, letterSpacing: 0.6, height: 18 });
-    addText(board, `Mobile / Work / ${item[0]} / Title`, item[0], 20, y + 104, 350, 42, COLORS.graphite, { font: 'display', lineHeight: 0.9, lines: 2 });
-    addBrowser(board, `Mobile / Work / ${item[0]} / Browser`, 20, y + 190, 350, 250, item[2], item[0]);
-  });
-
-  addRect(board, 'Mobile / Process', 0, 3450, 390, 1100, COLORS.graphite);
-  addEyebrow(board, '03 / The process', 20, 3540, 220);
-  addText(board, 'Mobile / Process heading', 'A clear path\nfrom need to live.', 20, 3595, 350, 48, COLORS.ivory, { font: 'display', lineHeight: 0.86, lines: 2 });
-  ['Start with a conversation', 'Shape the direction', 'Review the build', 'Launch without the headache'].forEach((item, index) => {
-    const y = 3770 + index * 165;
-    addLine(board, `Mobile / Process / ${item} / Divider`, 20, y, 350, COLORS.silver, 0.22);
-    addText(board, `Mobile / Process / ${item} / Index`, `0${index + 1}`, 20, y + 28, 45, 10, COLORS.blueLight, { height: 18 });
-    addText(board, `Mobile / Process / ${item}`, item, 72, y + 20, 290, 27, COLORS.ivory, { font: 'display', lineHeight: 0.95, lines: 2 });
-    addText(board, `Mobile / Process / ${item} / Copy`, ['Tell me what you photograph and what you need.', 'Align on pages, personality, and images.', 'See the site before launch.', 'I publish, host, and stay available.'][index], 72, y + 80, 285, 12, COLORS.silver, { lineHeight: 1.4, lines: 2 });
-  });
-
-  addRect(board, 'Mobile / Pricing', 0, 4550, 390, 1950, COLORS.graphite2);
-  addEyebrow(board, '04 / Monthly packages', 20, 4640, 240);
-  addText(board, 'Mobile / Pricing heading', 'Professional\npresence.', 20, 4700, 350, 50, COLORS.ivory, { font: 'display', lineHeight: 0.86, lines: 2 });
-  addText(board, 'Mobile / Pricing accent', 'Human-sized\npricing.', 20, 4800, 350, 50, COLORS.blueLight, { font: 'display', italic: true, lineHeight: 0.86, lines: 2 });
-  addText(board, 'Mobile / Pricing note', 'Monthly only. No separate build fee.', 20, 4915, 350, 13, COLORS.silverLight, { height: 22 });
-  addPricingCard(board, 20, 4985, 350, 'Essential', 30, false);
-  addPricingCard(board, 20, 5580, 350, 'Studio', 65, true);
-  addPricingCard(board, 20, 6175, 350, 'Signature', 100, false);
-
-  addRect(board, 'Mobile / Services', 0, 6500, 390, 1200, COLORS.ivory);
-  addEyebrow(board, '05 / Everything handled', 20, 6590, 260, true);
-  addText(board, 'Mobile / Services heading', 'Your website should\ncreate momentum,\nnot another job.', 20, 6650, 350, 46, COLORS.graphite, { font: 'display', lineHeight: 0.88, lines: 3 });
-  ['Designed around your work', 'Hosted and maintained', 'A real person to contact'].forEach((item, index) => {
-    const y = 6860 + index * 190;
-    addLine(board, `Mobile / Services / ${item} / Divider`, 20, y, 350, '#5D6068', 0.25);
-    addText(board, `Mobile / Services / ${item} / Index`, `0${index + 1}`, 20, y + 28, 45, 10, COLORS.blueDark, { height: 18 });
-    addText(board, `Mobile / Services / ${item}`, item, 72, y + 18, 285, 30, COLORS.graphite, { font: 'display', lineHeight: 0.95, lines: 2 });
-    addText(board, `Mobile / Services / ${item} / Copy`, ['Layout shaped around your images and audience.', 'Launch and routine technical care stay handled.', 'Talk directly with Leon when you need an update.'][index], 72, y + 90, 280, 12, '#555961', { lineHeight: 1.4, lines: 3 });
-  });
-
-  addRect(board, 'Mobile / Payments', 20, 7160, 350, 480, COLORS.blue, 18);
-  addEyebrow(board, 'Optional growth path', 44, 7200, 260, false);
-  addText(board, 'Mobile / Payments title', 'Need deposits or client payments later?', 44, 7260, 300, 37, COLORS.graphite, { font: 'display', lineHeight: 0.9, lines: 3 });
-  addText(board, 'Mobile / Payments copy', 'We can plan a payment-ready experience carefully. No live payout feature is promised until tested.', 44, 7395, 300, 12, COLORS.graphite, { lineHeight: 1.45, lines: 4 });
-
-  addRect(board, 'Mobile / Founder', 0, 7700, 390, 1180, COLORS.graphite);
-  addEllipse(board, 'Mobile / Founder orbit', 55, 7790, 280, 280, COLORS.blue, 0.08);
-  addText(board, 'Mobile / Founder signature', 'Sites\nBy\nLeon', 85, 7845, 220, 70, COLORS.ivory, { font: 'signature', align: 'center', lineHeight: 0.56, lines: 3 });
-  addEyebrow(board, '06 / The person behind it', 20, 8170, 280);
-  addText(board, 'Mobile / Founder heading', 'Small studio.\nDirect relationship.', 20, 8230, 350, 48, COLORS.ivory, { font: 'display', lineHeight: 0.86, lines: 2 });
-  addText(board, 'Mobile / Founder copy', 'Iâ€™m Leon. I design and host websites for photographers who want their online presence handled without another full-time job.', 20, 8370, 350, 14, COLORS.silverLight, { lineHeight: 1.5, lines: 5 });
-  addText(board, 'Mobile / Founder link', 'START A CONVERSATION  â†—', 20, 8525, 300, 11, COLORS.ivory, { weight: 750, letterSpacing: 1, height: 18 });
-
-  addRect(board, 'Mobile / Contact', 0, 8880, 390, 1570, COLORS.blue);
-  addEyebrow(board, '07 / Contact', 20, 8970, 180, false);
-  addText(board, 'Mobile / Contact heading', 'Letâ€™s make\nyour work\nfeel impossible\nto overlook.', 20, 9030, 350, 51, COLORS.graphite, { font: 'display', italic: true, lineHeight: 0.84, lines: 4 });
-  addText(board, 'Mobile / Contact copy', 'Tell me what you photograph and what you want your next site to do.', 20, 9245, 350, 14, COLORS.graphite, { lineHeight: 1.5, lines: 3 });
-  addText(board, 'Mobile / Contact email label', 'PREFER A DIRECT EMAIL?', 20, 9380, 280, 10, COLORS.graphite, { weight: 750, letterSpacing: 0.8, height: 18 });
-  addText(board, 'Mobile / Contact email', 'sites.by.leon@gmail.com', 20, 9420, 350, 27, COLORS.graphite, { font: 'display', weight: 600, height: 38 });
-  addRect(board, 'Mobile / Contact form', 20, 9510, 350, 780, COLORS.ivory, 18);
-  ['NAME', 'EMAIL', 'WHAT DO YOU PHOTOGRAPH?', 'WHAT ARE YOU LOOKING FOR?'].forEach((label, index) => {
-    const y = 9560 + index * 135;
-    addText(board, `Mobile / Contact / ${label}`, label, 44, y, 300, 10, COLORS.graphite, { weight: 750, letterSpacing: 0.7, height: 18 });
-    addLine(board, `Mobile / Contact / ${label} / Line`, 44, y + (index === 3 ? 100 : 52), 300, COLORS.graphite, 0.28);
-  });
-  addButton(board, 'Mobile / Contact submit', 'Send inquiry', 44, 10180, 302, COLORS.graphite, COLORS.ivory);
-
-  addRect(board, 'Mobile / Footer', 0, 10450, 390, 300, COLORS.graphite);
-  addText(board, 'Mobile / Footer brand', 'Sites\nBy\nLeon', 20, 10500, 100, 28, COLORS.ivory, { font: 'signature', align: 'center', lineHeight: 0.58, lines: 3 });
-  addText(board, 'Mobile / Footer copy', 'Websites and managed hosting for photographers.', 150, 10510, 210, 12, COLORS.silver, { lineHeight: 1.4, lines: 3 });
-  addText(board, 'Mobile / Footer email', 'sites.by.leon@gmail.com', 20, 10630, 350, 18, COLORS.ivory, { font: 'display', height: 28 });
-  return board;
-}
-
-function buildComponents(page) {
-  const board = penpot.createBoard();
-  board.name = 'Components / Core';
-  board.x = 2200;
-  board.y = 0;
-  board.resize(920, 1280);
-  board.fills = [{ fillColor: COLORS.ivory, fillOpacity: 1 }];
-  board.clipContent = true;
-  page.root.appendChild(board);
-  addText(board, 'Components / Title', 'sites.by.leon / Core components', 48, 48, 820, 54, COLORS.graphite, { font: 'display', height: 70 });
-  addText(board, 'Components / Token note', 'Graphite Â· Warm ivory Â· Silver Â· Electric blue / Cormorant Â· Manrope Â· Allura', 48, 120, 820, 13, '#555961', { height: 22 });
-  addLine(board, 'Components / Header divider', 48, 165, 824, '#5D6068', 0.25);
-  addText(board, 'Components / Brand mark label', 'BRAND MARK', 48, 210, 160, 11, COLORS.blueDark, { weight: 750, letterSpacing: 1, height: 18 });
-  const brandPlate = addRect(board, 'Component / Brand Mark', 48, 250, 300, 250, COLORS.graphite, 18);
-  addText(board, 'Component / Brand Mark / Text', 'Sites\nBy\nLeon', 90, 290, 215, 68, COLORS.ivory, { font: 'signature', align: 'center', lineHeight: 0.56, lines: 3 });
-  addText(board, 'Components / Buttons label', 'BUTTONS', 410, 210, 160, 11, COLORS.blueDark, { weight: 750, letterSpacing: 1, height: 18 });
-  const primaryButton = addButton(board, 'Component / Button / Primary', 'Contact', 410, 250, 180, COLORS.blue, COLORS.graphite);
-  const darkButton = addButton(board, 'Component / Button / Ink', 'Send inquiry', 610, 250, 210, COLORS.graphite, COLORS.ivory);
-  addText(board, 'Components / Label label', 'CONCEPT LABEL', 410, 350, 200, 11, COLORS.blueDark, { weight: 750, letterSpacing: 1, height: 18 });
-  const conceptLabel = addRect(board, 'Component / Concept Label', 410, 390, 180, 42, COLORS.ivory, 21);
-  addText(board, 'Component / Concept Label / Text', 'CONCEPT PROJECT', 425, 402, 150, 10, COLORS.graphite, { weight: 750, align: 'center', letterSpacing: 0.7, height: 18 });
-  addText(board, 'Components / Browser label', 'BROWSER MOCKUP', 48, 560, 220, 11, COLORS.blueDark, { weight: 750, letterSpacing: 1, height: 18 });
-  addBrowser(board, 'Component / Browser Mockup', 48, 600, 520, 430, '#4A4038', 'Vow & Light');
-  addText(board, 'Components / Price label', 'PRICING CARD', 620, 560, 180, 11, COLORS.blueDark, { weight: 750, letterSpacing: 1, height: 18 });
-  addPricingCard(board, 620, 600, 252, 'Studio', 65, true);
-  try {
-    const library = penpot.library.local;
-    if (!library.components.find((component) => component.name === 'Brand Mark')) library.createComponent([brandPlate]).name = 'Brand Mark';
-    if (!library.components.find((component) => component.name === 'Button / Primary')) library.createComponent([primaryButton]).name = 'Button / Primary';
-    if (!library.components.find((component) => component.name === 'Button / Ink')) library.createComponent([darkButton]).name = 'Button / Ink';
-    if (!library.components.find((component) => component.name === 'Concept Label')) library.createComponent([conceptLabel]).name = 'Concept Label';
-  } catch (error) {
-    // The visual component board remains complete even if a library operation is unavailable.
-  }
-  return board;
-}
-
-const page = penpot.currentPage;
-const file = penpot.currentFile;
-if (!page || !file) throw new Error('Open a Penpot design file before running the builder.');
-
-page.name = 'Homepage';
-createTokens();
-
-const existing = page.findShapes({ type: 'board' }).filter((shape) =>
-  ['Homepage / Desktop / 1440', 'Homepage / Mobile / 390', 'Components / Core'].includes(shape.name),
-);
-existing.forEach((shape) => shape.remove());
-
-const desktop = buildDesktop(page);
-const mobile = buildMobile(page);
-const components = buildComponents(page);
-
-storage.sitesByLeonBoards = { desktop: desktop.id, mobile: mobile.id, components: components.id };
-penpot.viewport.zoomToFitAll();
-
-return {
-  file: file.name,
-  page: page.name,
-  boards: storage.sitesByLeonBoards,
-  tokens: penpotUtils.tokenOverview(),
-  validation: file.validate().map((error) => String(error)),
-};
+  const s×Ž}¶‰žËkºwµç]•¡½ÍÑ¥¹œ™½ÈÁ¡½Ñ½É…Á¡•ÉÌÝ¡¼Ý…¹ÐÑ¡”Ý•ˆ¡…¹‘±•¸œ°€ÈÜÀ°€àÐÜÀ°€ÔÈÀ°€ÄÐ°=1=IL¹Í¥±Ù•È°ì±¥¹•Ìè€Èô¤ì4(€…‘‘Q•áÐ¡‰½…É°€½½Ñ•È€¼µ…¥°œ°€Í¥Ñ•Ì¹‰ä¹±•½¹µ…¥°¹½´œ°€ÄÀÌÀ°€àÐÜÀ°€ÌÌÀ°€ÈÈ°=1=IL¹¥Ù½Éä°ì™½¹Ðè€‘¥ÍÁ±…äœ°…±¥¸è€É¥¡Ðœ°¡•¥¡Ðè€ÌÔô¤ì4(€É•ÑÕÉ¸‰½…Éì4)ô4(4)™Õ¹Ñ¥½¸‰Õ¥±‘5½‰¥±”¡Á…”¤ì4(€½¹ÍÐ‰½…É€ôÁ•¹Á½Ð¹É•…Ñ•	½…É ¤ì4(€‰½…É¹¹…µ”€ô€!½µ•Á…”€¼5½‰¥±”€¼€ÌäÀœì4(€‰½…É¹à€ô€ÄØÀÀì4(€‰½…É¹ä€ô€Àì4(€‰½…É¹É•Í¥é” ÌäÀ°€ÄÀÜÔÀ¤ì4(€‰½…É¹™¥±±Ì€ômì™¥±±½±½Èè=1=IL¹É…Á¡¥Ñ”°™¥±±=Á…¥Ñäè€Äõtì4(€‰½…É¹±¥Á½¹Ñ•¹Ð€ôÑÉÕ”ì4(€Á…”¹É½½Ð¹…ÁÁ•¹‘¡¥±¡‰½…É¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼!•É¼œ°€À°€À°€ÌäÀ°€ÄÀàÀ°=1=IL¹É…Á¡¥Ñ”¤ì4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼9…Ù¥…Ñ¥½¸œ°€ÄØ°€ÄØ°€ÌÔà°€ÜØ°=1=IL¹É…Á¡¥Ñ”È°€ÄØ¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼	É…¹œ°€M¥Ñ•Íq¹	åq¹1•½¸œ°€ÌÀ°€ÈÔ°€Üà°€ÈÌ°=1=IL¹¥Ù½Éä°ì™½¹Ðè€Í¥¹…ÑÕÉ”œ°…±¥¸è€•¹Ñ•Èœ°±¥¹•!•¥¡Ðè€À¸ÔØ°±¥¹•Ìè€Ìô¤ì4(€…‘‘	ÕÑÑ½¸¡‰½…É°€5½‰¥±”€¼½¹Ñ…ÐQœ°€½¹Ñ…Ðœ°€ÈÜÐ°€Èà°€àØ°=1=IL¹‰±Õ”°=1=IL¹É…Á¡¥Ñ”¤ì4(€…‘‘å•‰É½Ü¡‰½…É°€]•ˆ‘•Í¥¸€ƒŠˆ€5…¹…•¡½ÍÑ¥¹œœ°€ÈÀ°€ÄÐÀ°€ÌÐÀ¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼!•É¼¡•…‘¥¹œœ°€]•‰Í¥Ñ•Ì™½Éq¹Á¡½Ñ½É…Á¡•ÉÌ°œ°€ÈÀ°€ÄàØ°€ÌÔÀ°€ÔÌ°=1=IL¹¥Ù½Éä°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸àÈ°±¥¹•Ìè€Èô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼!•É¼…•¹Ðœ°€Ý¥Ñ¡½ÕÐÑ¡•q¹Ý•‰Í¥Ñ”¡•…‘…¡”¸œ°€ÌÐ°€ÈàØ°€ÌÌÀ°€ÔÀ°=1=IL¹‰±Õ•1¥¡Ð°ì™½¹Ðè€‘¥ÍÁ±…äœ°¥Ñ…±¥ŒèÑÉÕ”°±¥¹•!•¥¡Ðè€À¸àÐ°±¥¹•Ìè€Èô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼!•É¼‘•ÍÉ¥ÁÑ¥½¸œ°€¥¹•µ…Ñ¥Œ¡½µ”™½Èå½ÕÈÝ½É¯ŠQ‘•Í¥¹•°±…Õ¹¡•°¡½ÍÑ•±q¹…¹…É•™½È‰ä½¹”Á•ÉÍ½¸å½Ô…¸…ÑÕ…±±äÉ•… ¸œ°€ÈÀ°€ÐÈÀ°€ÌÔÀ°€ÄÔ°=1=IL¹Í¥±Ù•É1¥¡Ð°ì±¥¹•!•¥¡Ðè€Ä¸ÐÔ°±¥¹•Ìè€Ðô¤ì4(€…‘‘	ÕÑÑ½¸¡‰½…É°€5½‰¥±”€¼!•É¼Qœ°€½¹Ñ…Ðœ°€ÈÀ°€ÔÌÔ°€ÌÔÀ°=1=IL¹‰±Õ”°=1=IL¹É…Á¡¥Ñ”¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼!•É¼•µ…¥°œ°€Í¥Ñ•Ì¹‰ä¹±•½¹µ…¥°¹½´€ƒŠ\œ°€ÈÀ°€ØÄÈ°€ÌÔÀ°€ÄÌ°=1=IL¹¥Ù½Éä°ìÝ•¥¡Ðè€ÜÀÀ°¡•¥¡Ðè€ÈÈô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼!•É¼™…ÑÌœ°€5=9Q!1d=91d€€€¼€€€È×ŠLÐÀ€€€¼€€=5%8€¬Ae59QLœ°€ÈÀ°€ØàÀ°€ÌÔÀ°€ä°=1=IL¹Í¥±Ù•È°ì±•ÑÑ•ÉMÁ…¥¹œè€À¸Ô°¡•¥¡Ðè€Äàô¤ì4(€…‘‘	É½ÝÍ•È¡‰½…É°€5½‰¥±”€¼!•É¼‰É½ÝÍ•Èœ°€ÈÀ°€ÜÌÀ°€ÌÔÀ°€ÌÀÔ°€œŒÑÐÄÌàœ°€ÍÑ•È!½ÕÍ”œ¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼AÉ½µ¥Í”œ°€À°€ÄÀàÀ°€ÌäÀ°€ÌÌÀ°=1=IL¹É…Á¡¥Ñ”È¤ì4(€mlœÀÄœ°€™™½ÉÑ±•ÍÌt°lœÀÈœ°€A¡½Ñ½É…Á¡•ÈµÍÁ•¥™¥Œt°lœÀÌœ°€ÑÕ…±±ä…™™½É‘…‰±”ut¹™½É…  ¡¥Ñ•´°¥¹‘•à¤€ôøì4(€€€½¹ÍÐä€ô€ÄÄÄÔ€¬¥¹‘•à€¨€äÐì4(€€€…‘‘1¥¹”¡‰½…É°5½‰¥±”€¼AÉ½µ¥Í”€¼1¥¹”€‘í¥¹‘•áõ€°€ÈÀ°ä°€ÌÔÀ°=1=IL¹Í¥±Ù•È°€À¸È¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼AÉ½µ¥Í”€¼€‘í¥Ñ•µlÅuô€¼%¹‘•á€°¥Ñ•µlÁt°€ÈÀ°ä€¬€ÈÔ°€ÐÀ°€ÄÀ°=1=IL¹‰±Õ•1¥¡Ð°ì¡•¥¡Ðè€Äàô¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼AÉ½µ¥Í”€¼€‘í¥Ñ•µlÅuõ€°¥Ñ•µlÅt°€ÜÈ°ä€¬€ÄØ°€ÈàÀ°€ÈÔ°=1=IL¹¥Ù½Éä°ì™½¹Ðè€‘¥ÍÁ±…äœ°¡•¥¡Ðè€ÌÐô¤ì4(€ô¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼]½É¬œ°€À°€ÄÐÄÀ°€ÌäÀ°€ÈÀÐÀ°=1=IL¹¥Ù½Éä°€ÈÐ¤ì4(€…‘‘å•‰É½Ü¡‰½…É°€œÀÈ€¼M•±•Ñ•‘¥É•Ñ¥½¹Ìœ°€ÈÀ°€ÄÔÄÀ°€ÈÜÀ°ÑÉÕ”¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼]½É¬¡•…‘¥¹œœ°€Q¡É•”Ý…åÍq¹å½ÕÈÝ½É­q¹½Õ±½Ý¹q¹Ñ¡”É½½´¸œ°€ÈÀ°€ÄÔÜÀ°€ÌÔÀ°€ÔÄ°=1=IL¹É…Á¡¥Ñ”°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸àØ°±¥¹•Ìè€Ðô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼]½É¬¹½Ñ”œ°€=É¥¥¹…°½¹•ÁÐÁÉ½©•ÑÏŠQ¹½Ð±¥•¹Ð±…¥µÌ¸Ù•Éä•á…µÁ±”¥Ì±•…É±ä±…‰•±•¸œ°€ÈÀ°€ÄÜÜÔ°€ÌÔÀ°€ÄÌ°€œŒÔÔÔäØÄœ°ì±¥¹•!•¥¡Ðè€Ä¸ÐÔ°±¥¹•Ìè€Ðô¤ì4(€½¹ÍÐµ½‰¥±•½¹•ÁÑÌ€ôl4(€€€lY½Ü€˜1¥¡Ðœ°€%Q=I%0]%9A!=Q=IA!dœ°€œŒÑÐÀÌàt°4(€€€l9½ÉÑ¡±¥¹”A½ÉÑÉ…¥ÑÌœ°€	=1A=IQI%PMQU%<œ°€œŒÄÜÉØÐt°4(€€€l¥•±‘Ý½É¬½µµ•É¥…°œ°€=55I%0A!=Q=IA!dœ°€œŒÙÙÜàt°4(€tì4(€µ½‰¥±•½¹•ÁÑÌ¹™½É…  ¡¥Ñ•´°¥¹‘•à¤€ôøì4(€€€½¹ÍÐä€ô€ÄäÌÀ€¬¥¹‘•à€¨€ÐàÀì4(€€€…‘‘1¥¹”¡‰½…É°5½‰¥±”€¼]½É¬€¼€‘í¥Ñ•µlÁuô€¼¥Ù¥‘•É€°€ÈÀ°ä°€ÌÔÀ°€œŒÕØÀØàœ°€À¸ÈÔ¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼]½É¬€¼€‘í¥Ñ•µlÁuô€¼%¹‘•á€°€À‘í¥¹‘•à€¬€Åõ€°€ÈÀ°ä€¬€ÈÔ°€ÔÀ°€ÄÀ°€œŒÕØÄØäœ°ì¡•¥¡Ðè€Äàô¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼]½É¬€¼€‘í¥Ñ•µlÁuô€¼1…‰•±€°€=9APAI=)Pœ°€ÈÈÀ°ä€¬€Äà°€ÄÔÀ°€ÄÀ°=1=IL¹É…Á¡¥Ñ”°ìÝ•¥¡Ðè€ÜÔÀ°…±¥¸è€É¥¡Ðœ°±•ÑÑ•ÉMÁ…¥¹œè€À¸Ü°¡•¥¡Ðè€Äàô¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼]½É¬€¼€‘í¥Ñ•µlÁuô€¼½ÕÍ€°¥Ñ•µlÅt°€ÈÀ°ä€¬€ÜÀ°€ÌÔÀ°€ÄÀ°€œŒÕØÄØäœ°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€À¸Ø°¡•¥¡Ðè€Äàô¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼]½É¬€¼€‘í¥Ñ•µlÁuô€¼Q¥Ñ±•€°¥Ñ•µlÁt°€ÈÀ°ä€¬€ÄÀÐ°€ÌÔÀ°€ÐÈ°=1=IL¹É…Á¡¥Ñ”°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸ä°±¥¹•Ìè€Èô¤ì4(€€€…‘‘	É½ÝÍ•È¡‰½…É°5½‰¥±”€¼]½É¬€¼€‘í¥Ñ•µlÁuô€¼	É½ÝÍ•É€°€ÈÀ°ä€¬€ÄäÀ°€ÌÔÀ°€ÈÔÀ°¥Ñ•µlÉt°¥Ñ•µlÁt¤ì4(€ô¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼AÉ½•ÍÌœ°€À°€ÌÐÔÀ°€ÌäÀ°€ÄÄÀÀ°=1=IL¹É…Á¡¥Ñ”¤ì4(€…‘‘å•‰É½Ü¡‰½…É°€œÀÌ€¼Q¡”ÁÉ½•ÍÌœ°€ÈÀ°€ÌÔÐÀ°€ÈÈÀ¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼AÉ½•ÍÌ¡•…‘¥¹œœ°€±•…ÈÁ…Ñ¡q¹™É½´¹••Ñ¼±¥Ù”¸œ°€ÈÀ°€ÌÔäÔ°€ÌÔÀ°€Ðà°=1=IL¹¥Ù½Éä°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸àØ°±¥¹•Ìè€Èô¤ì4(€lMÑ…ÉÐÝ¥Ñ „½¹Ù•ÉÍ…Ñ¥½¸œ°€M¡…Á”Ñ¡”‘¥É•Ñ¥½¸œ°€I•Ù¥•ÜÑ¡”‰Õ¥±œ°€1…Õ¹ Ý¥Ñ¡½ÕÐÑ¡”¡•…‘…¡”t¹™½É…  ¡¥Ñ•´°¥¹‘•à¤€ôøì4(€€€½¹ÍÐä€ô€ÌÜÜÀ€¬¥¹‘•à€¨€ÄØÔì4(€€€…‘‘1¥¹”¡‰½…É°5½‰¥±”€¼AÉ½•ÍÌ€¼€‘í¥Ñ•µô€¼¥Ù¥‘•É€°€ÈÀ°ä°€ÌÔÀ°=1=IL¹Í¥±Ù•È°€À¸ÈÈ¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼AÉ½•ÍÌ€¼€‘í¥Ñ•µô€¼%¹‘•á€°€À‘í¥¹‘•à€¬€Åõ€°€ÈÀ°ä€¬€Èà°€ÐÔ°€ÄÀ°=1=IL¹‰±Õ•1¥¡Ð°ì¡•¥¡Ðè€Äàô¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼AÉ½•ÍÌ€¼€‘í¥Ñ•µõ€°¥Ñ•´°€ÜÈ°ä€¬€ÈÀ°€ÈäÀ°€ÈÜ°=1=IL¹¥Ù½Éä°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸äÔ°±¥¹•Ìè€Èô¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼AÉ½•ÍÌ€¼€‘í¥Ñ•µô€¼½Áå€°lQ•±°µ”Ý¡…Ðå½ÔÁ¡½Ñ½É…Á …¹Ý¡…Ðå½Ô¹••¸œ°€±¥¸½¸Á…•Ì°Á•ÉÍ½¹…±¥Ñä°…¹¥µ…•Ì¸œ°€M•”Ñ¡”Í¥Ñ”‰•™½É”±…Õ¹ ¸œ°€$ÁÕ‰±¥Í °¡½ÍÐ°…¹ÍÑ…ä…Ù…¥±…‰±”¸um¥¹‘•át°€ÜÈ°ä€¬€àÀ°€ÈàÔ°€ÄÈ°=1=IL¹Í¥±Ù•È°ì±¥¹•!•¥¡Ðè€Ä¸Ð°±¥¹•Ìè€Èô¤ì4(€ô¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼AÉ¥¥¹œœ°€À°€ÐÔÔÀ°€ÌäÀ°€ÄäÔÀ°=1=IL¹É…Á¡¥Ñ”È¤ì4(€…‘‘å•‰É½Ü¡‰½…É°€œÀÐ€¼5½¹Ñ¡±äÁ…­…•Ìœ°€ÈÀ°€ÐØÐÀ°€ÈÐÀ¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼AÉ¥¥¹œ¡•…‘¥¹œœ°€AÉ½™•ÍÍ¥½¹…±q¹ÁÉ•Í•¹”¸œ°€ÈÀ°€ÐÜÀÀ°€ÌÔÀ°€ÔÀ°=1=IL¹¥Ù½Éä°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸àØ°±¥¹•Ìè€Èô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼AÉ¥¥¹œ…•¹Ðœ°€!Õµ…¸µÍ¥é•‘q¹ÁÉ¥¥¹œ¸œ°€ÈÀ°€ÐàÀÀ°€ÌÔÀ°€ÔÀ°=1=IL¹‰±Õ•1¥¡Ð°ì™½¹Ðè€‘¥ÍÁ±…äœ°¥Ñ…±¥ŒèÑÉÕ”°±¥¹•!•¥¡Ðè€À¸àØ°±¥¹•Ìè€Èô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼AÉ¥¥¹œ¹½Ñ”œ°€5½¹Ñ¡±ä½¹±ä¸9¼Í•Á…É…Ñ”‰Õ¥±™•”¸œ°€ÈÀ°€ÐäÄÔ°€ÌÔÀ°€ÄÌ°=1=IL¹Í¥±Ù•É1¥¡Ð°ì¡•¥¡Ðè€ÈÈô¤ì4(€…‘‘AÉ¥¥¹…É¡‰½…É°€ÈÀ°€ÐäàÔ°€ÌÔÀ°€ÍÍ•¹Ñ¥…°œ°€ÌÀ°™…±Í”¤ì4(€…‘‘AÉ¥¥¹…É¡‰½…É°€ÈÀ°€ÔÔàÀ°€ÌÔÀ°€MÑÕ‘¥¼œ°€ØÔ°ÑÉÕ”¤ì4(€…‘‘AÉ¥¥¹…É¡‰½…É°€ÈÀ°€ØÄÜÔ°€ÌÔÀ°€M¥¹…ÑÕÉ”œ°€ÄÀÀ°™…±Í”¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼M•ÉÙ¥•Ìœ°€À°€ØÔÀÀ°€ÌäÀ°€ÄÈÀÀ°=1=IL¹¥Ù½Éä¤ì4(€…‘‘å•‰É½Ü¡‰½…É°€œÀÔ€¼Ù•ÉåÑ¡¥¹œ¡…¹‘±•œ°€ÈÀ°€ØÔäÀ°€ÈØÀ°ÑÉÕ”¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼M•ÉÙ¥•Ì¡•…‘¥¹œœ°€e½ÕÈÝ•‰Í¥Ñ”Í¡½Õ±‘q¹É•…Ñ”µ½µ•¹ÑÕ´±q¹¹½Ð…¹½Ñ¡•È©½ˆ¸œ°€ÈÀ°€ØØÔÀ°€ÌÔÀ°€ÐØ°=1=IL¹É…Á¡¥Ñ”°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸àà°±¥¹•Ìè€Ìô¤ì4(€l•Í¥¹•…É½Õ¹å½ÕÈÝ½É¬œ°€!½ÍÑ•…¹µ…¥¹Ñ…¥¹•œ°€É•…°Á•ÉÍ½¸Ñ¼½¹Ñ…Ðt¹™½É…  ¡¥Ñ•´°¥¹‘•à¤€ôøì4(€€€½¹ÍÐä€ô€ØàØÀ€¬¥¹‘•à€¨€ÄäÀì4(€€€…‘‘1¥¹”¡‰½…É°5½‰¥±”€¼M•ÉÙ¥•Ì€¼€‘í¥Ñ•µô€¼¥Ù¥‘•É€°€ÈÀ°ä°€ÌÔÀ°€œŒÕØÀØàœ°€À¸ÈÔ¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼M•ÉÙ¥•Ì€¼€‘í¥Ñ•µô€¼%¹‘•á€°€À‘í¥¹‘•à€¬€Åõ€°€ÈÀ°ä€¬€Èà°€ÐÔ°€ÄÀ°=1=IL¹‰±Õ•…É¬°ì¡•¥¡Ðè€Äàô¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼M•ÉÙ¥•Ì€¼€‘í¥Ñ•µõ€°¥Ñ•´°€ÜÈ°ä€¬€Äà°€ÈàÔ°€ÌÀ°=1=IL¹É…Á¡¥Ñ”°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸äÔ°±¥¹•Ìè€Èô¤ì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼M•ÉÙ¥•Ì€¼€‘í¥Ñ•µô€¼½Áå€°l1…å½ÕÐÍ¡…Á•…É½Õ¹å½ÕÈ¥µ…•Ì…¹…Õ‘¥•¹”¸œ°€1…Õ¹ …¹É½ÕÑ¥¹”Ñ•¡¹¥…°…É”ÍÑ…ä¡…¹‘±•¸œ°€Q…±¬‘¥É•Ñ±äÝ¥Ñ 1•½¸Ý¡•¸å½Ô¹••…¸ÕÁ‘…Ñ”¸um¥¹‘•át°€ÜÈ°ä€¬€äÀ°€ÈàÀ°€ÄÈ°€œŒÔÔÔäØÄœ°ì±¥¹•!•¥¡Ðè€Ä¸Ð°±¥¹•Ìè€Ìô¤ì4(€ô¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼A…åµ•¹ÑÌœ°€ÈÀ°€ÜÄØÀ°€ÌÔÀ°€ÐàÀ°=1=IL¹‰±Õ”°€Äà¤ì4(€…‘‘å•‰É½Ü¡‰½…É°€=ÁÑ¥½¹…°É½ÝÑ Á…Ñ œ°€ÐÐ°€ÜÈÀÀ°€ÈØÀ°™…±Í”¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼A…åµ•¹ÑÌÑ¥Ñ±”œ°€9••‘•Á½Í¥ÑÌ½È±¥•¹ÐÁ…åµ•¹ÑÌ±…Ñ•Èüœ°€ÐÐ°€ÜÈØÀ°€ÌÀÀ°€ÌÜ°=1=IL¹É…Á¡¥Ñ”°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸ä°±¥¹•Ìè€Ìô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼A…åµ•¹ÑÌ½Áäœ°€]”…¸Á±…¸„Á…åµ•¹ÐµÉ•…‘ä•áÁ•É¥•¹”…É•™Õ±±ä¸9¼±¥Ù”Á…å½ÕÐ™•…ÑÕÉ”¥ÌÁÉ½µ¥Í•Õ¹Ñ¥°Ñ•ÍÑ•¸œ°€ÐÐ°€ÜÌäÔ°€ÌÀÀ°€ÄÈ°=1=IL¹É…Á¡¥Ñ”°ì±¥¹•!•¥¡Ðè€Ä¸ÐÔ°±¥¹•Ìè€Ðô¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼½Õ¹‘•Èœ°€À°€ÜÜÀÀ°€ÌäÀ°€ÄÄàÀ°=1=IL¹É…Á¡¥Ñ”¤ì4(€…‘‘±±¥ÁÍ”¡‰½…É°€5½‰¥±”€¼½Õ¹‘•È½É‰¥Ðœ°€ÔÔ°€ÜÜäÀ°€ÈàÀ°€ÈàÀ°=1=IL¹‰±Õ”°€À¸Àà¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½Õ¹‘•ÈÍ¥¹…ÑÕÉ”œ°€M¥Ñ•Íq¹	åq¹1•½¸œ°€àÔ°€ÜàÐÔ°€ÈÈÀ°€ÜÀ°=1=IL¹¥Ù½Éä°ì™½¹Ðè€Í¥¹…ÑÕÉ”œ°…±¥¸è€•¹Ñ•Èœ°±¥¹•!•¥¡Ðè€À¸ÔØ°±¥¹•Ìè€Ìô¤ì4(€…‘‘å•‰É½Ü¡‰½…É°€œÀØ€¼Q¡”Á•ÉÍ½¸‰•¡¥¹¥Ðœ°€ÈÀ°€àÄÜÀ°€ÈàÀ¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½Õ¹‘•È¡•…‘¥¹œœ°€Mµ…±°ÍÑÕ‘¥¼¹q¹¥É•ÐÉ•±…Ñ¥½¹Í¡¥À¸œ°€ÈÀ°€àÈÌÀ°€ÌÔÀ°€Ðà°=1=IL¹¥Ù½Éä°ì™½¹Ðè€‘¥ÍÁ±…äœ°±¥¹•!•¥¡Ðè€À¸àØ°±¥¹•Ìè€Èô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½Õ¹‘•È½Áäœ°€'Še´1•½¸¸$‘•Í¥¸…¹¡½ÍÐÝ•‰Í¥Ñ•Ì™½ÈÁ¡½Ñ½É…Á¡•ÉÌÝ¡¼Ý…¹ÐÑ¡•¥È½¹±¥¹”ÁÉ•Í•¹”¡…¹‘±•Ý¥Ñ¡½ÕÐ…¹½Ñ¡•È™Õ±°µÑ¥µ”©½ˆ¸œ°€ÈÀ°€àÌÜÀ°€ÌÔÀ°€ÄÐ°=1=IL¹Í¥±Ù•É1¥¡Ð°ì±¥¹•!•¥¡Ðè€Ä¸Ô°±¥¹•Ìè€Ôô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½Õ¹‘•È±¥¹¬œ°€MQIP=9YIMQ%=8€ƒŠ\œ°€ÈÀ°€àÔÈÔ°€ÌÀÀ°€ÄÄ°=1=IL¹¥Ù½Éä°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€Ä°¡•¥¡Ðè€Äàô¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼½¹Ñ…Ðœ°€À°€àààÀ°€ÌäÀ°€ÄÔÜÀ°=1=IL¹‰±Õ”¤ì4(€…‘‘å•‰É½Ü¡‰½…É°€œÀÜ€¼½¹Ñ…Ðœ°€ÈÀ°€àäÜÀ°€ÄàÀ°™…±Í”¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½¹Ñ…Ð¡•…‘¥¹œœ°€1•ÓŠeÌµ…­•q¹å½ÕÈÝ½É­q¹™••°¥µÁ½ÍÍ¥‰±•q¹Ñ¼½Ù•É±½½¬¸œ°€ÈÀ°€äÀÌÀ°€ÌÔÀ°€ÔÄ°=1=IL¹É…Á¡¥Ñ”°ì™½¹Ðè€‘¥ÍÁ±…äœ°¥Ñ…±¥ŒèÑÉÕ”°±¥¹•!•¥¡Ðè€À¸àÐ°±¥¹•Ìè€Ðô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½¹Ñ…Ð½Áäœ°€Q•±°µ”Ý¡…Ðå½ÔÁ¡½Ñ½É…Á …¹Ý¡…Ðå½ÔÝ…¹Ðå½ÕÈ¹•áÐÍ¥Ñ”Ñ¼‘¼¸œ°€ÈÀ°€äÈÐÔ°€ÌÔÀ°€ÄÐ°=1=IL¹É…Á¡¥Ñ”°ì±¥¹•!•¥¡Ðè€Ä¸Ô°±¥¹•Ìè€Ìô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½¹Ñ…Ð•µ…¥°±…‰•°œ°€AIH%IP5%0üœ°€ÈÀ°€äÌàÀ°€ÈàÀ°€ÄÀ°=1=IL¹É…Á¡¥Ñ”°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€À¸à°¡•¥¡Ðè€Äàô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½¹Ñ…Ð•µ…¥°œ°€Í¥Ñ•Ì¹‰ä¹±•½¹µ…¥°¹½´œ°€ÈÀ°€äÐÈÀ°€ÌÔÀ°€ÈÜ°=1=IL¹É…Á¡¥Ñ”°ì™½¹Ðè€‘¥ÍÁ±…äœ°Ý•¥¡Ðè€ØÀÀ°¡•¥¡Ðè€Ìàô¤ì4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼½¹Ñ…Ð™½É´œ°€ÈÀ°€äÔÄÀ°€ÌÔÀ°€ÜàÀ°=1=IL¹¥Ù½Éä°€Äà¤ì4(€l95œ°€5%0œ°€]!P<e=TA!=Q=IA üœ°€]!PIe=T1==-%9=Hüt¹™½É…  ¡±…‰•°°¥¹‘•à¤€ôøì4(€€€½¹ÍÐä€ô€äÔØÀ€¬¥¹‘•à€¨€ÄÌÔì4(€€€…‘‘Q•áÐ¡‰½…É°5½‰¥±”€¼½¹Ñ…Ð€¼€‘í±…‰•±õ€°±…‰•°°€ÐÐ°ä°€ÌÀÀ°€ÄÀ°=1=IL¹É…Á¡¥Ñ”°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€À¸Ü°¡•¥¡Ðè€Äàô¤ì4(€€€…‘‘1¥¹”¡‰½…É°5½‰¥±”€¼½¹Ñ…Ð€¼€‘í±…‰•±ô€¼1¥¹•€°€ÐÐ°ä€¬€¡¥¹‘•à€ôôô€Ì€ü€ÄÀÀ€è€ÔÈ¤°€ÌÀÀ°=1=IL¹É…Á¡¥Ñ”°€À¸Èà¤ì4(€ô¤ì4(€…‘‘	ÕÑÑ½¸¡‰½…É°€5½‰¥±”€¼½¹Ñ…ÐÍÕ‰µ¥Ðœ°€M•¹¥¹ÅÕ¥Éäœ°€ÐÐ°€ÄÀÄàÀ°€ÌÀÈ°=1=IL¹É…Á¡¥Ñ”°=1=IL¹¥Ù½Éä¤ì4(4(€…‘‘I•Ð¡‰½…É°€5½‰¥±”€¼½½Ñ•Èœ°€À°€ÄÀÐÔÀ°€ÌäÀ°€ÌÀÀ°=1=IL¹É…Á¡¥Ñ”¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½½Ñ•È‰É…¹œ°€M¥Ñ•Íq¹	åq¹1•½¸œ°€ÈÀ°€ÄÀÔÀÀ°€ÄÀÀ°€Èà°=1=IL¹¥Ù½Éä°ì™½¹Ðè€Í¥¹…ÑÕÉ”œ°…±¥¸è€•¹Ñ•Èœ°±¥¹•!•¥¡Ðè€À¸Ôà°±¥¹•Ìè€Ìô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½½Ñ•È½Áäœ°€]•‰Í¥Ñ•Ì…¹µ…¹…•¡½ÍÑ¥¹œ™½ÈÁ¡½Ñ½É…Á¡•ÉÌ¸œ°€ÄÔÀ°€ÄÀÔÄÀ°€ÈÄÀ°€ÄÈ°=1=IL¹Í¥±Ù•È°ì±¥¹•!•¥¡Ðè€Ä¸Ð°±¥¹•Ìè€Ìô¤ì4(€…‘‘Q•áÐ¡‰½…É°€5½‰¥±”€¼½½Ñ•È•µ…¥°œ°€Í¥Ñ•Ì¹‰ä¹±•½¹µ…¥°¹½´œ°€ÈÀ°€ÄÀØÌÀ°€ÌÔÀ°€Äà°=1=IL¹¥Ù½Éä°ì™½¹Ðè€‘¥ÍÁ±…äœ°¡•¥¡Ðè€Èàô¤ì4(€É•ÑÕÉ¸‰½…Éì4)ô4(4)™Õ¹Ñ¥½¸‰Õ¥±‘½µÁ½¹•¹ÑÌ¡Á…”¤ì4(€½¹ÍÐ‰½…É€ôÁ•¹Á½Ð¹É•…Ñ•	½…É ¤ì4(€‰½…É¹¹…µ”€ô€½µÁ½¹•¹ÑÌ€¼½É”œì4(€‰½…É¹à€ô€ÈÈÀÀì4(€‰½…É¹ä€ô€Àì4(€‰½…É¹É•Í¥é” äÈÀ°€ÄÈàÀ¤ì4(€‰½…É¹™¥±±Ì€ômì™¥±±½±½Èè=1=IL¹¥Ù½Éä°™¥±±=Á…¥Ñäè€Äõtì4(€‰½…É¹±¥Á½¹Ñ•¹Ð€ôÑÉÕ”ì4(€Á…”¹É½½Ð¹…ÁÁ•¹‘¡¥±¡‰½…É¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹ÑÌ€¼Q¥Ñ±”œ°€Í¥Ñ•Ì¹‰ä¹±•½¸€¼½É”½µÁ½¹•¹ÑÌœ°€Ðà°€Ðà°€àÈÀ°€ÔÐ°=1=IL¹É…Á¡¥Ñ”°ì™½¹Ðè€‘¥ÍÁ±…äœ°¡•¥¡Ðè€ÜÀô¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹ÑÌ€¼Q½­•¸¹½Ñ”œ°€É…Á¡¥Ñ”ƒ
+Ü]…É´¥Ù½Éäƒ
+ÜM¥±Ù•Èƒ
+Ü±•ÑÉ¥Œ‰±Õ”€¼½Éµ½É…¹Ðƒ
+Ü5…¹É½Á”ƒ
+Ü±±ÕÉ„œ°€Ðà°€ÄÈÀ°€àÈÀ°€ÄÌ°€œŒÔÔÔäØÄœ°ì¡•¥¡Ðè€ÈÈô¤ì4(€…‘‘1¥¹”¡‰½…É°€½µÁ½¹•¹ÑÌ€¼!•…‘•È‘¥Ù¥‘•Èœ°€Ðà°€ÄØÔ°€àÈÐ°€œŒÕØÀØàœ°€À¸ÈÔ¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹ÑÌ€¼	É…¹µ…É¬±…‰•°œ°€	I95I,œ°€Ðà°€ÈÄÀ°€ÄØÀ°€ÄÄ°=1=IL¹‰±Õ•…É¬°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€Ä°¡•¥¡Ðè€Äàô¤ì4(€½¹ÍÐ‰É…¹‘A±…Ñ”€ô…‘‘I•Ð¡‰½…É°€½µÁ½¹•¹Ð€¼	É…¹5…É¬œ°€Ðà°€ÈÔÀ°€ÌÀÀ°€ÈÔÀ°=1=IL¹É…Á¡¥Ñ”°€Äà¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹Ð€¼	É…¹5…É¬€¼Q•áÐœ°€M¥Ñ•Íq¹	åq¹1•½¸œ°€äÀ°€ÈäÀ°€ÈÄÔ°€Øà°=1=IL¹¥Ù½Éä°ì™½¹Ðè€Í¥¹…ÑÕÉ”œ°…±¥¸è€•¹Ñ•Èœ°±¥¹•!•¥¡Ðè€À¸ÔØ°±¥¹•Ìè€Ìô¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹ÑÌ€¼	ÕÑÑ½¹Ì±…‰•°œ°€	UQQ=9Lœ°€ÐÄÀ°€ÈÄÀ°€ÄØÀ°€ÄÄ°=1=IL¹‰±Õ•…É¬°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€Ä°¡•¥¡Ðè€Äàô¤ì4(€½¹ÍÐÁÉ¥µ…Éå	ÕÑÑ½¸€ô…‘‘	ÕÑÑ½¸¡‰½…É°€½µÁ½¹•¹Ð€¼	ÕÑÑ½¸€¼AÉ¥µ…Éäœ°€½¹Ñ…Ðœ°€ÐÄÀ°€ÈÔÀ°€ÄàÀ°=1=IL¹‰±Õ”°=1=IL¹É…Á¡¥Ñ”¤ì4(€½¹ÍÐ‘…É­	ÕÑÑ½¸€ô…‘‘	ÕÑÑ½¸¡‰½…É°€½µÁ½¹•¹Ð€¼	ÕÑÑ½¸€¼%¹¬œ°€M•¹¥¹ÅÕ¥Éäœ°€ØÄÀ°€ÈÔÀ°€ÈÄÀ°=1=IL¹É…Á¡¥Ñ”°=1=IL¹¥Ù½Éä¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹ÑÌ€¼1…‰•°±…‰•°œ°€=9AP1	0œ°€ÐÄÀ°€ÌÔÀ°€ÈÀÀ°€ÄÄ°=1=IL¹‰±Õ•…É¬°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€Ä°¡•¥¡Ðè€Äàô¤ì4(€½¹ÍÐ½¹•ÁÑ1…‰•°€ô…‘‘I•Ð¡‰½…É°€½µÁ½¹•¹Ð€¼½¹•ÁÐ1…‰•°œ°€ÐÄÀ°€ÌäÀ°€ÄàÀ°€ÐÈ°=1=IL¹¥Ù½Éä°€ÈÄ¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹Ð€¼½¹•ÁÐ1…‰•°€¼Q•áÐœ°€=9APAI=)Pœ°€ÐÈÔ°€ÐÀÈ°€ÄÔÀ°€ÄÀ°=1=IL¹É…Á¡¥Ñ”°ìÝ•¥¡Ðè€ÜÔÀ°…±¥¸è€•¹Ñ•Èœ°±•ÑÑ•ÉMÁ…¥¹œè€À¸Ü°¡•¥¡Ðè€Äàô¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹ÑÌ€¼	É½ÝÍ•È±…‰•°œ°€	I=]MH5=-U@œ°€Ðà°€ÔØÀ°€ÈÈÀ°€ÄÄ°=1=IL¹‰±Õ•…É¬°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€Ä°¡•¥¡Ðè€Äàô¤ì4(€…‘‘	É½ÝÍ•È¡‰½…É°€½µÁ½¹•¹Ð€¼	É½ÝÍ•È5½­ÕÀœ°€Ðà°€ØÀÀ°€ÔÈÀ°€ÐÌÀ°€œŒÑÐÀÌàœ°€Y½Ü€˜1¥¡Ðœ¤ì4(€…‘‘Q•áÐ¡‰½…É°€½µÁ½¹•¹ÑÌ€¼AÉ¥”±…‰•°œ°€AI%%9Iœ°€ØÈÀ°€ÔØÀ°€ÄàÀ°€ÄÄ°=1=IL¹‰±Õ•…É¬°ìÝ•¥¡Ðè€ÜÔÀ°±•ÑÑ•ÉMÁ…¥¹œè€Ä°¡•¥¡Ðè€Äàô¤ì4(€…‘‘AÉ¥¥¹…É¡‰½…É°€ØÈÀ°€ØÀÀ°€ÈÔÈ°€MÑÕ‘¥¼œ°€ØÔ°ÑÉÕ”¤ì4(€ÑÉäì4(€€€½¹ÍÐ±¥‰É…Éä€ôÁ•¹Á½Ð¹±¥‰É…Éä¹±½…°ì4(€€€¥˜€ …±¥‰É…Éä¹½µÁ½¹•¹ÑÌ¹™¥¹ ¡½µÁ½¹•¹Ð¤€ôø½µÁ½¹•¹Ð¹¹…µ”€ôôô€	É…¹5…É¬œ¤¤±¥‰É…Éä¹É•…Ñ•½µÁ½¹•¹Ð¡m‰É…¹‘A±…Ñ•t¤¹¹…µ”€ô€	É…¹5…É¬œì4(€€€¥˜€ …±¥‰É…Éä¹½µÁ½¹•¹ÑÌ¹™¥¹ ¡½µÁ½¹•¹Ð¤€ôø½µÁ½¹•¹Ð¹¹…µ”€ôôô€	ÕÑÑ½¸€¼AÉ¥µ…Éäœ¤¤±¥‰É…Éä¹É•…Ñ•½µÁ½¹•¹Ð¡mÁÉ¥µ…Éå	ÕÑÑ½¹t¤¹¹…µ”€ô€	ÕÑÑ½¸€¼AÉ¥µ…Éäœì4(€€€¥˜€ …±¥‰É…Éä¹½µÁ½¹•¹ÑÌ¹™¥¹ ¡½µÁ½¹•¹Ð¤€ôø½µÁ½¹•¹Ð¹¹…µ”€ôôô€	ÕÑÑ½¸€¼%¹¬œ¤¤±¥‰É…Éä¹É•…Ñ•½µÁ½¹•¹Ð¡m‘…É­	ÕÑÑ½¹t¤¹¹…µ”€ô€	ÕÑÑ½¸€¼%¹¬œì4(€€€¥˜€ …±¥‰É…Éä¹½µÁ½¹•¹ÑÌ¹™¥¹ ¡½µÁ½¹•¹Ð¤€ôø½µÁ½¹•¹Ð¹¹…µ”€ôôô€½¹•ÁÐ1…‰•°œ¤¤±¥‰É…Éä¹É•…Ñ•½µÁ½¹•¹Ð¡m½¹•ÁÑ1…‰•±t¤¹¹…µ”€ô€½¹•ÁÐ1…‰•°œì4(€ô…Ñ €¡•ÉÉ½È¤ì4(€€€€¼¼Q¡”Ù¥ÍÕ…°½µÁ½¹•¹Ð‰½…ÉÉ•µ…¥¹Ì½µÁ±•Ñ”•Ù•¸¥˜„±¥‰É…Éä½Á•É…Ñ¥½¸¥ÌÕ¹…Ù…¥±…‰±”¸4(€ô4(€É•ÑÕÉ¸‰½…Éì4)ô4(4)½¹ÍÐÁ…”€ôÁ•¹Á½Ð¹ÕÉÉ•¹ÑA…”ì4)½¹ÍÐ™¥±”€ôÁ•¹Á½Ð¹ÕÉÉ•¹Ñ¥±”ì4)¥˜€ …Á…”ñð€…™¥±”¤Ñ¡É½Ü¹•ÜÉÉ½È =Á•¸„A•¹Á½Ð‘•Í¥¸™¥±”‰•™½É”ÉÕ¹¹¥¹œÑ¡”‰Õ¥±‘•È¸œ¤ì4(4)Á…”¹¹…µ”€ô€!½µ•Á…”œì4)É•…Ñ•Q½­•¹Ì ¤ì4(4)½¹ÍÐ•á¥ÍÑ¥¹œ€ôÁ…”¹™¥¹‘M¡…Á•Ì¡ìÑåÁ”è€‰½…Éœô¤¹™¥±Ñ•È ¡Í¡…Á”¤€ôø4(€l!½µ•Á…”€¼•Í­Ñ½À€¼€ÄÐÐÀœ°€!½µ•Á…”€¼5½‰¥±”€¼€ÌäÀœ°€½µÁ½¹•¹ÑÌ€¼½É”t¹¥¹±Õ‘•Ì¡Í¡…Á”¹¹…µ”¤°4(¤ì4)•á¥ÍÑ¥¹œ¹™½É…  ¡Í¡…Á”¤€ôøÍ¡…Á”¹É•µ½Ù” ¤¤ì4(4)½¹ÍÐ‘•Í­Ñ½À€ô‰Õ¥±‘•Í­Ñ½À¡Á…”¤ì4)½¹ÍÐµ½‰¥±”€ô‰Õ¥±‘5½‰¥±”¡Á…”¤ì4)½¹ÍÐ½µÁ½¹•¹ÑÌ€ô‰Õ¥±‘½µÁ½¹•¹ÑÌ¡Á…”¤ì4(4)ÍÑ½É…”¹Í¥Ñ•Í	å1•½¹	½…É‘Ì€ôì‘•Í­Ñ½Àè‘•Í­Ñ½À¹¥°µ½‰¥±”èµ½‰¥±”¹¥°½µÁ½¹•¹ÑÌè½µÁ½¹•¹ÑÌ¹¥ôì4)Á•¹Á½Ð¹Ù¥•ÝÁ½ÉÐ¹é½½µQ½¥Ñ±° ¤ì4(4)É•ÑÕÉ¸ì4(€™¥±”è™¥±”¹¹…µ”°4(€Á…”èÁ…”¹¹…µ”°4(€‰½…É‘ÌèÍÑ½É…”¹Í¥Ñ•Í	å1•½¹	½…É‘Ì°4(€Ñ½­•¹ÌèÁ•¹Á½ÑUÑ¥±Ì¹Ñ½­•¹=Ù•ÉÙ¥•Ü ¤°4(€Ù…±¥‘…Ñ¥½¸è™¥±”¹Ù…±¥‘…Ñ” ¤¹µ…À ¡•ÉÉ½È¤€ôøMÑÉ¥¹œ¡•ÉÉ½È¤¤°4)ôì4

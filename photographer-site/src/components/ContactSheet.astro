@@ -1,0 +1,46 @@
+---
+import type { Gallery } from '../lib/content/types';
+
+interface Props {
+  galleries: Gallery[];
+}
+
+const { galleries } = Astro.props;
+---
+
+<section class="contact-sheet" aria-labelledby="contact-sheet-title" data-contact-sheet>
+  <div class="contact-sheet-heading page-gutter">
+    <div>
+      <p class="eyebrow">Selected work</p>
+      <h2 id="contact-sheet-title">
+        {galleries.length} {galleries.length === 1 ? 'study' : 'studies'} in presence.
+      </h2>
+    </div>
+    <p class="contact-sheet-hint">Scroll</p>
+  </div>
+
+  <div class="contact-sheet-viewport" tabindex="0" aria-label="Featured portrait stories">
+    <ol class="contact-sheet-track" data-contact-sheet-track>
+      {
+        galleries.map((gallery, index) => (
+          <li class="contact-sheet-frame" data-contact-sheet-item>
+            <a href={`/work/${gallery.slug}`} aria-label={`View ${gallery.title}`}>
+              <span class="frame-index" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              <img
+                src={gallery.cover.src}
+                alt={gallery.cover.alt}
+                width={gallery.cover.width}
+                height={gallery.cover.height}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+              />
+              <span class="frame-caption">
+                <span>{gallery.title}</span>
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>

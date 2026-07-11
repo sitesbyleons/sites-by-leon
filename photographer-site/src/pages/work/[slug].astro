@@ -1,0 +1,70 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { demoRepository } from '../../lib/content/repository';
+
+const slug = Astro.params.slug ?? '';
+const gallery = await demoRepository.getGallery(slug);
+
+if (!gallery) {
+  Astro.response.status = 404;
+  Astro.response.statusText = 'Not Found';
+}
+
+const placements = gallery?.images.map((image, index) => ({
+  image,
+  orientation: image.width > image.height ? 'wide' : 'portrait',
+  side: index % 2 === 0 ? 'start' : 'end',
+}));
+---
+
+<SiteLayout
+  title={gallery?.title ?? 'Gallery not found'}
+  description={gallery?.description ?? 'The requested Northline portrait gallery could not be found.'}
+  image={gallery?.cover.src}
+  canonicalPath={`/work/${slug}`}
+>
+  {
+    gallery ? (
+      <article class="gallery-page">
+        <header class="gallery-intro page-gutter">
+          <div>
+            <p class="eyebrow" data-entrance>{gallery.category}</p>
+            <h1 data-entrance>{gallery.title}</h1>
+          </div>
+          <div class="gallery-intro-notes" data-entrance>
+            <p>{gallery.description}</p>
+            <p>{gallery.images.length} photographs</p>
+          </div>
+        </header>
+
+        <ol class="gallery-sequence page-gutter">
+          {placements?.map(({ image, orientation, side }, index) => (
+            <li class:list={['gallery-frame', `gallery-frame--${orientation}`, `gallery-frame--${side}`]}>
+              <figure>
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  width={image.width}
+                  height={image.height}
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+                {image.caption && <figcaption>{image.caption}</figcaption>}
+              </figure>
+            </li>
+          ))}
+        </ol>
+
+        <nav class="gallery-return page-gutter" aria-label="Gallery navigation">
+          <a class="text-link" href="/work">All work</a>
+        </nav>
+      </article>
+    ) : (
+      <section class="not-found page-gutter" aria-labelledby="not-found-title">
+        <p class="eyebrow">404 / Not found</p>
+        <h1 id="not-found-title">This portrait story isn't here.</h1>
+        <a class="text-link" href="/work">Return to all work</a>
+      </section>
+    )
+  }
+</SiteLayout>

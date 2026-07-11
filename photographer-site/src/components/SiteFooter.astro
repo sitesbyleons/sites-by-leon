@@ -1,0 +1,28 @@
+---
+interface Props {
+  studioName: string;
+  conceptNotice: string;
+  email: string;
+  location: string;
+}
+
+const { studioName, conceptNotice, email, location } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="footer-mark" aria-hidden="true">N</div>
+  <div class="footer-studio">
+    <p class="footer-label">Independent portrait practice</p>
+    <p>{studioName}</p>
+    <p>{location}</p>
+  </div>
+  <div class="footer-contact">
+    <p class="footer-label">Studio inquiries</p>
+    <a href={`mailto:${email}`}>{email}</a>
+  </div>
+  <div class="footer-notice">
+    <p><strong>Fictional portfolio concept.</strong> {conceptNotice}</p>
+    <p>&copy; {year} {studioName}</p>
+  </div>
+</footer>

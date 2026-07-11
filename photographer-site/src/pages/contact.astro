@@ -1,0 +1,36 @@
+---
+import InquiryForm from '../components/InquiryForm.astro';
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { demoRepository } from '../lib/content/repository';
+
+const portfolio = await demoRepository.getPortfolio();
+const requestedPackageId = Astro.url.searchParams.get('package');
+const selectedPackageId = portfolio.packages.some(({ id }) => id === requestedPackageId)
+  ? requestedPackageId
+  : null;
+---
+
+<SiteLayout
+  title="Contact"
+  description="Begin a portrait photography conversation with Northline Portrait Studio."
+  canonicalPath="/contact"
+>
+  <header class="contact-intro page-gutter">
+    <p class="eyebrow">Begin a conversation</p>
+    <div>
+      <h1 id="contact-page-title">Tell us what you want to remember.</h1>
+      <p>
+        Share a little about the people, place, or work you want photographed. This fictional demo does not
+        deliver form submissions.
+      </p>
+    </div>
+  </header>
+
+  <section class="contact-form-section page-gutter" aria-label="Photography inquiry">
+    <InquiryForm
+      email={portfolio.email}
+      packages={portfolio.packages}
+      selectedPackageId={selectedPackageId}
+    />
+  </section>
+</SiteLayout>

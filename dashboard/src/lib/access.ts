@@ -31,4 +31,3 @@ export function decideAdminAccess(input: { userId: string | null; isAdmin: boole
 
   return { kind: 'admin', userId: input.userId };
 }
-

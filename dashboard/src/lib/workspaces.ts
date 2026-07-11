@@ -42,4 +42,3 @@ export async function resolveClientWorkspace(
 
   return { workspace: workspace.data, error: Boolean(workspace.error) };
 }
-

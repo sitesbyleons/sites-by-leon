@@ -1,0 +1,21 @@
+---
+interface Props {
+  studioName: string;
+}
+
+const { studioName } = Astro.props;
+---
+
+<header class="site-header" data-site-header>
+  <a class="wordmark" href="/" aria-label={`${studioName}, home`}>
+    <span>Northline</span>
+    <span>Portrait Studio</span>
+  </a>
+
+  <nav class="primary-nav" aria-label="Primary">
+    <a href="/work">Work</a>
+    <a href="/journal">Journal</a>
+    <a href="/packages">Packages</a>
+    <a href="/contact">Contact</a>
+  </nav>
+</header>

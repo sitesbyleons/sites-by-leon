@@ -126,4 +126,3 @@ Deno.serve(async (request: Request) => {
     ? json(origin, { url: session.url })
     : json(origin, { message: 'Stripe did not return a Checkout URL.' }, 502);
 });
-

@@ -1,0 +1,57 @@
+---
+import type { DisplayPackage } from '../lib/content/types';
+
+interface Props {
+  email: string;
+  packages: DisplayPackage[];
+  selectedPackageId: string | null;
+}
+
+const { email, packages, selectedPackageId } = Astro.props;
+---
+
+<div class="inquiry-panel">
+  <form class="inquiry-form" aria-describedby="inquiry-delivery-note">
+    <div class="form-field">
+      <label for="inquiry-name">Name</label>
+      <input id="inquiry-name" name="name" type="text" autocomplete="name" required />
+    </div>
+
+    <div class="form-field">
+      <label for="inquiry-email">Email</label>
+      <input id="inquiry-email" name="email" type="email" autocomplete="email" required />
+    </div>
+
+    <div class="form-field">
+      <label for="inquiry-session">Session type</label>
+      <select id="inquiry-session" name="sessionType" required>
+        <option value="" selected={selectedPackageId === null}>Choose a session type</option>
+        {
+          packages.map((displayPackage) => (
+            <option value={displayPackage.id} selected={selectedPackageId === displayPackage.id}>
+              {displayPackage.name}
+            </option>
+          ))
+        }
+      </select>
+    </div>
+
+    <div class="form-field">
+      <label for="inquiry-date">Preferred date</label>
+      <input id="inquiry-date" name="preferredDate" type="date" />
+    </div>
+
+    <div class="form-field form-field--wide">
+      <label for="inquiry-message">Message</label>
+      <textarea id="inquiry-message" name="message" rows="6" required></textarea>
+    </div>
+
+    <div class="inquiry-delivery form-field--wide">
+      <p id="inquiry-delivery-note">
+        This demo cannot send messages. Email the fictional studio directly at
+        <a href={`mailto:${email}`}>{email}</a>.
+      </p>
+      <button type="submit" disabled>Demo only — email instead</button>
+    </div>
+  </form>
+</div>

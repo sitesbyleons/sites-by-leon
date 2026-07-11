@@ -1,0 +1,41 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { demoRepository } from '../lib/content/repository';
+
+const portfolio = await demoRepository.getPortfolio();
+---
+
+<SiteLayout
+  title="Packages"
+  description="Portrait, brand, and family photography packages from Northline Portrait Studio."
+  canonicalPath="/packages"
+>
+  <header class="packages-intro page-gutter">
+    <p class="eyebrow">Ways to work together</p>
+    <div>
+      <h1 id="packages-title">A starting point for your story.</h1>
+      <p>Every session begins with a conversation. Choose the closest fit and tell us what you have in mind.</p>
+    </div>
+  </header>
+
+  <section class="packages-list page-gutter" aria-label="Photography packages">
+    {
+      portfolio.packages.map((displayPackage, index) => (
+        <article class="package-card">
+          <p class="package-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</p>
+          <div class="package-card-heading">
+            <h2>{displayPackage.name}</h2>
+            <p class="package-price">{displayPackage.startingPrice}</p>
+          </div>
+          <p>{displayPackage.description}</p>
+          <ul>
+            {displayPackage.features.map((feature) => <li>{feature}</li>)}
+          </ul>
+          <a class="text-link" href={`/contact?package=${encodeURIComponent(displayPackage.id)}`}>
+            {displayPackage.ctaLabel}
+          </a>
+        </article>
+      ))
+    }
+  </section>
+</SiteLayout>

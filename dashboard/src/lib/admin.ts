@@ -223,4 +223,3 @@ export async function loadAdminData(supabase: SupabaseClient | null): Promise<Ad
     error: hasError ? 'Some studio data is temporarily unavailable.' : null,
   };
 }
-

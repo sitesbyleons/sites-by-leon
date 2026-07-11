@@ -50,4 +50,3 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     ? Response.json({ message: 'That did not send. Please email Leon.' }, { status: 500 })
     : Response.json({ ok: true }, { status: 201 });
 };
-
