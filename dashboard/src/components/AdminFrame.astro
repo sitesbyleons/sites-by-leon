@@ -1,0 +1,62 @@
+---
+import { SignOutButton, UserButton } from '@clerk/astro/components';
+
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+
+interface Props {
+  active: 'overview' | 'users' | 'tickets' | 'subscriptions' | 'sites';
+  title: string;
+  eyebrow: string;
+  description: string;
+  isPreview: boolean;
+  error?: string | null;
+}
+
+const { active, title, eyebrow, description, isPreview, error = null } = Astro.props;
+const preview = isPreview ? '?preview=true' : '';
+const links = [
+  { key: 'overview', label: 'Overview', href: `/admin${preview}` },
+  { key: 'users', label: 'Users', href: `/admin/users${preview}` },
+  { key: 'tickets', label: 'Tickets', href: `/admin/tickets${preview}` },
+  { key: 'subscriptions', label: 'Subscriptions', href: `/admin/subscriptions${preview}` },
+  { key: 'sites', label: 'Sites', href: `/admin/sites${preview}` },
+] as const;
+---
+
+<DashboardLayout title={title} shell>
+  <div class="studio-admin">
+    <header class="studio-admin__header">
+      <a class="portal-brand portal-brand--small" href={`/admin${preview}`} aria-label="Sites By Leon admin">
+        <span>Sites</span><span>By</span><span>Leon</span>
+      </a>
+      <nav aria-label="Admin dashboard">
+        {links.map((link) => (
+          <a href={link.href} class:list={{ 'is-active': active === link.key }} aria-current={active === link.key ? 'page' : undefined}>
+            {link.label}
+          </a>
+        ))}
+      </nav>
+      <div class="studio-admin__account">
+        {!isPreview && <UserButton />}
+      </div>
+    </header>
+
+    <main class="studio-admin__main">
+      <section class="admin-intro">
+        <div><span>{eyebrow}</span><h1>{title}</h1></div>
+        <p>{description}</p>
+      </section>
+
+      {error && <p class="simple-notice" role="status">{error}</p>}
+      <slot />
+
+      {!isPreview && (
+        <footer class="studio-admin__footer">
+          <a href="/dashboard">Client view</a>
+          <SignOutButton><button type="button">Sign out</button></SignOutButton>
+        </footer>
+      )}
+    </main>
+  </div>
+</DashboardLayout>
+
