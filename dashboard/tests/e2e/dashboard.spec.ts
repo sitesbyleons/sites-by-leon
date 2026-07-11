@@ -1,21 +1,10 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test('centers the progress label inside the circular progress ring', async ({ page }) => {
+test('shows project progress in the simple website summary', async ({ page }) => {
   await page.goto('/dashboard?preview=true');
-
-  const orbit = await page.locator('.progress-orbit').boundingBox();
-  const label = await page.locator('.progress-orbit > div').boundingBox();
-
-  expect(orbit).not.toBeNull();
-  expect(label).not.toBeNull();
-
-  const orbitCenter = { x: orbit!.x + orbit!.width / 2, y: orbit!.y + orbit!.height / 2 };
-  const labelCenter = { x: label!.x + label!.width / 2, y: label!.y + label!.height / 2 };
-
-  expect(Math.abs(orbitCenter.x - labelCenter.x)).toBeLessThan(2);
-  expect(Math.abs(orbitCenter.y - labelCenter.y)).toBeLessThan(2);
-  expect(Math.abs(orbit!.width - orbit!.height)).toBeLessThan(2);
+  await expect(page.getByRole('heading', { name: 'In review' })).toBeVisible();
+  await expect(page.getByLabel('72% complete')).toBeVisible();
 });
 
 test('keeps the preview dashboard within a mobile viewport', async ({ page }) => {
@@ -28,16 +17,16 @@ test('keeps the preview dashboard within a mobile viewport', async ({ page }) =>
   }));
 
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
-  await expect(page.getByRole('heading', { name: /your website is/i })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Send request' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Northline Portraits' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send ticket' })).toBeVisible();
 });
 
 test('shows Leon the studio-wide admin overview', async ({ page }) => {
   await page.goto('/admin?preview=true');
 
-  await expect(page.getByRole('heading', { name: /everything in one view/i })).toBeVisible();
-  await expect(page.getByRole('table', { name: 'Client workspaces' })).toBeVisible();
-  await expect(page.getByText('Northline Portraits').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Admin' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'User accounts' })).toBeVisible();
+  await expect(page.getByText('Maya Carter')).toBeVisible();
   await expect(page.getByText('Replace the featured gallery')).toBeVisible();
 });
 
@@ -64,3 +53,4 @@ test('has no serious or critical accessibility violations on the client surfaces
     expect(important, `${path}: ${important.map((item) => item.id).join(', ')}`).toEqual([]);
   }
 });
+
