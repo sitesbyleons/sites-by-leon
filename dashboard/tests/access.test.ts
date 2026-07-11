@@ -10,16 +10,17 @@ describe('decideDashboardAccess', () => {
     });
   });
 
-  it('asks signed-in visitors to select a client workspace', () => {
+  it('allows a signed-in personal account without a Clerk organization', () => {
     expect(decideDashboardAccess({ userId: 'user_123', orgId: null })).toEqual({
-      kind: 'select-organization',
+      kind: 'account',
       userId: 'user_123',
+      orgId: null,
     });
   });
 
   it('allows a signed-in organization member into their workspace', () => {
     expect(decideDashboardAccess({ userId: 'user_123', orgId: 'org_456' })).toEqual({
-      kind: 'workspace',
+      kind: 'account',
       userId: 'user_123',
       orgId: 'org_456',
     });
@@ -48,3 +49,4 @@ describe('decideAdminAccess', () => {
     });
   });
 });
+
