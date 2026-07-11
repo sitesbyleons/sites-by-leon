@@ -98,6 +98,7 @@ a { -webkit-tap-highlight-color: transparent; }
 
 .text-link {
   display: inline-flex;
+
   min-height: 2.75rem;
   align-items: center;
   font-size: 0.75rem;
@@ -198,6 +199,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .progress span { display: block; height: 100%; background: var(--blue); box-shadow: 0 0 1rem var(--blue); }
 
 .portal-preview__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); }
+
 .portal-preview__grid article { padding: 1.5rem; background: var(--panel); }
 .portal-preview__grid small { display: block; margin-bottom: 0.5rem; color: var(--muted); font-size: 0.55rem; letter-spacing: 0.12em; }
 .portal-preview__grid b { font-family: var(--font-display); font-size: 1.7rem; font-weight: 550; }
@@ -298,6 +300,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .status-pill { padding: 0.5rem 0.8rem; border: 1px solid rgba(76, 125, 255, 0.35); border-radius: 999px; color: var(--blue-pale); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; }
 
 .project-timeline { display: grid; margin-top: 4rem; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
+
 .project-timeline article { position: relative; min-height: 7rem; padding: 1.4rem 0.5rem 0; border-right: 1px solid var(--line); color: #858b96; }
 .project-timeline article::before { position: absolute; top: -0.35rem; left: 0; width: 0.65rem; height: 0.65rem; border: 2px solid var(--panel); border-radius: 50%; content: ''; background: #484d57; }
 .project-timeline article.is-complete { color: var(--ivory); }
@@ -397,7 +400,42 @@ a { -webkit-tap-highlight-color: transparent; }
 .admin-table__row strong small { display: block; margin-top: 0.5rem; color: var(--muted); font-family: var(--font-body); font-size: 0.52rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
 .status-tag { width: max-content; padding: 0.35rem 0.65rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.54rem; text-transform: uppercase; }
 .status-tag--active { border-color: rgba(88, 214, 155, 0.4); color: var(--green); }
-.status-tag--approved { border-color: rgba(76, 125, 255, 0.45); color: var(--bl…663 tokens truncated…: 1fr; }
+.status-tag--approved { border-color: rgba(76, 125, 255, 0.45); color: var(--blue-pale); }
+
+
+.admin-project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.admin-project-grid article { min-height: 20rem; padding: clamp(1.5rem, 3vw, 2.5rem); border: 1px solid var(--line); border-radius: 1rem; background: var(--panel); }
+.admin-project-grid article > div:first-child { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.admin-project-grid h3 { max-width: 12ch; margin: 3.5rem 0 2rem; font-family: var(--font-display); font-size: clamp(2.6rem, 5vw, 4.5rem); font-weight: 470; letter-spacing: -0.04em; line-height: 0.85; }
+.admin-progress { height: 2px; background: var(--line); }
+.admin-progress span { display: block; height: 100%; background: var(--blue); box-shadow: 0 0 1rem rgba(76, 125, 255, 0.7); }
+.admin-project-grid footer { display: flex; margin-top: 1.2rem; align-items: baseline; justify-content: space-between; }
+.admin-project-grid footer strong { font-family: var(--font-display); font-size: 2.2rem; font-weight: 500; }
+.admin-project-grid footer small { color: var(--muted); font-size: 0.56rem; }
+
+.admin-request-list { border-top: 1px solid var(--line); }
+.admin-request-list article { display: grid; min-height: 6rem; padding: 1.2rem 0; grid-template-columns: 8rem minmax(0, 1fr); gap: 1rem; align-items: center; border-bottom: 1px solid var(--line); }
+.admin-request-list article > span { color: var(--blue-pale); font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.admin-request-list strong { display: block; font-family: var(--font-display); font-size: 1.7rem; font-weight: 520; }
+.admin-request-list small { color: var(--muted); font-size: 0.58rem; }
+.admin-empty { padding: 2rem; margin: 0; color: var(--muted); font-size: 0.72rem; }
+
+@media (max-width: 70rem) {
+  .portal-landing { grid-template-columns: 1fr; }
+  .portal-preview { width: min(100%, 42rem); justify-self: center; transform: none; }
+  .app-frame { grid-template-columns: 5rem minmax(0, 1fr); }
+  .app-sidebar { padding: 1.2rem 0.8rem; align-items: center; }
+  .app-sidebar .portal-brand { font-size: 1.5rem; }
+  .app-sidebar nav { width: 100%; }
+  .app-sidebar nav a { justify-content: center; }
+  .app-sidebar nav a span,
+  .app-sidebar nav a { font-size: 0; }
+  .app-sidebar nav a::after { width: 0.5rem; height: 0.5rem; border-radius: 50%; content: ''; background: #545a65; }
+  .app-sidebar nav a.is-active::after { background: var(--blue); }
+  .sidebar-support { text-align: center; }
+  .sidebar-support p,
+  .sidebar-support a { display: none; }
+  .split-panels { grid-template-columns: 1fr; }
   .admin-shell { grid-template-columns: 5rem minmax(0, 1fr); }
   .admin-rail { padding: 1.2rem 0.6rem; align-items: center; }
   .admin-rail .portal-brand { font-size: 1.4rem; }
@@ -464,6 +502,7 @@ a { -webkit-tap-highlight-color: transparent; }
   .admin-project-grid { grid-template-columns: 1fr; }
   .admin-request-list article { grid-template-columns: 1fr; gap: 0.4rem; }
 }
+
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -564,6 +603,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .simple-panel textarea { display: block; width: 100%; padding: 0.8rem 0; border: 0; border-bottom: 1px solid #d9dbde; border-radius: 0; outline: 0; background: transparent; color: #181a1d; }
 .simple-panel textarea { min-height: 7rem; resize: vertical; }
 .simple-panel input:focus,
+
 .simple-panel textarea:focus { border-color: #2457ff; }
 .simple-panel form > div { display: flex; margin-top: 1.5rem; gap: 1rem; align-items: center; }
 .simple-panel form > div p { margin: 0; color: #686b70; font-size: 0.68rem; }
@@ -664,6 +704,7 @@ a { -webkit-tap-highlight-color: transparent; }
   .onboarding-card { grid-template-columns: 1fr; }
   .studio-admin { display: block; }
   .studio-admin__header { position: sticky; z-index: 10; width: 100%; height: auto; padding: 0.9rem 1rem; flex-direction: row; align-items: center; }
+
   .studio-admin__header .portal-brand { font-size: 1.3rem; }
   .studio-admin__header nav { display: flex; margin: 0 0 0 auto; gap: 1rem; }
   .studio-admin__header nav a { padding: 0; border: 0; font-size: 0.62rem; }
