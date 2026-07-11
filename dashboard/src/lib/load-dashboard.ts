@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { resolveClientWorkspace } from './workspaces';
+
 export type WorkspaceRow = {
   id: string;
   name: string;
@@ -32,7 +34,7 @@ export type DashboardData = {
 
 export async function loadDashboardData(
   supabase: SupabaseClient | null,
-  clerkOrgId: string,
+  identity: { userId: string; orgId: string | null },
 ): Promise<DashboardData> {
   if (!supabase) {
     return {
@@ -43,11 +45,7 @@ export async function loadDashboardData(
     };
   }
 
-  const { data: workspace, error: workspaceError } = await supabase
-    .from('client_workspaces')
-    .select('id,name,status')
-    .eq('clerk_org_id', clerkOrgId)
-    .maybeSingle<WorkspaceRow>();
+  const { workspace, error: workspaceError } = await resolveClientWorkspace(supabase, identity);
 
   if (workspaceError) {
     return {
@@ -87,3 +85,4 @@ export async function loadDashboardData(
         : null,
   };
 }
+
