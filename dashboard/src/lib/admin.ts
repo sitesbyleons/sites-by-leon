@@ -33,13 +33,57 @@ export type AdminRequest = {
   created_at: string;
 };
 
+export type AdminMember = {
+  workspace_id: string;
+  clerk_user_id: string;
+  role: string;
+};
+
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: number;
+};
+
 export type AdminData = {
   workspaces: AdminWorkspace[];
   projects: AdminProject[];
   subscriptions: AdminSubscription[];
   requests: AdminRequest[];
+  members: AdminMember[];
   error: string | null;
 };
+
+type ClerkUserClient = {
+  users: {
+    getUserList(input: { limit: number; orderBy: '-created_at' }): Promise<{
+      data: Array<{
+        id: string;
+        firstName: string | null;
+        lastName: string | null;
+        username: string | null;
+        primaryEmailAddressId: string | null;
+        emailAddresses: Array<{ id: string; emailAddress: string }>;
+        createdAt: number;
+      }>;
+    }>;
+  };
+};
+
+export async function loadAdminUsers(client: ClerkUserClient): Promise<AdminUser[]> {
+  const result = await client.users.getUserList({ limit: 100, orderBy: '-created_at' });
+  return result.data.map((user) => {
+    const primary = user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId);
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+    return {
+      id: user.id,
+      name: fullName || user.username || 'New user',
+      email: primary?.emailAddress ?? user.emailAddresses[0]?.emailAddress ?? 'No email',
+      createdAt: user.createdAt,
+    };
+  });
+}
 
 export async function checkAppAdmin(supabase: SupabaseClient | null, clerkUserId: string) {
   if (!supabase) return { isAdmin: false, error: 'The secure database connection is not configured.' };
@@ -57,10 +101,10 @@ export async function checkAppAdmin(supabase: SupabaseClient | null, clerkUserId
 }
 
 export async function loadAdminData(supabase: SupabaseClient | null): Promise<AdminData> {
-  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [] };
+  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [] };
   if (!supabase) return { ...empty, error: 'The secure database connection is not configured.' };
 
-  const [workspaces, projects, subscriptions, requests] = await Promise.all([
+  const [workspaces, projects, subscriptions, requests, members] = await Promise.all([
     supabase.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
     supabase
       .from('website_projects')
@@ -75,15 +119,18 @@ export async function loadAdminData(supabase: SupabaseClient | null): Promise<Ad
       .select('id,workspace_id,subject,status,created_at')
       .order('created_at', { ascending: false })
       .limit(20),
+    supabase.from('workspace_members').select('workspace_id,clerk_user_id,role'),
   ]);
 
-  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error;
+  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error;
 
   return {
     workspaces: (workspaces.data ?? []) as AdminWorkspace[],
     projects: (projects.data ?? []) as AdminProject[],
     subscriptions: (subscriptions.data ?? []) as AdminSubscription[],
     requests: (requests.data ?? []) as AdminRequest[],
+    members: (members.data ?? []) as AdminMember[],
     error: hasError ? 'Some studio data is temporarily unavailable.' : null,
   };
 }
+
