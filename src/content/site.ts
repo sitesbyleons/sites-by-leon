@@ -54,9 +54,9 @@ export const concepts: readonly Concept[] = [
     domain: 'vowandlight.photo',
     description: 'Editorial stories with room to breathe.',
     images: [
-      { src: '/images/cinematic/wedding-courthouse.webp', alt: 'Newlyweds leaving a stone courthouse at dusk' },
-      { src: '/images/cinematic/wedding-window.webp', alt: 'Bride in a veil standing beside a hotel window' },
-      { src: '/images/cinematic/wedding-dance.webp', alt: 'Newlyweds turning on a warmly lit dance floor' },
+      { src: '/images/cinematic/wedding-courthouse.webp', alt: 'Bride and groom holding hands during an outdoor ceremony' },
+      { src: '/images/cinematic/wedding-window.webp', alt: 'Newlyweds kissing as flower petals fall around their wedding party' },
+      { src: '/images/cinematic/wedding-dance.webp', alt: 'Black-and-white portrait of newlyweds beneath a windblown veil' },
     ],
   },
   {
@@ -67,9 +67,9 @@ export const concepts: readonly Concept[] = [
     domain: 'northlineportraits.com',
     description: 'Bold portraits. Clear booking.',
     images: [
-      { src: '/images/cinematic/portrait-oxblood.webp', alt: 'Editorial profile portrait against an oxblood background' },
-      { src: '/images/cinematic/portrait-ceramicist.webp', alt: 'Ceramic artist photographed in his workshop' },
-      { src: '/images/cinematic/portrait-musician.webp', alt: 'Musician in a long black coat photographed with direct flash' },
+      { src: '/images/cinematic/portrait-oxblood.webp', alt: 'Low-key studio portrait of a woman against a black background' },
+      { src: '/images/cinematic/portrait-ceramicist.webp', alt: 'Red-haired creative seated at a studio table in colored light' },
+      { src: '/images/cinematic/portrait-musician.webp', alt: 'Editorial portrait of a woman in a dark top' },
     ],
   },
   {
@@ -80,9 +80,9 @@ export const concepts: readonly Concept[] = [
     domain: 'fieldwork.studio',
     description: 'Projects, briefs, and client payments.',
     images: [
-      { src: '/images/cinematic/commercial-fragrance.webp', alt: 'Clear fragrance bottle in warm directional light' },
-      { src: '/images/cinematic/commercial-audio.webp', alt: 'Silver headphones and an analog recorder on steel' },
-      { src: '/images/cinematic/commercial-jewelry.webp', alt: 'Hands styling sculptural silver jewelry over black wool' },
+      { src: '/images/cinematic/commercial-fragrance.webp', alt: 'Pink glass fragrance bottle in warm directional light' },
+      { src: '/images/cinematic/commercial-audio.webp', alt: 'Black wireless headphones photographed on a white background' },
+      { src: '/images/cinematic/commercial-jewelry.webp', alt: 'Blue gemstone earrings arranged on a green leaf' },
     ],
   },
 ] as const;
