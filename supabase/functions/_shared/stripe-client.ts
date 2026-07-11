@@ -9,5 +9,11 @@ export function createStripe() {
   });
 }
 
+export function createConnectStripe() {
+  const secretKey = Deno.env.get('STRIPE_CONNECT_SECRET_KEY');
+  if (!secretKey) return null;
+  return new Stripe(secretKey, { httpClient: Stripe.createFetchHttpClient() });
+}
+
 export const stripeCryptoProvider = Stripe.createSubtleCryptoProvider();
 export type { Stripe };

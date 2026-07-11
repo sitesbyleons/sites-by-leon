@@ -41,6 +41,17 @@ export type AdminMember = {
   role: string;
 };
 
+export type AdminConnection = {
+  workspace_id: string;
+  site_key: string;
+  primary_domain: string;
+  vercel_project_id: string | null;
+  github_repository: string | null;
+  status: string;
+  current_version: string | null;
+  last_seen_at: string | null;
+};
+
 export type AdminUser = {
   id: string;
   name: string;
@@ -54,6 +65,7 @@ export type AdminData = {
   subscriptions: AdminSubscription[];
   requests: AdminRequest[];
   members: AdminMember[];
+  connections: AdminConnection[];
   error: string | null;
 };
 
@@ -95,6 +107,9 @@ export function getPreviewAdminData(): AdminData {
     members: [
       { workspace_id: 'ws_northline', clerk_user_id: 'user_northline', role: 'owner' },
       { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
+    ],
+    connections: [
+      { workspace_id: 'ws_northline', site_key: 'northline-demo', primary_domain: 'demo.leonsites.org', vercel_project_id: 'prj_AWIrVXuJKzndtFWgy60ok5iQwMqI', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null },
     ],
     error: null,
   };
@@ -191,10 +206,10 @@ export async function checkAppAdmin(supabase: SupabaseClient | null, clerkUserId
 }
 
 export async function loadAdminData(supabase: SupabaseClient | null): Promise<AdminData> {
-  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [] };
+  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [] };
   if (!supabase) return { ...empty, error: 'The secure database connection is not configured.' };
 
-  const [workspaces, projects, subscriptions, requests, members] = await Promise.all([
+  const [workspaces, projects, subscriptions, requests, members, connections] = await Promise.all([
     supabase.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
     supabase
       .from('website_projects')
@@ -210,9 +225,10 @@ export async function loadAdminData(supabase: SupabaseClient | null): Promise<Ad
       .order('created_at', { ascending: false })
       .limit(100),
     supabase.from('workspace_members').select('workspace_id,clerk_user_id,role'),
+    supabase.from('site_connections').select('workspace_id,site_key,primary_domain,vercel_project_id,github_repository,status,current_version,last_seen_at'),
   ]);
 
-  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error;
+  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error;
 
   return {
     workspaces: (workspaces.data ?? []) as AdminWorkspace[],
@@ -220,7 +236,7 @@ export async function loadAdminData(supabase: SupabaseClient | null): Promise<Ad
     subscriptions: (subscriptions.data ?? []) as AdminSubscription[],
     requests: (requests.data ?? []) as AdminRequest[],
     members: (members.data ?? []) as AdminMember[],
+    connections: (connections.data ?? []) as AdminConnection[],
     error: hasError ? 'Some studio data is temporarily unavailable.' : null,
   };
 }
-

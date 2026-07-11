@@ -21,6 +21,7 @@ const sites = data.projects
     if (sort === 'client') return (workspaceNames.get(a.workspace_id) ?? '').localeCompare(workspaceNames.get(b.workspace_id) ?? '');
     return Date.parse(b.updated_at) - Date.parse(a.updated_at);
   });
+const connections = new Map(data.connections.map((connection) => [connection.workspace_id, connection]));
 ---
 
 <AdminFrame active="sites" title="Sites" eyebrow="Client websites" description="Track every photographer site from design through launch." isPreview={isPreview} error={session.error}>
@@ -35,13 +36,46 @@ const sites = data.projects
     <header><div><span>Production</span><h2>Website builds</h2></div><p>{sites.length} shown</p></header>
     <div class="site-list">
       {sites.length ? sites.map((project) => (
-        <article>
+        <article class="site-control-row">
           <div><strong>{project.name}</strong><small>{workspaceNames.get(project.workspace_id) ?? 'Client'}</small></div>
           <div class="site-progress" role="progressbar" aria-label={`${project.progress}% complete`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={project.progress}><span style={`width:${project.progress}%`}></span></div>
-          <span>{project.status} · {project.progress}%</span>
+          <div>
+            <span>{connections.get(project.workspace_id)?.status ?? project.status} · {project.progress}%</span>
+            {connections.get(project.workspace_id) && (
+              <form class="site-control-actions" data-site-control>
+                <input type="hidden" name="workspace_id" value={project.workspace_id} />
+                <button type="submit" name="status" value="active">Active</button>
+                <button type="submit" name="status" value="maintenance">Maintenance</button>
+                <button type="submit" name="status" value="paused">Pause</button>
+                <small data-control-status aria-live="polite"></small>
+              </form>
+            )}
+          </div>
         </article>
       )) : <p class="simple-empty">No sites match that stage.</p>}
     </div>
   </section>
-</AdminFrame>
 
+  <script>
+    document.querySelectorAll<HTMLFormElement>('[data-site-control]').forEach((form) => {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submitter = (event as SubmitEvent).submitter as HTMLButtonElement | null;
+        const status = form.querySelector<HTMLElement>('[data-control-status]');
+        if (!submitter || !status) return;
+        status.textContent = 'Updating...';
+        if (new URL(location.href).searchParams.get('preview') === 'true') {
+          status.textContent = `${submitter.value} preview`;
+          return;
+        }
+        const response = await fetch('/api/admin/sites', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ workspace_id: new FormData(form).get('workspace_id'), status: submitter.value }),
+        });
+        status.textContent = response.ok ? 'Updated' : 'Not updated';
+        if (response.ok) window.setTimeout(() => location.reload(), 400);
+      });
+    });
+  </script>
+</AdminFrame>
