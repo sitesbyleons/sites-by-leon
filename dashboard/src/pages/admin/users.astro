@@ -1,0 +1,57 @@
+---
+import { clerkClient } from '@clerk/astro/server';
+
+import AdminFrame from '../../components/AdminFrame.astro';
+import { decideAdminAccess } from '../../lib/access';
+import { loadAdminSession } from '../../lib/admin';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadAdminSession({
+  isPreview,
+  userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
+  getToken: async () => (auth ? (await auth.getToken()) ?? null : null),
+  includeUsers: true,
+  userClient: isPreview ? undefined : clerkClient(Astro),
+});
+const access = decideAdminAccess({ userId: isPreview ? 'preview_admin' : (auth?.userId ?? null), isAdmin: session.isAdmin });
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+
+const data = session.data!;
+const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
+const memberWorkspaces = new Map(data.members.map((member) => [member.clerk_user_id, workspaceNames.get(member.workspace_id) ?? 'Client']));
+const query = (Astro.url.searchParams.get('q') ?? '').trim().toLowerCase();
+const sort = Astro.url.searchParams.get('sort') ?? 'newest';
+const users = session.users
+  .filter((user) => !query || `${user.name} ${user.email} ${memberWorkspaces.get(user.id) ?? ''}`.toLowerCase().includes(query))
+  .sort((a, b) => {
+    if (sort === 'name') return a.name.localeCompare(b.name);
+    if (sort === 'client') return (memberWorkspaces.get(a.id) ?? 'zz').localeCompare(memberWorkspaces.get(b.id) ?? 'zz');
+    return b.createdAt - a.createdAt;
+  });
+const date = (value: number) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
+---
+
+<AdminFrame active="users" title="Users" eyebrow="Accounts" description="Find every photographer account and the site connected to it." isPreview={isPreview} error={session.error}>
+  <form class="admin-tools" method="get" aria-label="Filter users">
+    {isPreview && <input type="hidden" name="preview" value="true" />}
+    <label class="admin-search"><span>Search</span><input type="search" name="q" value={query} placeholder="Name, email, or client" /></label>
+    <label><span>Sort</span><select name="sort"><option value="newest" selected={sort === 'newest'}>Newest first</option><option value="name" selected={sort === 'name'}>Name A–Z</option><option value="client" selected={sort === 'client'}>Client A–Z</option></select></label>
+    <button type="submit">Apply</button>
+  </form>
+
+  <section class="admin-list-section admin-list-section--results">
+    <header><div><span>Accounts</span><h2>All users</h2></div><p>{users.length} shown</p></header>
+    <div class="business-table" role="table" aria-label="User accounts">
+      <div class="business-table__head" role="row"><span role="columnheader">Name</span><span role="columnheader">Client</span><span role="columnheader">Joined</span></div>
+      {users.length ? users.map((user) => (
+        <article class="business-table__row" role="row">
+          <div role="cell"><strong>{user.name}</strong><small>{user.email}</small></div>
+          <span role="cell">{memberWorkspaces.get(user.id) ?? 'Not connected'}</span>
+          <span role="cell">{date(user.createdAt)}</span>
+        </article>
+      )) : <p class="simple-empty">No users match those filters.</p>}
+    </div>
+  </section>
+</AdminFrame>
+
