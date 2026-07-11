@@ -1,0 +1,53 @@
+---
+import AdminFrame from '../../components/AdminFrame.astro';
+import { decideAdminAccess } from '../../lib/access';
+import { loadAdminSession } from '../../lib/admin';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadAdminSession({
+  isPreview,
+  userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
+  getToken: async () => (auth ? (await auth.getToken()) ?? null : null),
+});
+const access = decideAdminAccess({ userId: isPreview ? 'preview_admin' : (auth?.userId ?? null), isAdmin: session.isAdmin });
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+
+const data = session.data!;
+const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
+const status = Astro.url.searchParams.get('status') ?? 'open';
+const sort = Astro.url.searchParams.get('sort') ?? 'newest';
+const isOpen = (value: string) => !['completed', 'declined'].includes(value);
+const tickets = data.requests
+  .filter((ticket) => status === 'all' || (status === 'open' ? isOpen(ticket.status) : ticket.status === status))
+  .sort((a, b) => {
+    if (sort === 'oldest') return Date.parse(a.created_at) - Date.parse(b.created_at);
+    if (sort === 'client') return (workspaceNames.get(a.workspace_id) ?? '').localeCompare(workspaceNames.get(b.workspace_id) ?? '');
+    if (sort === 'status') return a.status.localeCompare(b.status);
+    return Date.parse(b.created_at) - Date.parse(a.created_at);
+  });
+const date = (value: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
+---
+
+<AdminFrame active="tickets" title="Tickets" eyebrow="Support" description="Separate what needs action from what is already handled." isPreview={isPreview} error={session.error}>
+  <form class="admin-tools" method="get" aria-label="Sort and filter tickets">
+    {isPreview && <input type="hidden" name="preview" value="true" />}
+    <label><span>Status</span><select name="status"><option value="open" selected={status === 'open'}>Open</option><option value="new" selected={status === 'new'}>New</option><option value="planned" selected={status === 'planned'}>Planned</option><option value="in_progress" selected={status === 'in_progress'}>In progress</option><option value="completed" selected={status === 'completed'}>Completed</option><option value="declined" selected={status === 'declined'}>Declined</option><option value="all" selected={status === 'all'}>All tickets</option></select></label>
+    <label><span>Sort</span><select name="sort"><option value="newest" selected={sort === 'newest'}>Newest first</option><option value="oldest" selected={sort === 'oldest'}>Oldest first</option><option value="client" selected={sort === 'client'}>Client A–Z</option><option value="status" selected={sort === 'status'}>Status A–Z</option></select></label>
+    <button type="submit">Apply</button>
+  </form>
+
+  <section class="admin-list-section admin-list-section--results">
+    <header><div><span>Support queue</span><h2>{status === 'all' ? 'All tickets' : status.replace('_', ' ')}</h2></div><p>{tickets.length} shown</p></header>
+    <div class="ticket-list ticket-list--detailed">
+      {tickets.length ? tickets.map((ticket) => (
+        <article>
+          <span class={`ticket-status ticket-status--${ticket.status}`}>{ticket.status.replace('_', ' ')}</span>
+          <div><strong>{ticket.subject}</strong><small>{workspaceNames.get(ticket.workspace_id) ?? 'Client'}</small></div>
+          <time datetime={ticket.created_at}>{date(ticket.created_at)}</time>
+        </article>
+      )) : <p class="simple-empty">No tickets match that status.</p>}
+    </div>
+  </section>
+</AdminFrame>
+
