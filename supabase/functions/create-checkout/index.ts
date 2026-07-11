@@ -26,7 +26,7 @@ Deno.serve(async (request: Request) => {
   // The Supabase gateway must deploy this function with verify_jwt=true. After
   // gateway verification, the Clerk session claims are safe to use for lookup.
   const identity = readClerkIdentity(bearerToken(request));
-  if (!identity) return json(origin, { message: 'A Clerk organization session is required.' }, 401);
+  if (!identity) return json(origin, { message: 'Sign in to manage a subscription.' }, 401);
 
   const input = await request.json().catch(() => null);
   const plan = resolvePlan(input?.plan, (name) => Deno.env.get(name));
@@ -38,11 +38,32 @@ Deno.serve(async (request: Request) => {
     return json(origin, { message: 'Checkout is not configured yet.' }, 503);
   }
 
-  const { data: workspace, error: workspaceError } = await supabase
-    .from('client_workspaces')
-    .select('id,name,status,stripe_customer_id')
-    .eq('clerk_org_id', identity.orgId)
-    .maybeSingle();
+  let workspaceId: string | null = null;
+  if (identity.orgId) {
+    const organizationWorkspace = await supabase
+      .from('client_workspaces')
+      .select('id')
+      .eq('clerk_org_id', identity.orgId)
+      .maybeSingle();
+    workspaceId = organizationWorkspace.data?.id ?? null;
+  }
+  if (!workspaceId) {
+    const membership = await supabase
+      .from('workspace_members')
+      .select('workspace_id')
+      .eq('clerk_user_id', identity.userId)
+      .limit(1)
+      .maybeSingle();
+    workspaceId = membership.data?.workspace_id ?? null;
+  }
+
+  const { data: workspace, error: workspaceError } = workspaceId
+    ? await supabase
+        .from('client_workspaces')
+        .select('id,name,status,stripe_customer_id')
+        .eq('id', workspaceId)
+        .maybeSingle()
+    : { data: null, error: null };
 
   if (workspaceError || !workspace) {
     return json(origin, { message: 'This client workspace is not ready for Checkout.' }, 404);
@@ -65,8 +86,8 @@ Deno.serve(async (request: Request) => {
       name: workspace.name,
       metadata: {
         workspace_id: workspace.id,
-        clerk_org_id: identity.orgId,
         clerk_user_id: identity.userId,
+        ...(identity.orgId ? { clerk_org_id: identity.orgId } : {}),
       },
     });
     customerId = customer.id;
@@ -89,14 +110,14 @@ Deno.serve(async (request: Request) => {
     cancel_url: `${dashboardOrigin()}/dashboard?checkout=cancelled`,
     metadata: {
       workspace_id: workspace.id,
-      clerk_org_id: identity.orgId,
       plan_key: plan.key,
+      ...(identity.orgId ? { clerk_org_id: identity.orgId } : {}),
     },
     subscription_data: {
       metadata: {
         workspace_id: workspace.id,
-        clerk_org_id: identity.orgId,
         plan_key: plan.key,
+        ...(identity.orgId ? { clerk_org_id: identity.orgId } : {}),
       },
     },
   });
@@ -105,3 +126,4 @@ Deno.serve(async (request: Request) => {
     ? json(origin, { url: session.url })
     : json(origin, { message: 'Stripe did not return a Checkout URL.' }, 502);
 });
+
