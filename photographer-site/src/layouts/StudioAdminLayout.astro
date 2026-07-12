@@ -1,0 +1,176 @@
+
+---
+import { UserButton } from '@clerk/astro/components';
+
+import '../styles/studio-admin.css';
+
+interface Props {
+  title: string;
+  active: 'overview' | 'content' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices';
+  studioName: string;
+  isPreview: boolean;
+  error?: string | null;
+  workspaceId?: string;
+}
+
+const { title, active, studioName, isPreview, error = null, workspaceId = '' } = Astro.props;
+const suffix = isPreview ? '?preview=true' : '';
+const links = [
+  { key: 'overview', label: 'Overview', href: `/admin${suffix}` },
+  { key: 'content', label: 'Homepage', href: `/admin/content${suffix}` },
+  { key: 'galleries', label: 'Galleries', href: `/admin/galleries${suffix}` },
+  { key: 'posts', label: 'Posts', href: `/admin/posts${suffix}` },
+  { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
+  { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
+  { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
+] as const;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{title} | {studioName}</title>
+  </head>
+  <body data-preview={isPreview ? 'true' : 'false'} data-workspace-id={workspaceId}>
+    <div class="studio-shell">
+      <aside class="studio-sidebar">
+        <a class="studio-brand" href={`/admin${suffix}`}>
+          <span>{studioName}</span>
+          <small>Studio admin</small>
+        </a>
+        <nav aria-label="Studio admin">
+          {links.map((link) => (
+            <a href={link.href} aria-current={active === link.key ? 'page' : undefined}>{link.label}</a>
+          ))}
+        </nav>
+        <a class="studio-public-link" href="/" target="_blank">View website</a>
+      </aside>
+
+      <main class="studio-main">
+        <header class="studio-topbar">
+          <div><small>{studioName}</small><h1>{title}</h1></div>
+          {!isPreview && <UserButton />}
+        </header>
+        {error && <p class="studio-notice" role="status">{error}</p>}
+        <slot />
+      </main>
+    </div>
+    <script>
+      import { createClient } from '@supabase/supabase-js';
+
+      const getStudioClient = () => {
+        const url = import.meta.env.PUBLIC_SUPABASE_URL;
+        const key = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+        if (!url || !key) return null;
+        return createClient(url, key, { auth: { persistSession: false } });
+      };
+
+      const uploadImage = async (form: HTMLFormElement) => {
+        const input = form.querySelector<HTMLInputElement>('[data-image-upload]');
+        const file = input?.files?.[0];
+        if (!file) return null;
+        const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+        if (!allowed.has(file.type)) throw new Error('Choose a JPG, PNG, WebP, or AVIF image.');
+        if (file.size > 15 * 1024 * 1024) throw new Error('Choose an image smaller than 15 MB.');
+        const kind = form.dataset.uploadKind === 'image' ? 'galleries' : form.dataset.uploadKind === 'post' ? 'posts' : 'covers';
+        const approval = await fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, mime: file.type, size: file.size, kind }),
+        });
+        const approved = await approval.json().catch(() => null);
+        if (!approval.ok || !approved?.path || !approved?.token || !approved?.publicUrl) throw new Error(approved?.message ?? 'Upload could not be started.');
+        const client = getStudioClient();
+        if (!client) throw new Error('Image storage is not configured.');
+        const result = await client.storage.from('portfolio-images').uploadToSignedUrl(approved.path, approved.token, file, { contentType: file.type });
+        if (result.error) throw new Error(result.error.message || 'Image could not be uploaded.');
+        const urlField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
+        const pathField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
+        if (urlField) urlField.value = approved.publicUrl;
+        if (pathField) pathField.value = approved.path;
+        return approved.path as string;
+      };
+
+      document.querySelectorAll<HTMLFormElement>('.studio-editor-form').forEach((form) => {
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'studio-editor-close';
+        close.textContent = 'Close';
+        close.addEventListener('click', () => form.closest('details')?.removeAttribute('open'));
+        form.prepend(close);
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') document.querySelectorAll('details.studio-editor[open]').forEach((editor) => editor.removeAttribute('open'));
+      });
+
+      document.querySelectorAll<HTMLFormElement>('[data-studio-form]').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const status = form.querySelector<HTMLElement>('[data-form-status]');
+          if (!status) return;
+          status.textContent = 'Saving...';
+
+          if (document.body.dataset.preview === 'true') {
+            status.textContent = 'Preview saved locally. Sign in to save real changes.';
+            return;
+          }
+
+          const resource = form.dataset.resource;
+          let uploadedPath: string | null = null;
+          try {
+            uploadedPath = await uploadImage(form);
+          } catch (error) {
+            status.textContent = error instanceof Error ? error.message : 'Image could not be uploaded.';
+            return;
+          }
+          const data = Object.fromEntries(new FormData(form).entries());
+          Object.keys(data).forEach((key) => { if (data[key] instanceof File) delete data[key]; });
+          const response = await fetch(`/api/admin/${resource}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(data),
+          }).catch(() => null);
+          const payload = await response?.json().catch(() => null);
+          if (!response?.ok) {
+            if (uploadedPath) await fetch('/api/admin/upload', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: uploadedPath }) });
+            status.textContent = payload?.message ?? 'Changes were not saved.';
+            return;
+          }
+
+          status.textContent = 'Saved.';
+          if (payload?.reload !== false) window.setTimeout(() => window.location.reload(), 450);
+        });
+      });
+
+      document.querySelectorAll<HTMLButtonElement>('[data-studio-action]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const resource = button.dataset.resource;
+          const id = button.dataset.id;
+          const action = button.dataset.studioAction;
+          if (!resource || !id || !action) return;
+          if (action === 'delete' && !window.confirm('Delete this item? This cannot be undone.')) return;
+          if (document.body.dataset.preview === 'true') {
+            button.textContent = 'Preview only';
+            return;
+          }
+          button.disabled = true;
+          const response = await fetch(`/api/admin/${resource}`, {
+            method: action === 'delete' ? 'DELETE' : 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(action === 'delete' ? { id } : { id, direction: action }),
+          }).catch(() => null);
+          if (!response?.ok) {
+            button.disabled = false;
+            button.textContent = 'Try again';
+            return;
+          }
+          window.location.reload();
+        });
+      });
+    </script>
+  </body>
+</html>
