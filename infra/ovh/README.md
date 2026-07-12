@@ -5,7 +5,7 @@ This stack hosts the Sites By Leon marketing site, client/admin dashboard, photo
 ## Public routing
 
 - `leonsites.org` and `www.leonsites.org`: Coming Soon page plus sign-in/dashboard routes.
-- `app.leonsites.org`: compatibility hostname for the complete client dashboard.
+- `leonsites.org/admin`: private administration area behind Clerk authentication.
 - `test.leonsites.org`: full Sites By Leon marketing test site.
 - `demo.leonsites.org`: Northline sports photographer site and photographer admin.
 - `api.leonsites.org/media/*`: uploaded images.
