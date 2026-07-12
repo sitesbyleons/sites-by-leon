@@ -73,6 +73,7 @@ Deno.serve(async (request: Request) => {
   if (!connection) {
     const account = await stripeRequest('/v2/core/accounts', {
       display_name: workspace.name,
+      identity: { country: 'us' },
       dashboard: 'full',
       configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
       defaults: {
