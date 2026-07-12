@@ -229,7 +229,7 @@ a { -webkit-tap-highlight-color: transparent; }
 }
 
 .auth-page__panel { width: min(100%, 32rem); padding-top: clamp(4rem, 12vh, 9rem); }
-.auth-page h1 { margin: 0 0 2rem; font-family: var(--font-display); font-size: clamp(4.5rem, 9vw, 7.5rem); font-weight: 430; letter-spacing: -0.06em; line-height: 0.8; }
+.auth-page__panel h1 { margin: 0 0 2rem; font-family: var(--font-display); font-size: clamp(4.5rem, 9vw, 7.5rem); font-weight: 430; letter-spacing: -0.06em; line-height: 0.8; }
 .auth-page__intro { max-width: 29rem; margin: -0.8rem 0 2rem; color: var(--muted); font-size: 0.78rem; }
 
 /* Authenticated app */
@@ -511,6 +511,8 @@ a { -webkit-tap-highlight-color: transparent; }
   display: grid;
   min-height: 100svh;
   padding: 2rem 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   place-items: center;
   background: #f0f1f2;
   color: #15171a;
@@ -533,6 +535,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .clerk-root,
 .clerk-card-box { width: 100% !important; }
 .clerk-card { width: 100% !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; }
+.auth-card .cl-header { display: none !important; }
 .clerk-footer { margin-top: 1rem !important; }
 
 .client-shell {
