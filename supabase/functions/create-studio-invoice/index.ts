@@ -1,7 +1,7 @@
+
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
-import { readClerkIdentity } from '../_shared/billing-core.ts';
-import { bearerToken } from '../_shared/http.ts';
+import { readInternalIdentity } from '../_shared/internal-auth.ts';
 import { createConnectStripe } from '../_shared/stripe-client.ts';
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 
@@ -14,7 +14,7 @@ Deno.serve(async (request: Request) => {
   if (request.method === 'OPTIONS') return origin && allowedOrigins.includes(origin) ? new Response(null, { status: 204, headers: headers(origin) }) : json(origin, { message: 'Origin not allowed.' }, 403);
   if (request.method !== 'POST') return json(origin, { message: 'Method not allowed.' }, 405);
   if (!origin || !allowedOrigins.includes(origin)) return json(origin, { message: 'Origin not allowed.' }, 403);
-  const identity = readClerkIdentity(bearerToken(request));
+  const identity = readInternalIdentity(request);
   if (!identity) return json(origin, { message: 'Sign in to send an invoice.' }, 401);
 
   const input = await request.json().catch(() => null);
@@ -56,3 +56,4 @@ Deno.serve(async (request: Request) => {
   const { error } = await supabase.from('studio_invoices').update({ stripe_invoice_id: sent.id, status: 'open', hosted_invoice_url: sent.hosted_invoice_url }).eq('id', invoice.id);
   return error ? json(origin, { message: 'Invoice was sent but could not be synchronized.' }, 503) : json(origin, { ok: true, url: sent.hosted_invoice_url });
 });
+
