@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import path from 'node:path';
 
 import {
   detectImageExtension,
@@ -15,8 +16,10 @@ describe('self-hosted image storage', () => {
   });
 
   it('keeps deletion paths inside the selected workspace directory', () => {
-    const root = 'C:\\uploads';
-    expect(resolveManagedUpload(root, 'ws-1', 'ws-1/galleries/photo.jpg')).toBe('C:\\uploads\\ws-1\\galleries\\photo.jpg');
+    const root = path.resolve('uploads');
+    expect(resolveManagedUpload(root, 'ws-1', 'ws-1/galleries/photo.jpg')).toBe(
+      path.join(root, 'ws-1', 'galleries', 'photo.jpg'),
+    );
     expect(resolveManagedUpload(root, 'ws-1', '../ws-2/private.jpg')).toBeNull();
     expect(resolveManagedUpload(root, 'ws-1', 'ws-2/private.jpg')).toBeNull();
     expect(resolveManagedUpload(root, 'ws-1', 'ws-1/../../private.jpg')).toBeNull();
