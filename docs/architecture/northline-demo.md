@@ -1,53 +1,30 @@
-# Northline Portrait Studio demo deployment
+# Northline Sports deployment
 
-Northline is a fictional photographer-site production demo owned and operated by Sites By Leon. It is intentionally isolated from the Sites By Leon marketing application so it follows the same deployment shape as a future client site.
+Northline Sports is the production-style photographer-site example owned by Sites By Leon. It is served from the OVH VPS at <https://demo.leonsites.org> and follows the same architecture planned for future client sites.
 
-## Source control
+## Ownership and hosting
 
-- GitHub repository: `sitesbyleons/northline-portraits-demo`
-- Repository visibility: private
-- Repository ID: `1297157560`
-- Production branch: `main`
-- Application root: `/`
-- Current production source commit: `7f9327d999e64d1812f89f024c9c42177981bf1f`
+- Private GitHub source under the Sites By Leon business account
+- Dockerized Astro server on the Sites By Leon OVH VPS
+- Cloudflare DNS and private Tunnel routing
+- Plain PostgreSQL 17 database shared through workspace-scoped records
+- Persistent images under `/opt/leon-platform/uploads`
+- Clerk authentication for the studio administration routes
+- Stripe Connect and invoice routes running inside the site container
 
-The repository is connected directly to Vercel. A fast-forward push to `main` creates a production deployment. No client-owned GitHub account is required for this demo.
-
-## Vercel
-
-- Team: `sitesbyleons' projects`
-- Team ID: `team_WJPOfpXpWR1UGEo2tBaCiTB5`
-- Project: `northline-portraits-demo`
-- Project ID: `prj_AWIrVXuJKzndtFWgy60ok5iQwMqI`
-- Framework: Astro
-- Root directory: `./`
-- Install command: Vercel's detected pnpm install
-- Build command: Vercel's detected Astro build
-- Production URL: <https://northline-portraits-demo.vercel.app>
-- Current production deployment: `dpl_9fo9y6chGr3Kfu2j1NqDRdxT9yiW`
-
-The project is deliberately hosted on the Sites By Leon Vercel team. A custom client domain can be attached later without transferring project ownership.
-
-The repository includes its own `pnpm-lock.yaml` and pnpm 11 workspace settings, so it installs independently when checked out as a repository root. Dependency build scripts are explicitly limited to `esbuild` and `sharp`, the two packages required by Astro's build and image pipeline.
+The application is not publicly exposed by an origin port. Cloudflare Tunnel forwards only the configured hostname to the Caddy gateway, and the gateway sends that host to the `northline` container.
 
 ## Control-plane boundary
 
-The deployment has a unique `LEON_SITE_ID` configured in Vercel. Its value is intentionally not recorded in source control.
+The site has a unique `SITE_KEY` and internal control token stored only on the VPS. The Sites By Leon dashboard can read status, pause the public site, and inspect the deployed version through authenticated server-to-server routes. Browser requests never receive the shared control credential.
 
-The following integrations remain disconnected until a real control plane is available:
+## Public and protected routes
 
-- `LEON_CONTROL_URL`
-- `LEON_SITE_SECRET`
-- production DNS for a custom client domain
-
-This means the public demo cannot be remotely paused by an untrusted browser value, and it does not expose a shared control-plane credential. The `/api/health` route exposes only public service state and version metadata.
+- `/`, `/work`, `/journal`, `/packages`, and `/contact` are public.
+- `/admin`, `/sign-in`, and content mutation APIs require Clerk authentication.
+- `/api/health` exposes only non-sensitive availability metadata.
+- `/invoice/:token` is intended for shareable client invoice links.
 
 ## Verification
 
-The release was checked with Astro diagnostics, 21 unit tests, a production build, and 23 Playwright tests at desktop and iPhone widths. The automated browser suite covers route responses, horizontal overflow, serious accessibility issues, public pause boundaries, package/contact behavior, invoice placeholders, and gallery/journal fixtures.
-
-The standalone repository includes `.github/workflows/quality.yml`. GitHub Actions run `29160849739` completed successfully for the production source commit. Its `verify` job used pnpm 11.7.0 with a frozen lockfile and passed Astro checking, unit tests, the production build, and Chromium browser/accessibility/mobile coverage.
-
-Live verification covers `/`, `/work`, a work detail, `/journal`, a journal detail, `/packages`, `/contact`, `/invoice/demo`, and `/api/health`.
-
-Every live HTML route uses `https://northline-portraits-demo.vercel.app` for canonical metadata. Routes with an Open Graph image use that same production origin. Live Chromium verification confirmed the four repository-driven homepage fields, desktop and iPhone overflow and accessibility checks, and twelve unique captioned gallery frames. Chrome was also used to confirm the successful production workflow after the deployment reached `READY`.
+Unit, Astro diagnostic, production build, and Playwright suites cover desktop and iPhone widths, horizontal overflow, accessibility, public pause boundaries, gallery and journal fixtures, packages, contact behavior, uploads, content management, and invoice validation.

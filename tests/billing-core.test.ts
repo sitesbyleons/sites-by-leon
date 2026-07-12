@@ -6,7 +6,7 @@ import {
   readClerkIdentity,
   resolvePlan,
   subscriptionIdForEvent,
-} from '../supabase/functions/_shared/billing-core';
+} from '../platform-core/src/billing-core';
 
 const token = (payload: object) => {
   const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');

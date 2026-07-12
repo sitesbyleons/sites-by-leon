@@ -215,13 +215,27 @@ create table if not exists site_connections (
   workspace_id uuid primary key references client_workspaces(id) on delete cascade,
   site_key text not null unique,
   primary_domain text not null,
-  vercel_project_id text,
+  deployment_target text,
   github_repository text,
   status text not null default 'active' check (status in ('active', 'paused', 'maintenance', 'error')),
   current_version text,
   last_seen_at timestamptz,
   updated_at timestamptz not null default now()
 );
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'site_connections'
+      and column_name = 'vercel_project_id'
+  ) then
+    execute 'update site_connections set deployment_target = coalesce(deployment_target, ''ovh:leon-platform'') where vercel_project_id is not null';
+    alter table site_connections drop column vercel_project_id;
+  end if;
+end $$;
 
 create table if not exists stripe_events (
   event_id text primary key,

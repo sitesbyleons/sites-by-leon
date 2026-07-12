@@ -45,7 +45,7 @@ export type AdminConnection = {
   workspace_id: string;
   site_key: string;
   primary_domain: string;
-  vercel_project_id: string | null;
+  deployment_target: string | null;
   github_repository: string | null;
   status: string;
   current_version: string | null;
@@ -109,7 +109,7 @@ export function getPreviewAdminData(): AdminData {
       { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
     ],
     connections: [
-      { workspace_id: 'ws_northline', site_key: 'northline-demo', primary_domain: 'demo.leonsites.org', vercel_project_id: 'prj_AWIrVXuJKzndtFWgy60ok5iQwMqI', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null },
+      { workspace_id: 'ws_northline', site_key: 'northline-demo', primary_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-northline', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null },
     ],
     error: null,
   };
@@ -225,7 +225,7 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
       .order('created_at', { ascending: false })
       .limit(100),
     database.from('workspace_members').select('workspace_id,clerk_user_id,role'),
-    database.from('site_connections').select('workspace_id,site_key,primary_domain,vercel_project_id,github_repository,status,current_version,last_seen_at'),
+    database.from('site_connections').select('workspace_id,site_key,primary_domain,deployment_target,github_repository,status,current_version,last_seen_at'),
   ]);
 
   const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error;

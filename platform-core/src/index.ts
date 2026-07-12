@@ -11,7 +11,7 @@ const schema = {
   connected_payment_accounts: ['id', 'workspace_id', 'stripe_account_id', 'onboarding_status', 'charges_enabled', 'payouts_enabled', 'details_submitted', 'created_at', 'updated_at'],
   contact_inquiries: ['id', 'created_at', 'name', 'email', 'focus', 'message', 'ip_hash'],
   content_requests: ['id', 'workspace_id', 'created_by_clerk_user_id', 'subject', 'details', 'status', 'created_at', 'updated_at'],
-  site_connections: ['workspace_id', 'site_key', 'primary_domain', 'vercel_project_id', 'github_repository', 'status', 'current_version', 'last_seen_at', 'updated_at'],
+  site_connections: ['workspace_id', 'site_key', 'primary_domain', 'deployment_target', 'github_repository', 'status', 'current_version', 'last_seen_at', 'updated_at'],
   studio_clients: ['id', 'workspace_id', 'service_id', 'stripe_customer_id', 'name', 'email', 'phone', 'notes', 'created_at', 'updated_at'],
   studio_galleries: ['id', 'workspace_id', 'title', 'slug', 'category', 'description', 'cover_image_url', 'cover_storage_path', 'status', 'sort_order', 'created_at', 'updated_at'],
   studio_gallery_images: ['id', 'workspace_id', 'gallery_id', 'image_url', 'alt_text', 'storage_path', 'sort_order', 'created_at', 'updated_at'],
