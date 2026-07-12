@@ -1,7 +1,7 @@
+
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
-import { readClerkIdentity } from '../_shared/billing-core.ts';
-import { bearerToken } from '../_shared/http.ts';
+import { readInternalIdentity } from '../_shared/internal-auth.ts';
 import { createSupabaseAdmin } from '../_shared/supabase-admin.ts';
 
 const allowedOrigins = (Deno.env.get('PORTFOLIO_ADMIN_ORIGINS') ?? '')
@@ -40,7 +40,7 @@ Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return json(origin, { message: 'Method not allowed.' }, 405);
   if (!origin || !allowedOrigins.includes(origin)) return json(origin, { message: 'Origin not allowed.' }, 403);
 
-  const identity = readClerkIdentity(bearerToken(request));
+  const identity = readInternalIdentity(request);
   if (!identity) return json(origin, { message: 'Sign in to connect Stripe.' }, 401);
   const supabase = createSupabaseAdmin();
   if (!supabase || !Deno.env.get('STRIPE_CONNECT_SECRET_KEY')) {
@@ -109,3 +109,4 @@ Deno.serve(async (request: Request) => {
     ? json(origin, { url: accountLink.url })
     : json(origin, { message: 'Stripe onboarding could not start.' }, 502);
 });
+
