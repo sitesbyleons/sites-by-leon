@@ -22,8 +22,24 @@
       "destination": "https://sites-by-leon-dashboard.vercel.app/dashboard/:path*"
     },
     {
+      "source": "/sign-in",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/sign-in"
+    },
+    {
+      "source": "/sign-in/",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/sign-in/"
+    },
+    {
       "source": "/sign-in/:path*",
       "destination": "https://sites-by-leon-dashboard.vercel.app/sign-in/:path*"
+    },
+    {
+      "source": "/sign-up",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/sign-up"
+    },
+    {
+      "source": "/sign-up/",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/sign-up/"
     },
     {
       "source": "/sign-up/:path*",

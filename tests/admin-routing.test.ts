@@ -14,6 +14,8 @@ describe('Leon admin routing', () => {
       'https://sites-by-leon-dashboard.vercel.app/admin-assets/:path*',
     );
     expect(rewrites.get('/api/:path*')).toBe('https://sites-by-leon-dashboard.vercel.app/api/:path*');
+    expect(rewrites.get('/sign-in/')).toBe('https://sites-by-leon-dashboard.vercel.app/sign-in/');
+    expect(rewrites.get('/sign-up/')).toBe('https://sites-by-leon-dashboard.vercel.app/sign-up/');
   });
 
   it('uses an isolated asset directory for the dashboard', () => {
