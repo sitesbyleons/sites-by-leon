@@ -4,6 +4,40 @@
   "installCommand": "npm install --no-package-lock",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/admin"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/admin/:path*"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/dashboard"
+    },
+    {
+      "source": "/dashboard/:path*",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/dashboard/:path*"
+    },
+    {
+      "source": "/sign-in/:path*",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/sign-in/:path*"
+    },
+    {
+      "source": "/sign-up/:path*",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/sign-up/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/api/:path*"
+    },
+    {
+      "source": "/admin-assets/:path*",
+      "destination": "https://sites-by-leon-dashboard.vercel.app/admin-assets/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

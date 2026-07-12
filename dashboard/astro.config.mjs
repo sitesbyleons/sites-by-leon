@@ -6,5 +6,8 @@ export default defineConfig({
   adapter: vercel(),
   integrations: [clerk()],
   output: 'server',
-  site: 'https://app.leonsites.org',
+  site: 'https://leonsites.org',
+  build: {
+    assets: 'admin-assets',
+  },
 });
