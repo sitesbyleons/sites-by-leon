@@ -17,6 +17,7 @@ describe('photographer payment bridge', () => {
       fs.readFile(new URL('../supabase/functions/connect-account/index.ts', import.meta.url), 'utf8'),
     );
     expect(functionSource).toContain('readInternalIdentity(request)');
+    expect(functionSource).toContain("identity: { country: 'us' }");
     expect(functionSource).not.toContain('readClerkIdentity(bearerToken(request))');
   });
 });
