@@ -29,6 +29,11 @@
 		reverse_proxy dashboard:4321
 	}
 
+	@dashboard_app host {$DASHBOARD_DOMAIN}
+	handle @dashboard_app {
+		reverse_proxy dashboard:4321
+	}
+
 	@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN} {$TEST_DOMAIN}
 	handle @marketing {
 		root * /srv/marketing
