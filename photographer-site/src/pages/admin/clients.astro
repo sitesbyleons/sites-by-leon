@@ -1,0 +1,25 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { loadStudioSession } from '../../lib/studio';
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), getToken: async () => auth ? (await auth.getToken()) ?? null : null });
+if (!session.authenticated) return Astro.redirect('/sign-in?redirect_url=%2Fadmin%2Fclients');
+const data = session.data!;
+const serviceNames = new Map(data.services.map((service) => [service.id, service.name]));
+---
+
+<StudioAdminLayout title="Clients" active="clients" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
+  <div class="studio-split">
+    <section><header class="studio-section-heading"><div><small>Contacts</small><h2>Your clients</h2></div></header><div class="studio-panel">
+      {data.clients.length ? <ul class="studio-list">{data.clients.map((client) => <li><div><strong>{client.name}</strong><small>{client.email ?? client.phone} · {client.service_id ? serviceNames.get(client.service_id) : 'No service selected'}</small></div></li>)}</ul> : <p class="studio-empty">No clients yet.</p>}
+    </div></section>
+    <section><header class="studio-section-heading"><div><small>New client</small><h2>Add a client</h2></div></header><div class="studio-panel"><form class="studio-form" data-studio-form data-resource="clients">
+      <label class="wide"><span>Name</span><input name="name" autocomplete="name" required /></label>
+      <label><span>Email</span><input name="email" type="email" autocomplete="email" /></label><label><span>Phone</span><input name="phone" type="tel" autocomplete="tel" /></label>
+      <label class="wide"><span>Service</span><select name="service_id"><option value="">Choose a service</option>{data.services.map((service) => <option value={service.id}>{service.name}</option>)}</select></label>
+      <label class="wide"><span>Notes</span><textarea name="notes"></textarea></label>
+      <div class="wide"><button type="submit">Add client</button></div><p class="studio-form-status wide" data-form-status></p>
+    </form></div></section>
+  </div>
+</StudioAdminLayout>

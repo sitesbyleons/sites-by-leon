@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { DataClient } from '@leon/platform-core';
 
 import { resolveClientWorkspace } from './workspaces';
 
@@ -33,10 +33,10 @@ export type DashboardData = {
 };
 
 export async function loadDashboardData(
-  supabase: SupabaseClient | null,
+  database: DataClient | null,
   identity: { userId: string; orgId: string | null },
 ): Promise<DashboardData> {
-  if (!supabase) {
+  if (!database) {
     return {
       workspace: null,
       project: null,
@@ -45,7 +45,7 @@ export async function loadDashboardData(
     };
   }
 
-  const { workspace, error: workspaceError } = await resolveClientWorkspace(supabase, identity);
+  const { workspace, error: workspaceError } = await resolveClientWorkspace(database, identity);
 
   if (workspaceError) {
     return {
@@ -61,14 +61,14 @@ export async function loadDashboardData(
   }
 
   const [projectResult, subscriptionResult] = await Promise.all([
-    supabase
+    database
       .from('website_projects')
       .select('id,name,status,progress,next_step,live_url,updated_at')
       .eq('workspace_id', workspace.id)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle<ProjectRow>(),
-    supabase
+    database
       .from('subscriptions')
       .select('plan_key,status,current_period_end,cancel_at_period_end')
       .eq('workspace_id', workspace.id)
@@ -85,4 +85,3 @@ export async function loadDashboardData(
         : null,
   };
 }
-

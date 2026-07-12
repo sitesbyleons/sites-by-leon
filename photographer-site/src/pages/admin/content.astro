@@ -1,0 +1,36 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { loadStudioSession } from '../../lib/studio';
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), getToken: async () => auth ? (await auth.getToken()) ?? null : null });
+if (!session.authenticated) return Astro.redirect('/sign-in?redirect_url=%2Fadmin%2Fcontent');
+const data = session.data!;
+const settings = data.settings;
+---
+
+<StudioAdminLayout title="Homepage" active="content" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
+  <header class="studio-section-heading"><div><small>Homepage</small><h2>Text and style</h2></div><p>Change the essentials without rebuilding the page.</p></header>
+  <section class="studio-panel">
+    <form class="studio-form" data-studio-form data-resource="settings">
+      <label><span>Site name</span><input name="site_title" value={settings?.site_title ?? ''} minlength="2" maxlength="100" required /></label>
+      <label><span>Homepage title</span><input name="hero_title" value={settings?.hero_title ?? ''} minlength="2" maxlength="120" required /></label>
+      <label class="wide"><span>Homepage description</span><textarea name="hero_subtitle" maxlength="240" required>{settings?.hero_subtitle ?? ''}</textarea></label>
+      <label><span>Contact email</span><input name="contact_email" type="email" value={settings?.contact_email ?? ''} /></label>
+      <label><span>Contact phone</span><input name="contact_phone" type="tel" value={settings?.contact_phone ?? ''} /></label>
+      <fieldset class="studio-brand-controls wide">
+        <legend>Website style</legend>
+        <label><span>Page color</span><input name="paper_color" type="color" value={settings?.paper_color ?? '#f4f6f8'} /></label>
+        <label><span>Text color</span><input name="ink_color" type="color" value={settings?.ink_color ?? '#090d12'} /></label>
+        <label><span>Accent color</span><input name="accent_color" type="color" value={settings?.accent_color ?? '#ff3b30'} /></label>
+        <label><span>Font style</span><select name="font_preset">
+          <option value="athletic" selected={settings?.font_preset === 'athletic'}>Athletic</option>
+          <option value="editorial" selected={settings?.font_preset === 'editorial'}>Editorial</option>
+          <option value="modern" selected={settings?.font_preset === 'modern'}>Modern</option>
+        </select></label>
+      </fieldset>
+      <div class="wide"><button type="submit">Save homepage</button></div>
+      <p class="studio-form-status wide" data-form-status aria-live="polite"></p>
+    </form>
+  </section>
+</StudioAdminLayout>

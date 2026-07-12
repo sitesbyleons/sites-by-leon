@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { DataClient } from '@leon/platform-core';
 
 export type ResolvedWorkspace = {
   id: string;
@@ -7,13 +7,13 @@ export type ResolvedWorkspace = {
 };
 
 export async function resolveClientWorkspace(
-  supabase: SupabaseClient | null,
+  database: DataClient | null,
   input: { userId: string; orgId: string | null },
 ): Promise<{ workspace: ResolvedWorkspace | null; error: boolean }> {
-  if (!supabase) return { workspace: null, error: true };
+  if (!database) return { workspace: null, error: true };
 
   if (input.orgId) {
-    const byOrganization = await supabase
+    const byOrganization = await database
       .from('client_workspaces')
       .select('id,name,status')
       .eq('clerk_org_id', input.orgId)
@@ -23,7 +23,7 @@ export async function resolveClientWorkspace(
     if (byOrganization.data) return { workspace: byOrganization.data, error: false };
   }
 
-  const membership = await supabase
+  const membership = await database
     .from('workspace_members')
     .select('workspace_id')
     .eq('clerk_user_id', input.userId)
@@ -34,7 +34,7 @@ export async function resolveClientWorkspace(
   if (membership.error) return { workspace: null, error: true };
   if (!membership.data) return { workspace: null, error: false };
 
-  const workspace = await supabase
+  const workspace = await database
     .from('client_workspaces')
     .select('id,name,status')
     .eq('id', membership.data.workspace_id)
@@ -42,4 +42,3 @@ export async function resolveClientWorkspace(
 
   return { workspace: workspace.data, error: Boolean(workspace.error) };
 }
-

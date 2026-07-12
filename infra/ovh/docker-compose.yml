@@ -1,0 +1,104 @@
+name: leon-platform
+
+services:
+  database:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    env_file:
+      - ./secrets/postgres.env
+    volumes:
+      - leon-postgres:/var/lib/postgresql/data
+      - ./postgres/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - leon-internal
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: infra/ovh/docker/Dockerfile.gateway
+    restart: unless-stopped
+    environment:
+      MARKETING_DOMAIN: ${MARKETING_DOMAIN}
+      MARKETING_WWW_DOMAIN: ${MARKETING_WWW_DOMAIN}
+      TEST_DOMAIN: ${TEST_DOMAIN}
+      DEMO_DOMAIN: ${DEMO_DOMAIN}
+      MEDIA_DOMAIN: ${MEDIA_DOMAIN}
+    volumes:
+      - ${UPLOADS_PATH:-/opt/leon-platform/uploads}:/srv/uploads:ro
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      dashboard:
+        condition: service_healthy
+      northline:
+        condition: service_healthy
+    networks:
+      - leon-edge
+      - leon-internal
+
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: infra/ovh/docker/Dockerfile.dashboard
+      args:
+        PUBLIC_CLERK_PUBLISHABLE_KEY: ${PUBLIC_CLERK_PUBLISHABLE_KEY}
+    restart: unless-stopped
+    env_file:
+      - ./secrets/dashboard.env
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - leon-internal
+      - egress
+
+  northline:
+    build:
+      context: ../..
+      dockerfile: infra/ovh/docker/Dockerfile.photographer
+      args:
+        PUBLIC_CLERK_PUBLISHABLE_KEY: ${PUBLIC_CLERK_PUBLISHABLE_KEY}
+    restart: unless-stopped
+    env_file:
+      - ./secrets/northline.env
+    volumes:
+      - ${UPLOADS_PATH:-/opt/leon-platform/uploads}:/data/uploads
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - leon-internal
+      - egress
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.7.1
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token-file /run/secrets/cloudflare_tunnel_token
+    secrets:
+      - cloudflare_tunnel_token
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - leon-internal
+      - egress
+
+secrets:
+  cloudflare_tunnel_token:
+    file: ${CLOUDFLARE_TUNNEL_TOKEN_FILE}
+
+volumes:
+  leon-postgres:
+
+networks:
+  leon-edge:
+    external: true
+  leon-internal:
+    internal: true
+  egress:

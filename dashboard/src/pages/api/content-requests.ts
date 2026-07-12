@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 
 import { validateContentRequest } from '../../lib/content-request';
+import { createPlatformDatabase } from '../../lib/database';
 import { isTrustedOrigin } from '../../lib/request-security';
-import { createClerkSupabaseClient } from '../../lib/supabase';
 import { resolveClientWorkspace } from '../../lib/workspaces';
 
 export const POST: APIRoute = async ({ request, locals, url }) => {
@@ -25,12 +25,12 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     return Response.json({ message: Object.values(result.errors)[0] }, { status: 400 });
   }
 
-  const supabase = createClerkSupabaseClient(async () => (await auth.getToken()) ?? null);
-  if (!supabase) {
+  const database = createPlatformDatabase();
+  if (!database) {
     return Response.json({ message: 'Online requests are not connected yet. Please email Leon.' }, { status: 503 });
   }
 
-  const { workspace, error: workspaceError } = await resolveClientWorkspace(supabase, {
+  const { workspace, error: workspaceError } = await resolveClientWorkspace(database, {
     userId: auth.userId,
     orgId: auth.orgId ?? null,
   });
@@ -39,7 +39,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     return Response.json({ message: 'This client workspace is not ready yet. Please email Leon.' }, { status: 409 });
   }
 
-  const { error } = await supabase.from('content_requests').insert({
+  const { error } = await database.from('content_requests').insert({
     workspace_id: workspace.id,
     created_by_clerk_user_id: auth.userId,
     subject: result.value.subject,
@@ -50,4 +50,3 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     ? Response.json({ message: 'That did not send. Please email Leon.' }, { status: 500 })
     : Response.json({ ok: true }, { status: 201 });
 };
-

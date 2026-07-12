@@ -1,0 +1,73 @@
+---
+import ContactSheet from '../components/ContactSheet.astro';
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { siteRepository } from '../lib/content/repository';
+
+const portfolio = await siteRepository.getPortfolio();
+const featuredGalleries = portfolio.home.featuredGallerySlugs
+  .map((slug) => portfolio.galleries.find((gallery) => gallery.slug === slug))
+  .filter((gallery) => gallery !== undefined);
+const leadLandscape = featuredGalleries[0]?.images[1] ?? featuredGalleries[0]?.cover;
+const leadPortrait = featuredGalleries[1]?.images[2] ?? featuredGalleries[1]?.cover;
+---
+
+<SiteLayout
+  title={portfolio.studioName}
+  description="Sports photography for teams and athletes."
+  image={leadLandscape?.src}
+  canonicalPath="/"
+>
+  <section class="editorial-hero page-gutter" aria-labelledby="home-title" data-editorial-hero>
+    <div class="editorial-hero-copy" data-entrance>
+      <h1 id="home-title">{portfolio.home.headline}</h1>
+      <p>{portfolio.home.introduction}</p>
+    </div>
+
+    <div class="editorial-hero-images">
+      {
+        leadLandscape && (
+          <figure class="editorial-hero-image editorial-hero-image--landscape" data-image-drift="slow">
+            <img
+              src={leadLandscape.src}
+              alt={leadLandscape.alt}
+              width={leadLandscape.width}
+              height={leadLandscape.height}
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </figure>
+        )
+      }
+      {
+        leadPortrait && (
+          <figure class="editorial-hero-image editorial-hero-image--portrait" data-image-drift="fast">
+            <img
+              src={leadPortrait.src}
+              alt={leadPortrait.alt}
+              width={leadPortrait.width}
+              height={leadPortrait.height}
+              loading="eager"
+              decoding="async"
+            />
+          </figure>
+        )
+      }
+    </div>
+  </section>
+
+  <ContactSheet galleries={featuredGalleries} />
+
+  <section class="service-preview page-gutter" aria-labelledby="service-preview-title" data-entrance>
+    <div>
+      <h2 id="service-preview-title">Photography services</h2>
+      <p>Game coverage, season coverage, and athlete sessions.</p>
+    </div>
+    <a class="text-link" href="/packages">Services</a>
+  </section>
+
+  <section class="home-contact page-gutter" aria-labelledby="home-contact-title" data-entrance>
+    <h2 id="home-contact-title">Need a photographer?</h2>
+    <a href={`mailto:${portfolio.email}`}>{portfolio.email}</a>
+  </section>
+</SiteLayout>

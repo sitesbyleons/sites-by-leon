@@ -1,0 +1,34 @@
+---
+import type { Gallery } from '../lib/content/types';
+
+interface Props {
+  galleries: Gallery[];
+}
+
+const { galleries } = Astro.props;
+---
+
+<ol class="work-grid">
+  {
+    galleries.map((gallery, index) => (
+      <li class="work-card" data-entrance>
+        <a href={`/work/${gallery.slug}`}>
+          <figure data-image-drift={index % 2 === 0 ? 'slow' : 'fast'}>
+            <img
+              src={gallery.cover.src}
+              alt={gallery.cover.alt}
+              width={gallery.cover.width}
+              height={gallery.cover.height}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+            />
+          </figure>
+          <span class="work-caption">
+            <h2>{gallery.title}</h2>
+            <small>{gallery.category}</small>
+          </span>
+        </a>
+      </li>
+    ))
+  }
+</ol>

@@ -6,7 +6,7 @@ import {
   readClerkIdentity,
   resolvePlan,
   subscriptionIdForEvent,
-} from '../supabase/functions/_shared/billing-core';
+} from '../platform-core/src/billing-core';
 
 const token = (payload: object) => {
   const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
@@ -25,8 +25,11 @@ describe('readClerkIdentity', () => {
     });
   });
 
-  it('rejects a token without both identity claims', () => {
-    expect(readClerkIdentity(token({ sub: 'user_a' }))).toBeNull();
+  it('accepts a user without an organization', () => {
+    expect(readClerkIdentity(token({ sub: 'user_a' }))).toEqual({ userId: 'user_a', orgId: null });
+  });
+
+  it('rejects a malformed token', () => {
     expect(readClerkIdentity('not-a-jwt')).toBeNull();
   });
 });

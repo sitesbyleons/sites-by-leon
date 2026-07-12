@@ -10,3 +10,9 @@ dist/
 playwright-report/
 test-results/
 coverage/
+infra/ovh/.env
+infra/ovh/secrets/*.env
+infra/ovh/secrets/cloudflare-tunnel-token
+infra/ovh/secrets/restic-password
+infra/ovh/migration-artifacts/
+infra/ovh/backups/

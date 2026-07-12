@@ -1,0 +1,23 @@
+---
+import GalleryGrid from '../../components/GalleryGrid.astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { siteRepository } from '../../lib/content/repository';
+
+const galleries = await siteRepository.listGalleries();
+---
+
+<SiteLayout
+  title="Work"
+  description="Football, basketball, and track photography by Northline Sports."
+  image={galleries[0]?.cover.src}
+  canonicalPath="/work"
+>
+  <header class="page-intro page-gutter">
+    <h1 id="work-title" data-entrance>Sports photography.</h1>
+    <p data-entrance>Football, basketball, and track coverage.</p>
+  </header>
+
+  <section class="work-archive page-gutter" aria-label="Sports galleries">
+    <GalleryGrid galleries={galleries} />
+  </section>
+</SiteLayout>

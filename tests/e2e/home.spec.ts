@@ -122,7 +122,7 @@ test('keeps contact direct and email-only', async ({ page }) => {
   await expect(page.locator('[data-contact-form]')).toHaveCount(0);
   await expect(page.locator('#contact').getByRole('link', { name: 'Email Leon' })).toHaveAttribute(
     'href',
-    'mailto:sites.by.leon@gmail.com',
+    'mailto:leon@leonsites.com',
   );
 });
 
@@ -130,9 +130,42 @@ test('shows a minimal coming-soon page for the production host mode', async ({ p
   await page.goto('/?mode=coming');
 
   await expect(page.getByRole('heading', { level: 1, name: 'Coming soon.' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'leon@leonsites.com' })).toHaveAttribute(
+    'href',
+    'mailto:leon@leonsites.com',
+  );
+  await expect(page.locator('.coming-soon')).not.toContainText('Websites for photographers');
   await expect(page.locator('.host-preview')).toBeHidden();
   await expect(page.locator('.coming-soon .brand-mark img')).toHaveAttribute('src', /^data:image\/png;base64,/);
 });
+
+for (const viewport of [
+  { width: 390, height: 844 },
+  { width: 1440, height: 900 },
+]) {
+  test(`centers coming soon without overflow at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/?mode=coming');
+
+    const layout = await page.locator('.coming-soon').evaluate((root) => {
+      const heading = root.querySelector('h1')!.getBoundingClientRect();
+      const logo = root.querySelector('.brand-mark')!.getBoundingClientRect();
+      return {
+        headingCenterX: heading.left + heading.width / 2,
+        headingCenterY: heading.top + heading.height / 2,
+        logoLeft: logo.left,
+        logoTop: logo.top,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    });
+
+    expect(Math.abs(layout.headingCenterX - viewport.width / 2)).toBeLessThanOrEqual(2);
+    expect(Math.abs(layout.headingCenterY - viewport.height / 2)).toBeLessThanOrEqual(2);
+    expect(layout.logoLeft).toBeLessThan(viewport.width / 10);
+    expect(layout.logoTop).toBeLessThan(viewport.height / 10);
+    expect(layout.overflow).toBe(false);
+  });
+}
 
 test('publishes the privacy and terms pages', async ({ page }) => {
   await page.goto('/privacy');

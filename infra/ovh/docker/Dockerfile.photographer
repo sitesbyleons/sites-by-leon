@@ -1,0 +1,25 @@
+FROM node:24-bookworm-slim AS build
+WORKDIR /workspace
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY dashboard/package.json dashboard/package.json
+COPY platform-core/package.json platform-core/package.json
+COPY photographer-site/package.json photographer-site/package.json
+RUN pnpm install --frozen-lockfile
+COPY . .
+ARG PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV PUBLIC_CLERK_PUBLISHABLE_KEY=$PUBLIC_CLERK_PUBLISHABLE_KEY
+RUN pnpm --filter northline-photographer-site build
+
+FROM node:24-bookworm-slim
+ENV HOST=0.0.0.0 PORT=4321 NODE_ENV=production
+WORKDIR /workspace
+COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
+COPY --from=build --chown=node:node /workspace/photographer-site/node_modules ./photographer-site/node_modules
+COPY --from=build --chown=node:node /workspace/photographer-site/dist ./photographer-site/dist
+COPY --from=build --chown=node:node /workspace/photographer-site/package.json ./photographer-site/package.json
+COPY --from=build --chown=node:node /workspace/platform-core ./platform-core
+USER node
+EXPOSE 4321
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD node -e "fetch('http://127.0.0.1:4321/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+CMD ["node", "./photographer-site/dist/server/entry.mjs"]
