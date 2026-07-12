@@ -5,18 +5,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { checkAppAdmin } from '../../lib/admin';
 import { decideDashboardAccess } from '../../lib/access';
 import { canStartCheckout, plans } from '../../lib/billing';
+import { createPlatformDatabase } from '../../lib/database';
 import { normalizeDashboardState } from '../../lib/dashboard-state';
 import { loadDashboardData } from '../../lib/load-dashboard';
-import { createClerkSupabaseClient } from '../../lib/supabase';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
-let supabase: ReturnType<typeof createClerkSupabaseClient> = null;
+const database = createPlatformDatabase();
 let isAdmin = isPreview;
 
 if (!isPreview && auth?.userId) {
-  supabase = createClerkSupabaseClient(async () => (await auth.getToken()) ?? null);
-  isAdmin = (await checkAppAdmin(supabase, auth.userId)).isAdmin;
+  isAdmin = (await checkAppAdmin(database, auth.userId)).isAdmin;
   if (isAdmin) return Astro.redirect('/admin');
 }
 
@@ -54,7 +53,7 @@ if (isPreview) {
     error: null,
   };
 } else if (access.kind === 'account') {
-  dashboardData = await loadDashboardData(supabase, {
+  dashboardData = await loadDashboardData(database, {
     userId: access.userId,
     orgId: access.orgId,
   });
@@ -200,4 +199,3 @@ const periodEnd = dashboardData.subscription?.current_period_end
     });
   </script>
 </DashboardLayout>
-

@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
-import { checkoutAllowed, readClerkIdentity, resolvePlan } from '../_shared/billing-core.ts';
+import { checkoutAllowed, resolvePlan } from '../_shared/billing-core.ts';
+import { verifyClerkIdentity } from '../_shared/clerk-auth.ts';
 import {
   allowedDashboardRequest,
   bearerToken,
@@ -23,9 +24,7 @@ Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return json(origin, { message: 'Method not allowed.' }, 405);
   if (!allowedDashboardRequest(request)) return json(origin, { message: 'Origin not allowed.' }, 403);
 
-  // The Supabase gateway must deploy this function with verify_jwt=true. After
-  // gateway verification, the Clerk session claims are safe to use for lookup.
-  const identity = readClerkIdentity(bearerToken(request));
+  const identity = await verifyClerkIdentity(bearerToken(request));
   if (!identity) return json(origin, { message: 'Sign in to manage a subscription.' }, 401);
 
   const input = await request.json().catch(() => null);
@@ -126,4 +125,3 @@ Deno.serve(async (request: Request) => {
     ? json(origin, { url: session.url })
     : json(origin, { message: 'Stripe did not return a Checkout URL.' }, 502);
 });
-

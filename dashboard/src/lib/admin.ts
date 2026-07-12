@@ -1,6 +1,6 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { DataClient } from '@leon/platform-core';
 
-import { createClerkSupabaseClient } from './supabase';
+import { createPlatformDatabase } from './database';
 
 export type AdminWorkspace = {
   id: string;
@@ -150,8 +150,8 @@ export async function loadAdminSession(input: LoadAdminSessionInput) {
     };
   }
 
-  const supabase = createClerkSupabaseClient(input.getToken);
-  const adminCheck = await checkAppAdmin(supabase, input.userId);
+  const database = createPlatformDatabase();
+  const adminCheck = await checkAppAdmin(database, input.userId);
   if (!adminCheck.isAdmin) {
     return {
       isAdmin: false,
@@ -161,7 +161,7 @@ export async function loadAdminSession(input: LoadAdminSessionInput) {
     };
   }
 
-  const data = await loadAdminData(supabase);
+  const data = await loadAdminData(database);
   let users: AdminUser[] = [];
   let error = adminCheck.error ?? data.error;
 
@@ -190,10 +190,10 @@ export async function loadAdminUsers(client: ClerkUserClient): Promise<AdminUser
   });
 }
 
-export async function checkAppAdmin(supabase: SupabaseClient | null, clerkUserId: string) {
-  if (!supabase) return { isAdmin: false, error: 'The secure database connection is not configured.' };
+export async function checkAppAdmin(database: DataClient | null, clerkUserId: string) {
+  if (!database) return { isAdmin: false, error: 'The secure database connection is not configured.' };
 
-  const { data, error } = await supabase
+  const { data, error } = await database
     .from('app_admins')
     .select('clerk_user_id')
     .eq('clerk_user_id', clerkUserId)
@@ -205,27 +205,27 @@ export async function checkAppAdmin(supabase: SupabaseClient | null, clerkUserId
   };
 }
 
-export async function loadAdminData(supabase: SupabaseClient | null): Promise<AdminData> {
+export async function loadAdminData(database: DataClient | null): Promise<AdminData> {
   const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [] };
-  if (!supabase) return { ...empty, error: 'The secure database connection is not configured.' };
+  if (!database) return { ...empty, error: 'The secure database connection is not configured.' };
 
   const [workspaces, projects, subscriptions, requests, members, connections] = await Promise.all([
-    supabase.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
-    supabase
+    database.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
+    database
       .from('website_projects')
       .select('id,workspace_id,name,status,progress,live_url,updated_at')
       .order('updated_at', { ascending: false }),
-    supabase
+    database
       .from('subscriptions')
       .select('workspace_id,plan_key,status,current_period_end')
       .order('updated_at', { ascending: false }),
-    supabase
+    database
       .from('content_requests')
       .select('id,workspace_id,subject,status,created_at')
       .order('created_at', { ascending: false })
       .limit(100),
-    supabase.from('workspace_members').select('workspace_id,clerk_user_id,role'),
-    supabase.from('site_connections').select('workspace_id,site_key,primary_domain,vercel_project_id,github_repository,status,current_version,last_seen_at'),
+    database.from('workspace_members').select('workspace_id,clerk_user_id,role'),
+    database.from('site_connections').select('workspace_id,site_key,primary_domain,vercel_project_id,github_repository,status,current_version,last_seen_at'),
   ]);
 
   const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error;

@@ -1,0 +1,67 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { siteRepository } from '../../lib/content/repository';
+
+const slug = Astro.params.slug ?? '';
+const post = await siteRepository.getPost(slug);
+
+if (!post) {
+  Astro.response.status = 404;
+  Astro.response.statusText = 'Not Found';
+}
+
+const publishedAt = post
+  ? new Intl.DateTimeFormat('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(post.publishedAt))
+  : '';
+---
+
+<SiteLayout
+  title={post?.title ?? 'Field note not found'}
+  description={post?.excerpt ?? 'The requested Northline Sports field note could not be found.'}
+  image={post?.cover.src}
+  canonicalPath={`/journal/${slug}`}
+>
+  {
+    post ? (
+      <article class="journal-story">
+        <header class="journal-story-intro page-gutter">
+          <h1 data-entrance>{post.title}</h1>
+          <time datetime={post.publishedAt} data-entrance>{publishedAt}</time>
+        </header>
+
+        <figure class="journal-story-cover page-gutter" data-entrance>
+          <img
+            src={post.cover.src}
+            alt={post.cover.alt}
+            width={post.cover.width}
+            height={post.cover.height}
+            loading="eager"
+            decoding="async"
+          />
+        </figure>
+
+        <div class="journal-story-body page-gutter">
+          {post.body.map((paragraph) => <p>{paragraph}</p>)}
+        </div>
+
+        <nav class="journal-story-return page-gutter" aria-label="Field note navigation">
+          {post.relatedGallerySlug && (
+            <a class="text-link" href={`/work/${post.relatedGallerySlug}`}>Related gallery</a>
+          )}
+          <a class="text-link" href="/journal">All photography notes</a>
+        </nav>
+      </article>
+    ) : (
+      <section class="not-found page-gutter" aria-labelledby="not-found-title">
+        <span class="eyebrow">Photography notes</span>
+        <h1 id="not-found-title">This note was not found.</h1>
+        <a class="text-link" href="/journal">Return to photography notes</a>
+      </section>
+    )
+  }
+</SiteLayout>

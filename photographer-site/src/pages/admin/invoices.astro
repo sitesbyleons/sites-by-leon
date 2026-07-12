@@ -1,0 +1,65 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { dollars, loadStudioSession } from '../../lib/studio';
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), getToken: async () => auth ? (await auth.getToken()) ?? null : null });
+if (!session.authenticated) return Astro.redirect('/sign-in?redirect_url=%2Fadmin%2Finvoices');
+const data = session.data!;
+const clientNames = new Map(data.clients.map((client) => [client.id, client.name]));
+const paymentsReady = Boolean(data.connect?.charges_enabled && data.connect?.payouts_enabled);
+---
+
+<StudioAdminLayout title="Invoices" active="invoices" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
+  <section class="studio-card"><small>Stripe Connect</small><strong>{paymentsReady ? 'Ready' : 'Not connected'}</strong><p>{paymentsReady ? 'Invoices can be sent and paid to your connected account.' : 'Draft invoices are available now. Stripe onboarding is required before sharing a payment link.'}</p>
+    {!paymentsReady && <button class="studio-button" type="button" data-connect-stripe>Connect Stripe</button>}
+    <p class="studio-form-status" data-connect-status aria-live="polite"></p>
+  </section>
+  <div class="studio-split">
+    <section><header class="studio-section-heading"><div><small>Billing</small><h2>Invoice history</h2></div></header><div class="studio-panel">
+      {data.invoices.length ? <ul class="studio-list">{data.invoices.map((invoice) => <li><div><strong>{clientNames.get(invoice.client_id) ?? 'Client'} · {dollars(invoice.amount_due_cents)}</strong><small>{invoice.description}{invoice.deposit_cents ? ` · ${dollars(invoice.deposit_cents)} deposit` : ''}</small></div><div>
+        <span class={`studio-status studio-status--${invoice.status}`}>{invoice.status}</span>
+        {invoice.hosted_invoice_url && <a href={invoice.hosted_invoice_url} target="_blank" rel="noreferrer">Payment link</a>}
+        {paymentsReady && invoice.status === 'draft' && <button type="button" data-send-invoice={invoice.id}>Send invoice</button>}
+      </div></li>)}</ul> : <p class="studio-empty">No invoices yet.</p>}
+    </div></section>
+    <section><header class="studio-section-heading"><div><small>New invoice</small><h2>Create a draft</h2></div></header><div class="studio-panel"><form class="studio-form" data-studio-form data-resource="invoices">
+      <label class="wide"><span>Client</span><select name="client_id" required><option value="">Choose a client</option>{data.clients.map((client) => <option value={client.id}>{client.name}</option>)}</select></label>
+      <label class="wide"><span>Description</span><textarea name="description" required></textarea></label>
+      <label><span>Total in dollars</span><input name="amount" type="number" min="1" step="1" required /></label><label><span>Deposit in dollars</span><input name="deposit" type="number" min="0" step="1" /></label>
+      <label class="wide"><span>Due date</span><input name="due_date" type="date" /></label>
+      <div class="wide"><button type="submit">Create draft</button></div><p class="studio-form-status wide" data-form-status></p>
+    </form></div></section>
+  </div>
+  <script>
+    const connectButton = document.querySelector<HTMLButtonElement>('[data-connect-stripe]');
+    const connectStatus = document.querySelector<HTMLElement>('[data-connect-status]');
+    const connectReturn = new URL(location.href).searchParams.get('connect');
+
+    const callConnect = async (action: 'start' | 'status') => {
+      if (!connectStatus) return;
+      connectStatus.textContent = action === 'start' ? 'Opening Stripe...' : 'Checking Stripe...';
+      const response = await fetch('/api/connect', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) { connectStatus.textContent = payload?.message ?? 'Stripe is unavailable.'; return; }
+      if (action === 'start' && payload?.url) location.href = payload.url;
+      else { connectStatus.textContent = payload?.payouts_enabled ? 'Stripe is ready.' : 'Stripe still needs information.'; window.setTimeout(() => location.reload(), 700); }
+    };
+
+    connectButton?.addEventListener('click', () => callConnect('start'));
+    if (connectReturn === 'return') callConnect('status');
+
+    document.querySelectorAll<HTMLButtonElement>('[data-send-invoice]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        if (!connectStatus) return;
+        connectStatus.textContent = 'Creating Stripe invoice...';
+        const response = await fetch('/api/invoices/send', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ invoiceId: button.dataset.sendInvoice }) });
+        const payload = await response.json().catch(() => null);
+        connectStatus.textContent = response.ok ? 'Invoice sent.' : payload?.message ?? 'Invoice not sent.';
+        if (response.ok) window.setTimeout(() => location.reload(), 700);
+      });
+    });
+  </script>
+</StudioAdminLayout>

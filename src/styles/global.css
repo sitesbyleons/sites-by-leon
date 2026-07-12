@@ -386,42 +386,47 @@ h2 em {
 .coming-soon__content {
   position: relative;
   z-index: 1;
-  display: grid;
-  width: min(calc(100% - (var(--gutter) * 2)), var(--container));
+  width: 100%;
   min-height: 100dvh;
-  padding-block: clamp(2rem, 5vw, 4.5rem);
-  margin-inline: auto;
-  grid-template-rows: auto 1fr auto;
-  justify-items: center;
   text-align: center;
 }
 
-.coming-soon__content > div {
-  align-self: center;
+.coming-soon__content .brand-mark {
+  --brand-art-size: clamp(4.5rem, 5.5vw, 6rem);
+  position: absolute;
+  z-index: 2;
+  top: clamp(1.25rem, 2.5vw, 2.5rem);
+  left: var(--gutter);
 }
 
-.coming-soon__content p {
-  margin-bottom: 1rem;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+.coming-soon__message {
+  display: grid;
+  min-height: 100dvh;
+  padding: 6.5rem var(--gutter);
+  place-items: center;
 }
 
 .coming-soon__content h1 {
   margin: 0;
-  font-size: clamp(4.8rem, 13vw, 12rem);
+  font-size: clamp(5rem, 12vw, 11rem);
   font-stretch: 64%;
-  line-height: 0.72;
+  letter-spacing: -0.055em;
+  line-height: 0.78;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .coming-soon__content > a {
+  position: absolute;
+  bottom: clamp(1.5rem, 3vw, 3rem);
+  left: 50%;
   padding-bottom: 0.3rem;
   border-bottom: 1px solid currentColor;
   font-size: 0.72rem;
   font-weight: 720;
   text-decoration: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .site-nav,
@@ -1088,7 +1093,92 @@ h2 em {
   gap: clamp(0.35rem, 0.8vw, 0.75rem);
 }
 
-.commercial-site__proj…400 tokens truncated…ist {
+.commercial-site__projects figure {
+  position: relative;
+}
+
+.commercial-site__projects figure:nth-child(1) img {
+  object-position: 63% center;
+}
+
+.commercial-site__projects figcaption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  padding: 1rem;
+  justify-content: space-between;
+  background: linear-gradient(transparent, rgb(9 10 10 / 65%));
+  color: white;
+  font-family: monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}
+
+.commercial-site__portal {
+  position: absolute;
+  z-index: 2;
+  right: clamp(2rem, 5vw, 5rem);
+  bottom: clamp(2rem, 4vw, 4rem);
+  width: min(19rem, 31vw);
+  padding: clamp(1.25rem, 2.4vw, 2.3rem);
+  border: 1px solid #111313;
+  background: rgb(241 240 234 / 96%);
+  box-shadow: 0 1rem 3rem rgb(8 9 9 / 23%);
+}
+
+.commercial-site__portal strong {
+  display: block;
+  margin: 0.6rem 0 1.4rem;
+  font-size: clamp(1.35rem, 2vw, 2rem);
+}
+
+.commercial-site__portal dl {
+  display: grid;
+  margin: 0 0 1.4rem;
+}
+
+.commercial-site__portal dl div {
+  display: flex;
+  padding-block: 0.65rem;
+  border-top: 1px solid rgb(17 19 19 / 22%);
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: monospace;
+  font-size: 0.62rem;
+}
+
+.commercial-site__portal dd {
+  margin: 0;
+  text-align: right;
+}
+
+.work__cta {
+  display: flex;
+  padding-top: 2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.work__cta p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Process */
+.process {
+  background: var(--black-soft);
+  color: var(--bone);
+}
+
+.process .section-head__aside {
+  color: var(--silver);
+}
+
+.process-list {
   display: grid;
   padding: 0;
   margin: 0;
@@ -1881,15 +1971,29 @@ h2 em {
   }
 
   .coming-soon__content {
-    padding-block: 1.5rem 2rem;
+    min-height: 100svh;
   }
 
   .coming-soon__content .brand-mark {
-    --brand-art-size: 9.5rem;
+    --brand-art-size: 4rem;
+    top: 1rem;
+    left: 1rem;
+  }
+
+  .coming-soon__message {
+    min-height: 100svh;
+    padding: 5.5rem 1rem;
   }
 
   .coming-soon__content h1 {
-    font-size: clamp(4.5rem, 25vw, 7rem);
+    max-width: 100%;
+    font-size: clamp(4.25rem, 22vw, 6.25rem);
+    white-space: normal;
+  }
+
+  .coming-soon__content > a {
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    font-size: 0.66rem;
   }
 
   .hero {
@@ -2243,4 +2347,3 @@ h2 em {
     overflow-wrap: anywhere;
   }
 }
-

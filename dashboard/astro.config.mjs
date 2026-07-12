@@ -1,9 +1,9 @@
 import clerk from '@clerk/astro';
-import vercel from '@astrojs/vercel';
+import node from '@astrojs/node';
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  adapter: vercel(),
+  adapter: node({ mode: 'standalone' }),
   integrations: [clerk()],
   output: 'server',
   site: 'https://leonsites.org',

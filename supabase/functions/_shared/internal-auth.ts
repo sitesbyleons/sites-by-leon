@@ -1,4 +1,3 @@
-
 function safeEqual(left: string, right: string) {
   const leftBytes = new TextEncoder().encode(left);
   const rightBytes = new TextEncoder().encode(right);
@@ -20,4 +19,3 @@ export function readInternalIdentity(request: Request) {
   if (!expectedSecret || !providedSecret || !safeEqual(providedSecret, expectedSecret)) return null;
   return /^user_[A-Za-z0-9_-]+$/.test(userId) ? { userId } : null;
 }
-

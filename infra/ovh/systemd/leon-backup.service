@@ -1,0 +1,13 @@
+[Unit]
+Description=Sites by Leon encrypted OVH backup
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/leon-platform/secrets/backup.env
+ExecStart=/usr/bin/bash /opt/leon-platform/app/infra/ovh/scripts/backup-database.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+

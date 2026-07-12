@@ -1,0 +1,59 @@
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+
+	header {
+		-Server
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; form-action 'self' mailto: https://accounts.google.com; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://{$MEDIA_DOMAIN} https://*.clerk.com https://img.clerk.com https://lh3.googleusercontent.com; connect-src 'self' https://{$MEDIA_DOMAIN} https://*.clerk.accounts.dev https://*.clerk.com; frame-src https://*.clerk.accounts.dev https://*.clerk.com"
+		Cross-Origin-Opener-Policy same-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+
+	handle /healthz {
+		respond 200
+	}
+
+	@dashboard {
+		host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}
+		path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/* /admin-assets/*
+	}
+	handle @dashboard {
+		reverse_proxy dashboard:4321
+	}
+
+	@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN} {$TEST_DOMAIN}
+	handle @marketing {
+		root * /srv/marketing
+		try_files {path} {path}/index.html /404.html
+		file_server
+	}
+
+	@test_site host {$DEMO_DOMAIN}
+	handle @test_site {
+		reverse_proxy northline:4321
+	}
+
+	@media host {$MEDIA_DOMAIN}
+	handle @media {
+		handle_path /media/* {
+			root * /srv/uploads
+			header Cache-Control "public, max-age=31536000, immutable"
+			file_server
+		}
+		handle {
+			respond "Not found" 404
+		}
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+}

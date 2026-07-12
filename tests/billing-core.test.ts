@@ -25,8 +25,11 @@ describe('readClerkIdentity', () => {
     });
   });
 
-  it('rejects a token without both identity claims', () => {
-    expect(readClerkIdentity(token({ sub: 'user_a' }))).toBeNull();
+  it('accepts a user without an organization', () => {
+    expect(readClerkIdentity(token({ sub: 'user_a' }))).toEqual({ userId: 'user_a', orgId: null });
+  });
+
+  it('rejects a malformed token', () => {
     expect(readClerkIdentity('not-a-jwt')).toBeNull();
   });
 });

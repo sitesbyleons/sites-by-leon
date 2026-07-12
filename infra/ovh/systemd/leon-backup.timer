@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly Sites by Leon encrypted backup
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+Persistent=true
+RandomizedDelaySec=20m
+Unit=leon-backup.service
+
+[Install]
+WantedBy=timers.target
+

@@ -1,4 +1,3 @@
-
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 import { readInternalIdentity } from '../_shared/internal-auth.ts';
@@ -110,4 +109,3 @@ Deno.serve(async (request: Request) => {
     ? json(origin, { url: accountLink.url })
     : json(origin, { message: 'Stripe onboarding could not start.' }, 502);
 });
-

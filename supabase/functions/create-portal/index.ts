@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
-import { readClerkIdentity } from '../_shared/billing-core.ts';
+import { verifyClerkIdentity } from '../_shared/clerk-auth.ts';
 import {
   allowedDashboardRequest,
   bearerToken,
@@ -23,7 +23,7 @@ Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return json(origin, { message: 'Method not allowed.' }, 405);
   if (!allowedDashboardRequest(request)) return json(origin, { message: 'Origin not allowed.' }, 403);
 
-  const identity = readClerkIdentity(bearerToken(request));
+  const identity = await verifyClerkIdentity(bearerToken(request));
   if (!identity) return json(origin, { message: 'Sign in to manage billing.' }, 401);
 
   const stripe = createStripe();
@@ -70,4 +70,3 @@ Deno.serve(async (request: Request) => {
 
   return json(origin, { url: session.url });
 });
-

@@ -1,0 +1,54 @@
+---
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import { loadSiteTheme, siteRepository } from '../lib/content/repository';
+import '../styles/site.css';
+
+interface Props {
+  title: string;
+  description: string;
+  image?: string;
+  canonicalPath?: string;
+}
+
+const { title, description, image, canonicalPath } = Astro.props;
+const [portfolio, theme] = await Promise.all([siteRepository.getPortfolio(), loadSiteTheme()]);
+const pageTitle = title === portfolio.studioName ? title : `${title} - ${portfolio.studioName}`;
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, Astro.site ?? Astro.url);
+const socialImage = image ? new URL(image, Astro.site ?? Astro.url) : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f7f7f3" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    {socialImage && <meta property="og:image" content={socialImage.toString()} />}
+    <link rel="canonical" href={canonical.toString()} />
+    <title>{pageTitle}</title>
+  </head>
+  <body
+    data-font-preset={theme.fontPreset}
+    style={`--paper:${theme.paperColor};--ink:${theme.inkColor};--accent:${theme.accentColor}`}
+  >
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="scroll-progress" data-scroll-progress aria-hidden="true"></div>
+    <SiteHeader studioName={portfolio.studioName} />
+    <main id="main-content">
+      <slot />
+    </main>
+    <SiteFooter
+      studioName={portfolio.studioName}
+      email={portfolio.email}
+    />
+    <script>
+      import '../scripts/motion';
+    </script>
+  </body>
+</html>

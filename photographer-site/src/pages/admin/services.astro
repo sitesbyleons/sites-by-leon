@@ -1,0 +1,43 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { dollars, loadStudioSession } from '../../lib/studio';
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), getToken: async () => auth ? (await auth.getToken()) ?? null : null });
+if (!session.authenticated) return Astro.redirect('/sign-in?redirect_url=%2Fadmin%2Fservices');
+const data = session.data!;
+const price = (cents: number | null) => cents === null ? '' : String(cents / 100);
+const displayPrice = (type: string, cents: number | null) => type === 'custom' ? 'Custom price' : (type === 'from' ? 'From ' : '') + dollars(cents);
+---
+
+<StudioAdminLayout title="Services" active="services" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
+  <header class="studio-section-heading"><div><small>Offerings</small><h2>Your services</h2></div><p>Keep only the packages clients should ask about.</p></header>
+  <section class="studio-stack">
+    {data.services.length ? data.services.map((service) => (
+      <article class="studio-item">
+        <span class="studio-item-number">{String(service.sort_order).padStart(2, '0')}</span>
+        <div class="studio-item-copy"><strong>{service.name}</strong><small>{service.is_active ? 'Visible' : 'Hidden'} · {displayPrice(service.price_type, service.price_cents)}</small></div>
+        <div class="studio-item-actions">
+          <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="services" data-id={service.id}>↑</button><button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="services" data-id={service.id}>↓</button>
+          <details class="studio-editor"><summary>Edit</summary><form class="studio-form studio-editor-form" data-studio-form data-resource="services">
+            <input type="hidden" name="id" value={service.id} /><label class="wide"><span>Name</span><input name="name" value={service.name} required /></label>
+            <label class="wide"><span>Description</span><textarea name="description">{service.description}</textarea></label>
+            <label><span>Price style</span><select name="price_type"><option value="custom" selected={service.price_type === 'custom'}>Custom</option><option value="from" selected={service.price_type === 'from'}>Starting at</option><option value="fixed" selected={service.price_type === 'fixed'}>Fixed</option></select></label>
+            <label><span>Price</span><input name="price" type="number" min="0" step="1" value={price(service.price_cents)} /></label>
+            <label class="studio-check wide"><input name="is_active" type="checkbox" checked={service.is_active} /><span>Show on website</span></label>
+            <div class="wide"><button type="submit">Save service</button></div><p class="studio-form-status wide" data-form-status></p>
+          </form></details>
+          <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="services" data-id={service.id}>Delete</button>
+        </div>
+      </article>
+    )) : <p class="studio-empty">No services yet.</p>}
+  </section>
+
+  <header class="studio-section-heading"><div><small>New service</small><h2>Add a service</h2></div></header>
+  <section class="studio-panel studio-panel--narrow"><form class="studio-form" data-studio-form data-resource="services">
+    <label class="wide"><span>Name</span><input name="name" required /></label><label class="wide"><span>Description</span><textarea name="description"></textarea></label>
+    <label><span>Price style</span><select name="price_type"><option value="custom">Custom</option><option value="from">Starting at</option><option value="fixed">Fixed</option></select></label><label><span>Price</span><input name="price" type="number" min="0" step="1" /></label>
+    <label class="studio-check wide"><input name="is_active" type="checkbox" checked /><span>Show on website</span></label>
+    <div class="wide"><button type="submit">Add service</button></div><p class="studio-form-status wide" data-form-status></p>
+  </form></section>
+</StudioAdminLayout>

@@ -1,0 +1,48 @@
+---
+import '../styles/site.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content="Northline Sports is temporarily unavailable." />
+    <meta name="theme-color" content="#f7f7f3" />
+    <meta name="robots" content="noindex" />
+    <title>Temporarily unavailable - Northline Sports</title>
+  </head>
+  <body>
+    <main class="maintenance-page">
+      <div>
+        <p class="eyebrow">Northline Sports</p>
+        <h1>This site is taking a short pause.</h1>
+        <p>Please check back soon.</p>
+      </div>
+    </main>
+  </body>
+</html>
+
+<style>
+  .maintenance-page {
+    align-items: center;
+    display: flex;
+    min-height: 100dvh;
+    padding: clamp(2rem, 8vw, 8rem);
+  }
+
+  .maintenance-page > div {
+    max-width: 48rem;
+  }
+
+  .maintenance-page h1 {
+    font-size: clamp(3rem, 10vw, 8rem);
+    line-height: 0.9;
+    margin: 1rem 0 2rem;
+  }
+
+  .maintenance-page p:last-child {
+    font-size: 1.125rem;
+  }
+</style>

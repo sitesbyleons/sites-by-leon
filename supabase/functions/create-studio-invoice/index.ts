@@ -1,4 +1,3 @@
-
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 import { readInternalIdentity } from '../_shared/internal-auth.ts';
@@ -56,4 +55,3 @@ Deno.serve(async (request: Request) => {
   const { error } = await supabase.from('studio_invoices').update({ stripe_invoice_id: sent.id, status: 'open', hosted_invoice_url: sent.hosted_invoice_url }).eq('id', invoice.id);
   return error ? json(origin, { message: 'Invoice was sent but could not be synchronized.' }, 503) : json(origin, { ok: true, url: sent.hosted_invoice_url });
 });
-

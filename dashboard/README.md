@@ -1,40 +1,24 @@
-# Sites By Leon client dashboard
+# Sites By Leon dashboard
 
-This is the separate server-rendered account area for photography clients. It deliberately does not turn the public marketing site into a server application.
+This is the server-rendered client and Leon administration area hosted on the OVH VPS.
 
-## What is implemented
+## Included
 
-- Clerk Astro middleware and protected dashboard routes
-- Dedicated sign-in and sign-up screens with email-only onboarding
-- Clerk Organization requirement before workspace data is shown
-- Supabase client access using the current Clerk session token
-- A protected `/admin` studio overview restricted to Leon's immutable Clerk user ID
-- Organization-scoped project, request, subscription, and connected-payment status
-- Tested Essential `$25`, Studio `$30`, and Signature `$40` monthly plan map
-- Server endpoints for Stripe Checkout and the Stripe Customer Portal
-- A cinematic responsive dashboard matching the public brand
-- A development-only `?preview=true` route used for visual tests; it is impossible in production builds
+- Clerk sign-in and sign-up with personal accounts; Organizations are optional.
+- Client projects, content requests, subscription status, and billing controls.
+- Leon-only user, site, subscription, and ticket administration pages.
+- Direct private PostgreSQL access over the internal Docker network.
+- Direct Stripe Checkout, Customer Portal, and signed webhook handling.
 
-## Required configuration
+## Required server configuration
 
-Copy `.env.example` to `.env` for local work. The Supabase URL, publishable key, and function URLs are safe browser values and are already recorded. Add Clerk **test-mode** keys locally; never commit `CLERK_SECRET_KEY`.
-
-Vercel environment variables:
+Copy `.env.example` to an ignored environment file and set:
 
 ```text
 PUBLIC_CLERK_PUBLISHABLE_KEY
 CLERK_SECRET_KEY
-PUBLIC_SUPABASE_URL
-PUBLIC_SUPABASE_PUBLISHABLE_KEY
+DATABASE_URL
 PUBLIC_MARKETING_SITE_URL
-PUBLIC_CHECKOUT_FUNCTION_URL
-PUBLIC_PORTAL_FUNCTION_URL
-```
-
-Supabase Edge Function secrets and variables:
-
-```text
-DASHBOARD_ORIGIN
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
 STRIPE_PRICE_ESSENTIAL
@@ -42,17 +26,12 @@ STRIPE_PRICE_STUDIO
 STRIPE_PRICE_SIGNATURE
 ```
 
-`create-checkout` and `create-portal` must stay deployed with JWT verification enabled. `stripe-webhook` intentionally disables Supabase JWT verification because it verifies Stripe's signature against the exact raw request body.
+The Stripe billing webhook destination is `https://leonsites.org/api/webhooks/stripe`. Never expose `DATABASE_URL`, Clerk's secret key, or Stripe secret values to browser code.
 
 ## Verification
 
 ```bash
-pnpm check
-pnpm test
-pnpm build
-pnpm test:e2e
+pnpm --filter sites-by-leon-dashboard check
+pnpm --filter sites-by-leon-dashboard test
+pnpm --filter sites-by-leon-dashboard build
 ```
-
-The production dashboard is deployed as its own Vercel project from the `dashboard` directory and is intended to use `https://app.leonsites.org`.
-
-No live Stripe secret, live price, or live webhook should be configured until all test-mode flows pass.

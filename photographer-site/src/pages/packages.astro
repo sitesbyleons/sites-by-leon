@@ -1,0 +1,32 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { siteRepository } from '../lib/content/repository';
+
+const portfolio = await siteRepository.getPortfolio();
+---
+
+<SiteLayout
+  title="Services"
+  description="Game, season, and athlete photography coverage from Northline Sports."
+  canonicalPath="/packages"
+>
+  <header class="page-intro page-gutter">
+    <h1 id="packages-title" data-entrance>Photography services.</h1>
+    <p data-entrance>Game coverage, season coverage, and athlete sessions.</p>
+  </header>
+
+  <section class="service-list page-gutter" aria-label="Photography services">
+    {
+      portfolio.packages.map((service) => (
+        <article class="service-row" data-entrance>
+          <div class="service-row-copy">
+            <h2>{service.name}</h2>
+            <p>{service.description}</p>
+          </div>
+          <p class="service-price">{service.startingPrice}</p>
+          <a href={`/contact?package=${encodeURIComponent(service.id)}`}>Ask about coverage</a>
+        </article>
+      ))
+    }
+  </section>
+</SiteLayout>

@@ -1,0 +1,20 @@
+---
+interface Props {
+  studioName: string;
+  email: string;
+}
+
+const { studioName, email } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer page-gutter">
+  <p class="footer-name">{studioName}</p>
+  <nav aria-label="Footer">
+    <a href="/work">Work</a>
+    <a href="/packages">Services</a>
+    <a href="/contact">Contact</a>
+  </nav>
+  <a class="footer-email" href={`mailto:${email}`}>{email}</a>
+  <p class="footer-year">&copy; {year}</p>
+</footer>

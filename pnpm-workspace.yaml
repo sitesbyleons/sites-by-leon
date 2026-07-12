@@ -1,5 +1,7 @@
 packages:
   - dashboard
+  - platform-core
+  - photographer-site
 
 allowBuilds:
   esbuild: true

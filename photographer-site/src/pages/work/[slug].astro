@@ -1,0 +1,63 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { siteRepository } from '../../lib/content/repository';
+
+const slug = Astro.params.slug ?? '';
+const gallery = await siteRepository.getGallery(slug);
+
+if (!gallery) {
+  Astro.response.status = 404;
+  Astro.response.statusText = 'Not Found';
+}
+
+const placements = gallery?.images.map((image, index) => ({ image, index }));
+---
+
+<SiteLayout
+  title={gallery?.title ?? 'Gallery not found'}
+  description={gallery?.description ?? 'The requested Northline Sports gallery could not be found.'}
+  image={gallery?.cover.src}
+  canonicalPath={`/work/${slug}`}
+>
+  {
+    gallery ? (
+      <article class="gallery-page">
+        <header class="gallery-intro page-gutter">
+          <p class="meta" data-entrance>{gallery.category}</p>
+          <h1 data-entrance>{gallery.title}</h1>
+          <div class="gallery-intro-notes" data-entrance>
+            <p>{gallery.description}</p>
+            <p>{gallery.images.length} photographs</p>
+          </div>
+        </header>
+
+        <ol class="gallery-sequence page-gutter">
+          {placements?.map(({ image, index }) => (
+            <li class:list={['gallery-frame', { 'gallery-frame--lead': index === 0 }]} data-entrance>
+              <figure data-image-drift={index % 2 === 0 ? 'slow' : 'fast'}>
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  width={image.width}
+                  height={image.height}
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+              </figure>
+            </li>
+          ))}
+        </ol>
+
+        <nav class="gallery-return page-gutter" aria-label="Gallery navigation">
+          <a class="text-link" href="/work">All work</a>
+        </nav>
+      </article>
+    ) : (
+      <section class="not-found page-gutter" aria-labelledby="not-found-title">
+        <p class="eyebrow">404 / Not found</p>
+        <h1 id="not-found-title">This gallery was not found.</h1>
+        <a class="text-link" href="/work">Return to all work</a>
+      </section>
+    )
+  }
+</SiteLayout>
