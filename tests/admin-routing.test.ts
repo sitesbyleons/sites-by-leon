@@ -22,4 +22,16 @@ describe('Leon admin routing', () => {
     expect(config).toContain("assets: 'admin-assets'");
     expect(config).toContain("site: 'https://leonsites.org'");
   });
+
+  it('allows Clerk only through the explicit authentication hosts', () => {
+    const config = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'));
+    const policy = config.headers[0].headers.find(
+      (header: { key: string; value: string }) => header.key === 'Content-Security-Policy',
+    ).value;
+
+    expect(policy).toContain('https://*.clerk.accounts.dev');
+    expect(policy).toContain('https://*.clerk.com');
+    expect(policy).toContain("frame-ancestors 'none'");
+    expect(policy).toContain("object-src 'none'");
+  });
 });
