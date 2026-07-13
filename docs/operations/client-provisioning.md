@@ -43,6 +43,36 @@ Use a non-admin Clerk account and the editorial starter.
 7. Open Stripe Connect in sandbox and confirm a separate connected account is created for the new workspace. Do not submit fictional identity details.
 8. Verify external health, application logs, database counts, disk headroom, and a fresh encrypted backup.
 
+### Repeatable authenticated CRUD smoke test
+
+Run `infra/ovh/scripts/customer-acceptance-smoke.sh` against the exact editor origin before activating a newly provisioned customer. This is a destructive acceptance test that creates temporary resources, but an exit trap removes them in dependency order after either success or failure. It covers two real image uploads plus gallery, post, service, client, and draft-invoice create/read/update/delete behavior.
+
+Use a browser session belonging to the customer owner or Leon app administrator. Authentication can come from either a Netscape-format cookie jar containing the active Clerk `__session` cookie or a short-lived Clerk session JWT written as one exact `Authorization: Bearer <JWT>` line. Keep either file outside the repository and make it private with `chmod 600`. Never paste the cookie, JWT, or complete header into a command, shell history, issue, or log. The script passes only the selected file path to curl and never prints its value. Set exactly one of `CLERK_COOKIE_JAR` and `CLERK_AUTH_HEADER_FILE`.
+
+From a secure Linux shell (including WSL), run:
+
+```bash
+TENANT_ORIGIN=https://customer-editor.leonsites.org \
+CLERK_COOKIE_JAR="$HOME/.config/leonsites/customer-smoke.cookies.txt" \
+TEST_IMAGE="$HOME/customer-smoke-image.jpg" \
+bash infra/ovh/scripts/customer-acceptance-smoke.sh
+```
+
+For a short-lived bearer token instead of a cookie jar, leave `CLERK_COOKIE_JAR` unset and supply the private header file:
+
+```bash
+TENANT_ORIGIN=https://customer-editor.leonsites.org \
+CLERK_AUTH_HEADER_FILE="$HOME/.config/leonsites/customer-smoke-authorization.txt" \
+TEST_IMAGE="$HOME/customer-smoke-image.jpg" \
+bash infra/ovh/scripts/customer-acceptance-smoke.sh
+```
+
+`TENANT_ORIGIN` must be the exact lowercase HTTPS editor origin with no trailing slash, port, path, query, or fragment. The selected Clerk authentication file must be a regular, non-symlink file owned by the current user with no group or other permissions. A bearer header file must contain exactly one syntactically valid JWT header and nothing else. `TEST_IMAGE` must be a regular JPG, PNG, WebP, or AVIF file smaller than 15 MB.
+
+Only run this automated invoice guard while Stripe is disconnected. Before it creates any temporary records, the script checks the exact tenant health endpoint, verifies that the cookie can open the owner editor, and confirms both Stripe charges and payouts are disabled. It repeats the Stripe check immediately before attempting to send the temporary invoice, expects HTTP 409 with `Finish Stripe onboarding first.`, and uses an `example.com` recipient so the test cannot email a real client. If Stripe is ready or becomes ready during the run, the script stops without attempting the send.
+
+The final success line confirms that all temporary resources were removed. Treat any cleanup warning as a failed test: open the named editor section, remove the marked `SBL smoke` record, and rerun the smoke test before activation. Delete the local cookie jar or authorization header file as soon as the acceptance session is complete.
+
 ## Capacity gates
 
 The current VPS has roughly 96 GB usable disk. While uploads, backup staging, and the Restic repository share that disk, keep aggregate customer quota reservations at or below 20 GB. This is an enforced ceiling, not a marketing promise.

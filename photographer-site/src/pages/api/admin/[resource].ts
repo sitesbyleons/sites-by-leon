@@ -162,7 +162,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
         uploadBackedCreate = { table: 'studio_galleries', pathColumn: 'cover_storage_path', path: coverPath };
         const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
         if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
-        if (existing.data) return Response.json({ ok: true });
+        if (existing.data) return Response.json({ ok: true, id: existing.data.id });
       }
       operation = client.insertOrdered('studio_galleries', workspaceId, values);
     }
@@ -184,7 +184,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
         uploadBackedCreate = { table: 'studio_gallery_images', pathColumn: 'storage_path', path: storagePath };
         const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
         if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
-        if (existing.data) return Response.json({ ok: true });
+        if (existing.data) return Response.json({ ok: true, id: existing.data.id });
       }
       operation = client.insertOrdered('studio_gallery_images', workspaceId, { gallery_id: galleryId, image_url: imageUrl, alt_text: altText, storage_path: storagePath });
     }
@@ -205,7 +205,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
         uploadBackedCreate = { table: 'studio_posts', pathColumn: 'cover_storage_path', path: coverPath };
         const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
         if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
-        if (existing.data) return Response.json({ ok: true });
+        if (existing.data) return Response.json({ ok: true, id: existing.data.id });
       }
       operation = client.insertOrdered('studio_posts', workspaceId, values);
     }
@@ -243,7 +243,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
       const updated = await client.from('studio_invoices').update(values).eq('workspace_id', workspaceId).eq('id', id).eq('status', 'draft');
       if (updated.error) return Response.json({ message: 'Changes could not be saved.' }, { status: 400 });
       if (!updated.data.length) return Response.json({ message: 'This invoice is already being sent and cannot be edited.' }, { status: 409 });
-      return Response.json({ ok: true });
+      return Response.json({ ok: true, id });
     } else operation = client.from('studio_invoices').insert({ workspace_id: workspaceId, ...values, status: 'draft' });
   } else if (resource === 'inquiries') {
     const status = text(source, 'status', 20);
@@ -256,7 +256,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     if (uploadBackedCreate && isUniqueViolation(result.error.message)) {
       const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
       if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
-      if (existing.data) return Response.json({ ok: true });
+      if (existing.data) return Response.json({ ok: true, id: existing.data.id });
     }
     return Response.json({ message: 'Changes could not be saved.' }, { status: 400 });
   }
@@ -264,7 +264,8 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
   const newPath = text(source, resource === 'images' ? 'storage_path' : 'cover_storage_path', 1024);
   if (oldPath && oldPath !== newPath) await removeFiles(client, workspaceId, [managedPath(workspaceId, oldPath)]).catch(() => null);
   await sweepOrphanedUploads(client, workspaceId, uploadRoot);
-  return Response.json({ ok: true });
+  const resourceId = typeof result.data[0]?.id === 'string' ? result.data[0].id : null;
+  return Response.json(resourceId ? { ok: true, id: resourceId } : { ok: true });
 };
 
 export const POST = route;

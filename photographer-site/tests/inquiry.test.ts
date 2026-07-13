@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { validateInquiry } from '../src/lib/inquiry';
+import { canAcceptInquiry, validateInquiry } from '../src/lib/inquiry';
 
 describe('portfolio inquiry validation', () => {
   it('accepts a normal inquiry with either email or phone', () => {
@@ -30,5 +30,12 @@ describe('inquiry tenant isolation', () => {
     expect(route).not.toContain('SITE_WORKSPACE_SLUG');
     expect(route).not.toContain('validation.payload.workspaceSlug');
     expect(route).toContain('createRateLimitedInquiry');
+  });
+
+  it('accepts inquiries only after both the customer and exact site are active', () => {
+    expect(canAcceptInquiry('active', 'active')).toBe(true);
+    expect(canAcceptInquiry('approved', 'maintenance')).toBe(false);
+    expect(canAcceptInquiry('active', 'maintenance')).toBe(false);
+    expect(canAcceptInquiry('paused', 'paused')).toBe(false);
   });
 });

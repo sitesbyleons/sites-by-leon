@@ -10,6 +10,8 @@ describe('studio resource mutations', () => {
     const route = read('src/pages/api/admin/[resource].ts');
     expect(route).toContain('if (!result.data.length)');
     expect(route).toContain("status: 404");
+    expect(route).toContain("typeof result.data[0]?.id === 'string'");
+    expect(route).toContain('{ ok: true, id: resourceId }');
   });
 
   it('does not turn a committed image edit into a client-side rollback when old-file cleanup fails', () => {

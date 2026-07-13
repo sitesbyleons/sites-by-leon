@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -59,5 +61,13 @@ describe('site provisioning validation', () => {
         quota_gb: expect.any(String),
       },
     });
+  });
+
+  it('renders the success summary without interpreting customer text as markup', () => {
+    const page = fs.readFileSync(new URL('../src/pages/admin/sites/new.astro', import.meta.url), 'utf8');
+
+    expect(page).not.toContain('result.innerHTML');
+    expect(page).toContain('summary.textContent');
+    expect(page).toContain("button.textContent = 'Site created'");
   });
 });

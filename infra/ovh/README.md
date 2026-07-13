@@ -47,6 +47,8 @@ Each application uses at most four PostgreSQL connections by default. Set `DATAB
 4. Review the public site and private editor at the addresses shown by the admin.
 5. Change the site to Active only after DNS, sign-in, upload, inquiry, and mobile checks pass.
 
+For the repeatable authenticated content and billing-guard check, follow the **Repeatable authenticated CRUD smoke test** in `docs/operations/client-provisioning.md`. It uses an existing private Clerk cookie jar or short-lived bearer-header file, refuses to run against a Stripe-enabled studio, and removes its temporary customer records on exit.
+
 Do not expose the Docker socket, SSH credentials, Cloudflare token, GitHub token, or database administrator password to either web application. Domain and repository automation belongs in a restricted host-side worker, not a browser request.
 
 ## Import existing records

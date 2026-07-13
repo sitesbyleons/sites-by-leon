@@ -128,8 +128,27 @@ const idempotencyKey = crypto.randomUUID();
             throw new Error(payload.message ?? 'The customer site was not created.');
           }
 
+          const summary = document.createElement('strong');
+          summary.textContent = `${payload.studioName} is ready for review.`;
+          const links = document.createElement('span');
+          const destinations = [
+            { label: 'Open site', href: `https://${payload.primaryDomain}`, external: true },
+            { label: 'Open editor', href: `https://${payload.adminDomain}/admin`, external: true },
+            { label: 'View all sites', href: '/admin/sites', external: false },
+          ];
+          destinations.forEach(({ label, href, external }) => {
+            const link = document.createElement('a');
+            link.textContent = label;
+            link.href = href;
+            if (external) {
+              link.target = '_blank';
+              link.rel = 'noreferrer';
+            }
+            links.append(link);
+          });
+          result.replaceChildren(summary, links);
           result.classList.add('is-success');
-          result.innerHTML = `<strong>${payload.studioName} is ready for review.</strong><span><a href="https://${payload.primaryDomain}" target="_blank" rel="noreferrer">Open site</a><a href="https://${payload.adminDomain}/admin" target="_blank" rel="noreferrer">Open editor</a><a href="/admin/sites">View all sites</a></span>`;
+          button.textContent = 'Site created';
           form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('input, select, button').forEach((control) => { control.disabled = true; });
         } catch (error) {
           result.classList.add('is-error');

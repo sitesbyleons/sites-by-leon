@@ -4,7 +4,7 @@ import type { APIRoute } from 'astro';
 import { isTrustedOrigin } from '@leon/platform-core/request-security';
 
 import { createStudioDatabase } from '../../lib/database';
-import { validateInquiry } from '../../lib/inquiry';
+import { canAcceptInquiry, validateInquiry } from '../../lib/inquiry';
 
 export const prerender = false;
 
@@ -24,7 +24,9 @@ export const POST: APIRoute = async ({ request, url, locals }) => {
     .select<{ id: string; status: string }>('id,status')
     .eq('id', locals.siteContext.workspaceId)
     .maybeSingle();
-  if (!workspace.data || workspace.data.status === 'closed') return Response.json({ ok: false }, { status: 503 });
+  if (!workspace.data || !canAcceptInquiry(workspace.data.status, locals.siteContext.status)) {
+    return Response.json({ ok: false }, { status: 503 });
+  }
 
   const sourceIp = request.headers.get('cf-connecting-ip')
     ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()

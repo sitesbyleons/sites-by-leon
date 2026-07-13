@@ -4,6 +4,9 @@ type InquiryErrors = Partial<Record<Field | 'message', string>>;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
 
+export const canAcceptInquiry = (workspaceStatus: string, siteStatus: string) =>
+  workspaceStatus === 'active' && siteStatus === 'active';
+
 export function validateInquiry(input: unknown) {
   const source = input && typeof input === 'object' ? input as Record<string, unknown> : {};
   const payload = {
