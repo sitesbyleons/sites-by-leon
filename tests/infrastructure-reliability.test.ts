@@ -171,6 +171,15 @@ describe('OVH infrastructure reliability', () => {
     expect(caddy).toContain('X-Permitted-Cross-Domain-Policies none');
   });
 
+  it('permits the Cloudflare analytics beacon required on proxied sites', () => {
+    const caddy = read('infra/ovh/Caddyfile');
+
+    expect(caddy).toContain('script-src');
+    expect(caddy).toContain('https://static.cloudflareinsights.com');
+    expect(caddy).toContain('connect-src');
+    expect(caddy).toContain('https://cloudflareinsights.com');
+  });
+
   it('keeps the schema safe to apply more than once', () => {
     const schema = read('infra/ovh/postgres/schema.sql');
 
