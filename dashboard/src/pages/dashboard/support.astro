@@ -1,0 +1,48 @@
+---
+import { UserButton } from '@clerk/astro/components';
+
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { decideDashboardAccess } from '../../lib/access';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const access = isPreview
+  ? ({ kind: 'account', userId: 'preview_user', orgId: null } as const)
+  : decideDashboardAccess({ userId: auth?.userId ?? null, orgId: auth?.orgId ?? null });
+if (access.kind === 'redirect') return Astro.redirect('/sign-in?redirect_url=%2Fdashboard%2Fsupport');
+---
+
+<DashboardLayout title="Support" shell>
+  <div class="client-shell">
+    <header class="client-header">
+      <a class="portal-brand portal-brand--small" href="/dashboard" aria-label="Sites By Leon dashboard"><span>Sites</span><span>By</span><span>Leon</span></a>
+      <nav aria-label="Client dashboard"><a href="/dashboard">Website</a><a href="/dashboard/support" aria-current="page">Support</a><a href="/dashboard/billing">Billing</a></nav>
+      <div class="client-account">{!isPreview && <UserButton />}</div>
+    </header>
+    <main class="client-main client-main--page">
+      <section class="client-intro"><p>Client dashboard</p><h1>Support</h1><span>Send Leon the details and they will be saved as a ticket.</span></section>
+      <article class="simple-panel client-page-panel">
+        <form data-content-request>
+          <label>Subject<input name="subject" minlength="5" maxlength="120" required placeholder="What needs changing?" /></label>
+          <label>Details<textarea name="details" minlength="20" maxlength="2000" required placeholder="Tell Leon what to update and where."></textarea></label>
+          <div><button class="simple-button" type="submit">Send ticket</button><p data-form-status aria-live="polite"></p></div>
+        </form>
+      </article>
+    </main>
+  </div>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('[data-content-request]');
+    const status = document.querySelector<HTMLElement>('[data-form-status]');
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!status) return;
+      if (document.location.search.includes('preview=true')) { status.textContent = 'Preview ticket ready.'; return; }
+      status.textContent = 'Sending…';
+      const values = new FormData(form);
+      const response = await fetch('/api/content-requests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ subject: values.get('subject'), details: values.get('details') }) }).catch(() => null);
+      const payload = await response?.json().catch(() => null);
+      status.textContent = response?.ok ? 'Ticket sent.' : (payload?.message ?? 'Ticket not sent. Email leon@leonsites.com.');
+      if (response?.ok) form.reset();
+    });
+  </script>
+</DashboardLayout>

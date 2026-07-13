@@ -38,7 +38,7 @@ describe('decideAdminAccess', () => {
   it('keeps normal clients out of the studio admin area', () => {
     expect(decideAdminAccess({ userId: 'user_client', isAdmin: false })).toEqual({
       kind: 'forbidden',
-      location: '/dashboard',
+      location: '/admin/access-denied',
     });
   });
 

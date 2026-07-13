@@ -26,7 +26,7 @@ export function decideAdminAccess(input: { userId: string | null; isAdmin: boole
   }
 
   if (!input.isAdmin) {
-    return { kind: 'forbidden', location: '/dashboard' };
+    return { kind: 'forbidden', location: '/admin/access-denied' };
   }
 
   return { kind: 'admin', userId: input.userId };

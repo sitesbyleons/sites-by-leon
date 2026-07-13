@@ -21,6 +21,16 @@ test('keeps the preview dashboard within a mobile viewport', async ({ page }) =>
   await expect(page.getByRole('button', { name: 'Send ticket' })).toBeVisible();
 });
 
+test('support and billing are real dashboard pages', async ({ page }) => {
+  await page.goto('/dashboard/support?preview=true');
+  await expect(page.getByRole('heading', { name: 'Support' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send ticket' })).toBeVisible();
+
+  await page.goto('/dashboard/billing?preview=true');
+  await expect(page.getByRole('heading', { name: 'Billing' })).toBeVisible();
+  await expect(page.getByText('Studio', { exact: true })).toBeVisible();
+});
+
 test('shows Leon the studio-wide admin overview', async ({ page }) => {
   await page.goto('/admin?preview=true');
 

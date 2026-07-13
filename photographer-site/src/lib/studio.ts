@@ -225,13 +225,26 @@ export async function loadStudioSession(input: {
   userId: string | null;
   getToken: () => Promise<string | null>;
 }) {
-  if (input.isPreview) return { authenticated: true, data: previewStudioData() };
-  if (!input.userId) return { authenticated: false, data: null };
+  if (input.isPreview) return { authenticated: true, authorized: true, data: previewStudioData() };
+  if (!input.userId) return { authenticated: false, authorized: false, data: null };
   const { client } = await resolveManagedStudio(input.userId);
   if (!client) {
-    return { authenticated: true, data: { ...previewStudioData(), error: 'You do not have access to this studio.' } };
+    return { authenticated: true, authorized: false, data: null };
   }
-  return { authenticated: true, data: await loadStudioAdminData(client) };
+  return { authenticated: true, authorized: true, data: await loadStudioAdminData(client) };
+}
+
+export function decideStudioAdminAccess(
+  session: { authenticated: boolean; authorized: boolean },
+  pathname: string,
+) {
+  if (!session.authenticated) {
+    return { kind: 'redirect' as const, location: `/sign-in?redirect_url=${encodeURIComponent(pathname)}` };
+  }
+  if (!session.authorized) {
+    return { kind: 'forbidden' as const, location: '/admin/access-denied' };
+  }
+  return { kind: 'admin' as const };
 }
 
 export const dollars = (cents: number | null) => cents === null

@@ -698,6 +698,15 @@ a { -webkit-tap-highlight-color: transparent; }
 .studio-admin__footer a,
 .studio-admin__footer button { padding: 0; border: 0; background: transparent; color: #686b70; cursor: pointer; font: inherit; font-size: 0.68rem; text-decoration: underline; }
 
+.client-main--page { max-width: 72rem; }
+.client-page-panel { min-height: 0; }
+.access-screen { display: grid; min-height: 100svh; padding: 1.25rem; place-items: center; background: #f2f3f4; }
+.access-card { position: relative; width: min(34rem, 100%); padding: clamp(1.5rem, 5vw, 3rem); border: 1px solid #d9dbde; border-radius: 1rem; background: #fff; box-shadow: 0 24px 70px rgb(19 23 31 / 0.1); }
+.access-card__account { position: absolute; top: 1.25rem; right: 1.25rem; }
+.access-card h1 { max-width: 11ch; margin: 1rem 0; font-size: clamp(2.4rem, 8vw, 4.5rem); letter-spacing: -0.065em; line-height: 0.9; }
+.access-card > p { max-width: 42rem; color: #65696f; line-height: 1.6; }
+.access-card__actions { display: flex; margin-top: 2rem; gap: 0.75rem; flex-wrap: wrap; }
+
 @media (max-width: 54rem) {
   .client-header { grid-template-columns: 1fr auto; }
   .client-header nav { display: none; }
