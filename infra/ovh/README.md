@@ -69,7 +69,8 @@ infra/ovh/scripts/healthcheck.sh
 Configure Stripe webhook destinations as:
 
 - `https://leonsites.org/api/webhooks/stripe`
-- `https://demo.leonsites.org/api/webhooks/stripe-connect`
+- `https://demo.leonsites.org/api/webhooks/stripe-connect` for invoice and payment events
+- `https://demo.leonsites.org/api/webhooks/stripe-connect-v2` for connected-account status events
 
 ## Backups
 
