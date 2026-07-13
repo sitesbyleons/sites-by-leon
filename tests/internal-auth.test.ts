@@ -7,7 +7,8 @@ describe('self-hosted photographer payments', () => {
     );
     expect(connectSource).toContain('process.env.STRIPE_CONNECT_SECRET_KEY');
     expect(connectSource).toContain('resolveManagedStudio(auth.userId)');
-    expect(connectSource).toContain("request.headers.get('origin') !== url.origin");
+    expect(connectSource).toContain("resolveTrustedOrigin(request.headers.get('origin'), url.origin)");
+    expect(connectSource).toContain('refresh_url: `${publicOrigin}/admin/invoices?connect=refresh`');
     expect(connectSource).not.toContain('PUBLIC_CONNECT_FUNCTION_URL');
   });
 

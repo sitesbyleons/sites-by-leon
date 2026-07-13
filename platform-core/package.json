@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./billing-core": "./src/billing-core.ts",
-    "./image-storage": "./src/image-storage.ts"
+    "./image-storage": "./src/image-storage.ts",
+    "./request-security": "./src/request-security.ts"
   },
   "dependencies": {
     "postgres": "3.4.7"

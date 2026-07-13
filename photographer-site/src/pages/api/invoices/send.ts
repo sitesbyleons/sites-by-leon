@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
+import { isTrustedOrigin } from '@leon/platform-core/request-security';
 
 import { resolveManagedStudio } from '../../../lib/studio';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const POST: APIRoute = async ({ request, locals, url }) => {
-  if (request.headers.get('origin') !== url.origin) return Response.json({ message: 'Request not allowed.' }, { status: 403 });
+  if (!isTrustedOrigin(request.headers.get('origin'), url.origin)) return Response.json({ message: 'Request not allowed.' }, { status: 403 });
   const auth = locals.auth();
   if (!auth.userId) return Response.json({ message: 'Sign in again.' }, { status: 401 });
 

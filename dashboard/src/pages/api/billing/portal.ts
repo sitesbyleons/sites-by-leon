@@ -2,11 +2,12 @@ import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
 import { createPlatformDatabase } from '../../../lib/database';
-import { isTrustedOrigin } from '../../../lib/request-security';
+import { resolveTrustedOrigin } from '../../../lib/request-security';
 import { resolveClientWorkspace } from '../../../lib/workspaces';
 
 export const POST: APIRoute = async ({ request, locals, url }) => {
-  if (!isTrustedOrigin(request.headers.get('origin'), url.origin)) {
+  const publicOrigin = resolveTrustedOrigin(request.headers.get('origin'), url.origin);
+  if (!publicOrigin) {
     return Response.json({ message: 'This request could not be verified.' }, { status: 403 });
   }
   const auth = locals.auth();
@@ -25,7 +26,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     const stripe = new Stripe(stripeKey);
     const session = await stripe.billingPortal.sessions.create({
       customer: workspace.data.stripe_customer_id,
-      return_url: `${url.origin}/dashboard`,
+      return_url: `${publicOrigin}/dashboard`,
     });
     return Response.redirect(session.url, 303);
   } catch {

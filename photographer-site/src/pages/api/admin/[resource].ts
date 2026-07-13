@@ -1,6 +1,7 @@
 import { unlink } from 'node:fs/promises';
 
 import { resolveManagedUpload } from '@leon/platform-core/image-storage';
+import { isTrustedOrigin } from '@leon/platform-core/request-security';
 import type { DataClient } from '@leon/platform-core';
 import type { APIRoute } from 'astro';
 
@@ -41,8 +42,7 @@ async function removeFiles(workspaceId: string, paths: Array<string | null | und
 }
 
 const route: APIRoute = async ({ request, locals, params, url }) => {
-  const origin = request.headers.get('origin');
-  if (origin && origin !== url.origin) return Response.json({ message: 'Request not allowed.' }, { status: 403 });
+  if (!isTrustedOrigin(request.headers.get('origin'), url.origin)) return Response.json({ message: 'Request not allowed.' }, { status: 403 });
   if (Number(request.headers.get('content-length') ?? 0) > 32_000) return Response.json({ message: 'Request is too large.' }, { status: 413 });
 
   const auth = locals.auth();

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { APIRoute } from 'astro';
+import { isTrustedOrigin } from '@leon/platform-core/request-security';
 
 import { createStudioDatabase } from '../../lib/database';
 import { validateInquiry } from '../../lib/inquiry';
@@ -8,8 +9,7 @@ import { validateInquiry } from '../../lib/inquiry';
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request, url }) => {
-  const origin = request.headers.get('origin');
-  if (origin && origin !== url.origin) return Response.json({ ok: false }, { status: 403 });
+  if (!isTrustedOrigin(request.headers.get('origin'), url.origin)) return Response.json({ ok: false }, { status: 403 });
   if (Number(request.headers.get('content-length') ?? 0) > 24_000) return Response.json({ ok: false }, { status: 413 });
 
   const input = await request.json().catch(() => null);
