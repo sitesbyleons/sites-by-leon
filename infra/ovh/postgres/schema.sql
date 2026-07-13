@@ -269,6 +269,15 @@ create table if not exists studio_inquiries (
   check (email is not null or phone is not null)
 );
 
+create table if not exists inquiry_rate_limits (
+  workspace_id uuid not null references client_workspaces(id) on delete cascade,
+  ip_hash text not null check (char_length(ip_hash) = 64),
+  window_started_at timestamptz not null default now(),
+  request_count smallint not null default 1 check (request_count between 1 and 5),
+  updated_at timestamptz not null default now(),
+  primary key (workspace_id, ip_hash)
+);
+
 create table if not exists site_connections (
   workspace_id uuid primary key references client_workspaces(id) on delete cascade,
   site_key text not null unique,
@@ -324,6 +333,7 @@ create index if not exists studio_clients_service_idx on studio_clients (service
 create index if not exists studio_invoices_workspace_idx on studio_invoices (workspace_id);
 create index if not exists studio_invoices_client_idx on studio_invoices (client_id);
 create index if not exists studio_inquiries_workspace_created_idx on studio_inquiries (workspace_id, created_at desc);
+create index if not exists inquiry_rate_limits_updated_idx on inquiry_rate_limits (updated_at);
 
 drop trigger if exists client_workspaces_updated on client_workspaces;
 create trigger client_workspaces_updated before update on client_workspaces for each row execute function set_updated_at();
