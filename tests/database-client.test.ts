@@ -282,7 +282,9 @@ describe('Leon PostgreSQL data client', () => {
 
     expect(recorder.calls[0].text).toContain('insert into "inquiry_rate_limits"');
     expect(recorder.calls[0].text).toContain('on conflict ("workspace_id", "ip_hash") do update set');
-    expect(recorder.calls[0].text).toContain('"inquiry_rate_limits"."request_count" < 5');
+    expect(recorder.calls[0].text).toContain('unnest("inquiry_rate_limits"."request_times")');
+    expect(recorder.calls[0].text).toContain('array_append');
+    expect(recorder.calls[0].text).toContain(') < 5');
     expect(recorder.calls[0].text).toContain('$1::uuid');
     expect(recorder.calls[0].text).toContain("interval '10 minutes'");
   });

@@ -272,10 +272,10 @@ create table if not exists studio_inquiries (
 create table if not exists inquiry_rate_limits (
   workspace_id uuid not null references client_workspaces(id) on delete cascade,
   ip_hash text not null check (char_length(ip_hash) = 64),
-  window_started_at timestamptz not null default now(),
-  request_count smallint not null default 1 check (request_count between 1 and 5),
+  request_times timestamptz[] not null default array[now()],
   updated_at timestamptz not null default now(),
-  primary key (workspace_id, ip_hash)
+  primary key (workspace_id, ip_hash),
+  check (cardinality(request_times) between 1 and 5)
 );
 
 create table if not exists site_connections (

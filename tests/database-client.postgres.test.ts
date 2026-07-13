@@ -69,8 +69,6 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
       create table inquiry_rate_limits (
         workspace_id uuid not null references client_workspaces(id) on delete cascade,
         ip_hash text not null,
-        window_started_at timestamptz not null default now(),
-        request_count smallint not null default 1,
         request_times timestamptz[] not null default array[now()],
         updated_at timestamptz not null default now(),
         primary key (workspace_id, ip_hash)
@@ -183,9 +181,9 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
     await applicationSql!.unsafe('insert into client_workspaces (id) values ($1)', [workspaceId]);
     await applicationSql!.unsafe(`
       insert into inquiry_rate_limits (
-        workspace_id, ip_hash, window_started_at, request_count, request_times
+        workspace_id, ip_hash, request_times
       ) values (
-        $1, $2, now() - interval '10 minutes 1 second', 5,
+        $1, $2,
         array[
           now() - interval '10 minutes 1 second',
           now() - interval '1 second', now() - interval '1 second',
