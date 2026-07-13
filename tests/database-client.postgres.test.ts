@@ -71,6 +71,7 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
         ip_hash text not null,
         window_started_at timestamptz not null default now(),
         request_count smallint not null default 1,
+        request_times timestamptz[] not null default array[now()],
         updated_at timestamptz not null default now(),
         primary key (workspace_id, ip_hash)
       );
@@ -174,5 +175,42 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
     expect(results.every((result) => result.error === null)).toBe(true);
     expect(results.filter((result) => result.data.length === 1)).toHaveLength(5);
     expect(results.filter((result) => result.data.length === 0)).toHaveLength(1);
+  });
+
+  it('keeps the five-in-ten-minute limit across a window boundary', async () => {
+    const workspaceId = randomUUID();
+    const ipHash = 'c'.repeat(64);
+    await applicationSql!.unsafe('insert into client_workspaces (id) values ($1)', [workspaceId]);
+    await applicationSql!.unsafe(`
+      insert into inquiry_rate_limits (
+        workspace_id, ip_hash, window_started_at, request_count, request_times
+      ) values (
+        $1, $2, now() - interval '10 minutes 1 second', 5,
+        array[
+          now() - interval '10 minutes 1 second',
+          now() - interval '1 second', now() - interval '1 second',
+          now() - interval '1 second', now() - interval '1 second'
+        ]
+      )
+    `, [workspaceId, ipHash]);
+    const input = {
+      workspace_id: workspaceId,
+      ip_hash: ipHash,
+      name: 'Boundary Client',
+      email: 'boundary@example.com',
+      phone: null,
+      desired_date: '2026-12-30',
+      message: 'Please photograph our home game.',
+    };
+
+    const fifthRecent = await client!.createRateLimitedInquiry(input);
+    const sixthRecent = await client!.createRateLimitedInquiry({
+      ...input,
+      name: 'Blocked Boundary Client',
+      email: 'blocked-boundary@example.com',
+    });
+
+    expect(fifthRecent.data).toHaveLength(1);
+    expect(sixthRecent.data).toHaveLength(0);
   });
 });
