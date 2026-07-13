@@ -62,6 +62,7 @@ test('client-controlled query and cookie values cannot pause the public site', a
   const response = await navigate(page, '/?NORTHLINE_PREVIEW_STATUS=paused&status=paused');
   expect(response?.status()).toBe(200);
   await expect(page.getByRole('heading', { name: 'Northline Sports' })).toBeVisible();
+  await expect(page.locator('.wordmark')).toHaveText(demoPortfolio.studioName);
 });
 
 test('health exposes only the public service status and version', async ({ request }) => {
@@ -110,6 +111,9 @@ test('home is an image-first editorial sports portfolio', async ({ page }) => {
     page.getByText('Sports photography for teams and athletes.', { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Selected work' })).toBeVisible();
+  await expect(page.locator('.service-preview p')).toHaveText(
+    'Game Coverage, Season Coverage, and Athlete Session.',
+  );
   await expect(page.locator('[data-portfolio-item]')).toHaveCount(3);
   await expect(page.locator('[data-portfolio-item] img')).toHaveCount(3);
   await expect(page.locator('.scorebug,.highlight-index,.work-card-number')).toHaveCount(0);
@@ -301,6 +305,16 @@ test('public writes accept the HTTPS browser origin behind the private HTTP prox
 
   expect(response.status()).not.toBe(403);
 
+});
+
+test('managed mode returns an unavailable response instead of sample content when storage is unavailable', async ({ request }) => {
+  const response = await request.get('http://127.0.0.1:4356/', { maxRedirects: 0 });
+  const body = await response.text();
+
+  expect(response.status()).toBe(503);
+  expect(body).toContain('Site temporarily unavailable');
+  expect(body).not.toContain('Northline Sports');
+  expect(body).not.toContain('/images/sports/');
 });
 
 test('field notes use the sports fixtures and stay brief', async ({ page }) => {

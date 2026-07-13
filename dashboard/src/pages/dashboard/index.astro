@@ -4,7 +4,7 @@ import { SignOutButton, UserButton } from '@clerk/astro/components';
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { checkAppAdmin } from '../../lib/admin';
 import { decideDashboardAccess } from '../../lib/access';
-import { canStartCheckout, plans } from '../../lib/billing';
+import { canManageSubscription, canStartCheckout, plans } from '../../lib/billing';
 import { createPlatformDatabase } from '../../lib/database';
 import { normalizeDashboardState } from '../../lib/dashboard-state';
 import { loadDashboardData } from '../../lib/load-dashboard';
@@ -66,7 +66,7 @@ const checkoutReady = canStartCheckout({
   workspaceStatus: dashboardData.workspace?.status ?? null,
   subscriptionStatus: dashboardData.subscription?.status ?? null,
 });
-const portalReady = Boolean(dashboardData.subscription);
+const portalReady = canManageSubscription(dashboardData.subscription?.status);
 const periodEnd = dashboardData.subscription?.current_period_end
   ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(
       new Date(dashboardData.subscription.current_period_end),

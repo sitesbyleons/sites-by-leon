@@ -17,7 +17,7 @@ Clerk remains the identity provider, Stripe remains the payment processor, GitHu
 ## One-time host setup
 
 ```bash
-sudo SOURCE_ROOT=/opt/leon-platform/app infra/ovh/scripts/bootstrap-ubuntu.sh
+sudo SOURCE_ROOT=/opt/leon-platform/current infra/ovh/scripts/bootstrap-ubuntu.sh
 ```
 
 The firewall should allow the verified SSH port only. Cloudflare Tunnel connects outbound, so ports 80, 443, and 5432 do not need to be opened.
@@ -31,8 +31,12 @@ Copy these ignored examples and replace every placeholder:
 3. `infra/ovh/secrets/dashboard.env.example` to `infra/ovh/secrets/dashboard.env`.
 4. `infra/ovh/secrets/northline.env.example` to `infra/ovh/secrets/northline.env`.
 5. Put the Cloudflare Tunnel token only in `infra/ovh/secrets/cloudflare-tunnel-token`.
+6. Copy `infra/ovh/secrets/backup.env.example` to `/opt/leon-platform/secrets/backup.env`.
+7. Generate `/opt/leon-platform/secrets/restic-password` with `openssl rand -base64 48` and keep an offline copy.
 
-Set every secret file to mode `600`. Use the same internal PostgreSQL password in `postgres.env`, `dashboard.env`, and `northline.env`.
+Set every secret file to mode `600`. The backup installer also refuses to source `backup.env` or read the Restic password unless each is a regular, root-owned file with no group or world permissions. Use the same internal PostgreSQL password in `postgres.env`, `dashboard.env`, and `northline.env`.
+Generate `CONTACT_HASH_SALT` independently with `openssl rand -hex 32`; it is required for privacy-preserving inquiry rate limits.
+Each application uses at most four PostgreSQL connections by default. Set `DATABASE_POOL_MAX` to a value from 1 through 20 only when capacity planning shows that a different limit is safe.
 
 ## Import existing records
 
@@ -53,7 +57,7 @@ The current managed project has no stored image objects, so there are no image b
 ## Deploy
 
 ```bash
-SOURCE_ROOT=/opt/leon-platform/app infra/ovh/scripts/deploy.sh
+SOURCE_ROOT=/opt/leon-platform/current infra/ovh/scripts/deploy.sh
 ```
 
 Then run:
@@ -71,8 +75,12 @@ Configure Stripe webhook destinations as:
 
 `backup-database.sh` encrypts the PostgreSQL dump, application configuration, and uploaded images with restic. Keep the restic password offline as well as on the host. Install the nightly timer with:
 
+Until an OVH Object Storage bucket is configured, `RESTIC_REPOSITORY=/opt/leon-platform/backups/restic` provides an encrypted local repository for initial testing. It is not an independent backup because it shares the VPS disk. Move to the S3 repository in `backup.env.example` before storing production client media.
+
+The backup makes a short-lived consistent copy of uploads before Restic reads them. It refuses to start unless the staging filesystem has the upload size plus 10 GiB free; a local Restic repository on the same filesystem requires twice the upload size plus 10 GiB. `BACKUP_STAGING_ROOT` must be a dedicated directory ending in `/staging-current` and cannot overlap the application, uploads, backup repository, or source release. Mount `/opt/leon-platform-backup-staging` on separate storage to avoid consuming the live disk. Before approaching 40 GiB of client uploads, use both separate staging storage and OVH Object Storage (or another S3-compatible offsite repository).
+
 ```bash
-sudo SOURCE_ROOT=/opt/leon-platform/app infra/ovh/scripts/install-systemd.sh
+sudo SOURCE_ROOT=/opt/leon-platform/current infra/ovh/scripts/install-systemd.sh
 ```
 
 Do not delete the old Vercel or managed database projects until the OVH deployment has passed the full cutover checklist and the rollback window has ended.

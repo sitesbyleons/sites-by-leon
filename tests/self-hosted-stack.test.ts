@@ -30,7 +30,7 @@ describe('fully self-hosted production stack', () => {
 
   it('defines the application schema without Supabase roles or auth functions', () => {
     const schema = read('infra/ovh/postgres/schema.sql');
-    for (const table of ['client_workspaces', 'workspace_members', 'studio_galleries', 'studio_gallery_images', 'studio_posts', 'studio_services', 'site_connections']) {
+    for (const table of ['client_workspaces', 'workspace_members', 'connected_payment_account_history', 'studio_galleries', 'studio_gallery_images', 'studio_posts', 'studio_services', 'site_connections']) {
       expect(schema).toContain(`create table if not exists ${table}`);
     }
     expect(schema).not.toMatch(/\b(auth|storage)\./i);
@@ -81,5 +81,10 @@ describe('fully self-hosted production stack', () => {
       expect(read(config)).toContain('checkOrigin: false');
     }
     expect(read('platform-core/src/request-security.ts')).toContain("supplied.protocol === 'https:' && internal.protocol === 'http:'");
+  });
+
+  it('documents the contact-data salt required by the production inquiry endpoint', () => {
+    expect(read('infra/ovh/secrets/northline.env.example')).toMatch(/^CONTACT_HASH_SALT=replace_with_a_random_secret$/m);
+    expect(read('photographer-site/.env.example')).toMatch(/^CONTACT_HASH_SALT=replace_with_a_random_secret$/m);
   });
 });

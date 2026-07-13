@@ -4,18 +4,18 @@ import { siteRepository } from '../lib/content/repository';
 
 const portfolio = await siteRepository.getPortfolio();
 const inquiryEndpoint = '/api/inquiry';
-const workspaceSlug = import.meta.env.SITE_WORKSPACE_SLUG ?? 'northline';
+const workspaceSlug = process.env.SITE_WORKSPACE_SLUG ?? 'northline';
 const minimumDate = new Date().toISOString().slice(0, 10);
 ---
 
 <SiteLayout
   title="Contact"
-  description="Contact Northline Sports about sports photography coverage."
+  description={`Contact ${portfolio.studioName} about photography coverage.`}
   canonicalPath="/contact"
 >
   <section class="contact-page page-gutter" aria-labelledby="contact-page-title">
     <header class="contact-intro" data-entrance>
-      <h1 id="contact-page-title">Contact Northline</h1>
+      <h1 id="contact-page-title">{portfolio.home.contactLabel}</h1>
       <p>Tell us what you need covered.</p>
     </header>
 
@@ -25,6 +25,7 @@ const minimumDate = new Date().toISOString().slice(0, 10);
       data-endpoint={inquiryEndpoint}
       data-workspace={workspaceSlug}
       data-email={portfolio.email}
+      data-studio-name={portfolio.studioName}
       novalidate
     >
       <div class="inquiry-field inquiry-field--wide">
@@ -70,9 +71,13 @@ const minimumDate = new Date().toISOString().slice(0, 10);
       </div>
     </form>
 
-    <p class="contact-email" data-entrance>
-      Or email <a href={`mailto:${portfolio.email}`}>{portfolio.email}</a>
-    </p>
+    {
+      portfolio.email && (
+        <p class="contact-email" data-entrance>
+          Or email <a href={`mailto:${portfolio.email}`}>{portfolio.email}</a>
+        </p>
+      )
+    }
   </section>
 
   <script>
@@ -138,7 +143,8 @@ const minimumDate = new Date().toISOString().slice(0, 10);
       }
 
       form.reset();
-      status.textContent = 'Inquiry sent. Northline will follow up soon.';
+      const studioName = form.dataset.studioName || 'The studio';
+      status.textContent = `Inquiry sent. ${studioName} will follow up soon.`;
     });
   </script>
 </SiteLayout>

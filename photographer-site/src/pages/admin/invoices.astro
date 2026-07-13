@@ -9,6 +9,7 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const clientNames = new Map(data.clients.map((client) => [client.id, client.name]));
 const paymentsReady = Boolean(data.connect?.charges_enabled && data.connect?.payouts_enabled);
+const price = (cents: number | null) => cents === null ? '' : String(cents / 100);
 ---
 
 <StudioAdminLayout title="Invoices" active="invoices" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
@@ -18,16 +19,30 @@ const paymentsReady = Boolean(data.connect?.charges_enabled && data.connect?.pay
   </section>
   <div class="studio-split">
     <section><header class="studio-section-heading"><div><small>Billing</small><h2>Invoice history</h2></div></header><div class="studio-panel">
-      {data.invoices.length ? <ul class="studio-list">{data.invoices.map((invoice) => <li><div><strong>{clientNames.get(invoice.client_id) ?? 'Client'} · {dollars(invoice.amount_due_cents)}</strong><small>{invoice.description}{invoice.deposit_cents ? ` · ${dollars(invoice.deposit_cents)} deposit` : ''}</small></div><div>
+      {data.invoices.length ? <ul class="studio-list">{data.invoices.map((invoice) => <li><div><strong>{clientNames.get(invoice.client_id) ?? 'Client'} · {dollars(invoice.amount_due_cents)}</strong><small>{invoice.description}{invoice.deposit_cents ? ` · ${dollars(invoice.deposit_cents)} deposit` : ''}</small></div><div class="studio-item-actions">
         <span class={`studio-status studio-status--${invoice.status}`}>{invoice.status}</span>
-        {invoice.hosted_invoice_url && <a href={invoice.hosted_invoice_url} target="_blank" rel="noreferrer">Payment link</a>}
+        {invoice.hosted_invoice_url && invoice.status !== 'review' && <a href={invoice.hosted_invoice_url} target="_blank" rel="noreferrer">Payment link</a>}
+        {invoice.status === 'review' && <small>This payment belongs to a previous Stripe connection. Do not resend it; contact Leon to review it safely.</small>}
+        {invoice.status === 'draft' && <details class="studio-editor"><summary>Edit</summary><form class="studio-form studio-editor-form" data-studio-form data-resource="invoices">
+          <input type="hidden" name="id" value={invoice.id} />
+          <label class="wide"><span>Client</span><select name="client_id" required>{data.clients.map((client) => <option value={client.id} selected={invoice.client_id === client.id}>{client.name}</option>)}</select></label>
+          <label class="wide"><span>Description</span><textarea name="description" required>{invoice.description}</textarea></label>
+          <label><span>Total in dollars</span><input name="amount" type="number" min="0.50" max="999999.99" step="0.01" value={price(invoice.amount_due_cents)} required /></label>
+          <label><span>Deposit in dollars</span><input name="deposit" type="number" min="0.50" max="999999.49" step="0.01" value={price(invoice.deposit_cents)} /></label>
+          <label class="wide"><span>Due date</span><input name="due_date" type="date" value={invoice.due_date ?? ''} /></label>
+          <div class="wide"><button type="submit">Save draft</button></div><p class="studio-form-status wide" data-form-status></p>
+        </form></details>}
+        {invoice.status === 'draft' && <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="invoices" data-id={invoice.id}>Delete draft</button>}
         {paymentsReady && invoice.status === 'draft' && <button type="button" data-send-invoice={invoice.id}>Send invoice</button>}
+        {paymentsReady && invoice.status === 'sending' && <button type="button" data-send-invoice={invoice.id}>Retry invoice</button>}
+        {paymentsReady && invoice.status === 'uncollectible' && <button type="button" data-send-invoice={invoice.id}>Create a new payment link</button>}
+        {paymentsReady && invoice.status === 'deposit_paid' && <button type="button" data-send-invoice={invoice.id}>Send remaining balance</button>}
       </div></li>)}</ul> : <p class="studio-empty">No invoices yet.</p>}
     </div></section>
     <section><header class="studio-section-heading"><div><small>New invoice</small><h2>Create a draft</h2></div></header><div class="studio-panel"><form class="studio-form" data-studio-form data-resource="invoices">
       <label class="wide"><span>Client</span><select name="client_id" required><option value="">Choose a client</option>{data.clients.map((client) => <option value={client.id}>{client.name}</option>)}</select></label>
       <label class="wide"><span>Description</span><textarea name="description" required></textarea></label>
-      <label><span>Total in dollars</span><input name="amount" type="number" min="1" step="1" required /></label><label><span>Deposit in dollars</span><input name="deposit" type="number" min="0" step="1" /></label>
+      <label><span>Total in dollars</span><input name="amount" type="number" min="0.50" max="999999.99" step="0.01" required /></label><label><span>Deposit in dollars</span><input name="deposit" type="number" min="0.50" max="999999.49" step="0.01" /></label>
       <label class="wide"><span>Due date</span><input name="due_date" type="date" /></label>
       <div class="wide"><button type="submit">Create draft</button></div><p class="studio-form-status wide" data-form-status></p>
     </form></div></section>
@@ -50,7 +65,7 @@ const paymentsReady = Boolean(data.connect?.charges_enabled && data.connect?.pay
     };
 
     connectButton?.addEventListener('click', () => callConnect('start'));
-    if (connectReturn === 'return') callConnect('status');
+    if (connectReturn && ['return', 'complete', 'refresh'].includes(connectReturn)) callConnect('status');
 
     document.querySelectorAll<HTMLButtonElement>('[data-send-invoice]').forEach((button) => {
       button.addEventListener('click', async () => {

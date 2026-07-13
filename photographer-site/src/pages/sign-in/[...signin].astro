@@ -1,7 +1,9 @@
 ---
 import { SignIn } from '@clerk/astro/components';
-const dashboardUrl = Astro.url.searchParams.get('redirect_url') ?? '/admin';
+import { normalizeStudioReturnPath } from '../../lib/studio-auth';
+const dashboardUrl = normalizeStudioReturnPath(Astro.url.searchParams.get('redirect_url'));
+const signUpUrl = `/sign-up?redirect_url=${encodeURIComponent(dashboardUrl)}`;
 ---
 
-<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width" /><meta name="robots" content="noindex,nofollow" /><title>Studio sign in | Northline Sports</title></head>
-<body style="margin:0;min-height:100dvh;display:grid;place-items:center;background:#f5f5f1;font-family:system-ui,sans-serif"><main><SignIn forceRedirectUrl={dashboardUrl} signUpUrl="/sign-up" /></main></body></html>
+<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width" /><meta name="robots" content="noindex,nofollow" /><title>Studio sign in</title></head>
+<body style="margin:0;min-height:100dvh;display:grid;place-items:center;background:#f5f5f1;font-family:system-ui,sans-serif"><main><SignIn forceRedirectUrl={dashboardUrl} signUpUrl={signUpUrl} /></main></body></html>

@@ -34,8 +34,29 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     .select<{ status: string }>('status')
     .eq('workspace_id', resolved.workspace.id)
     .maybeSingle();
+  if (workspace.error || subscription.error) return Response.json({ message: 'Billing status could not be verified. Try again.' }, { status: 503 });
   if (!workspace.data || !canStartCheckout({ userId: auth.userId, workspaceStatus: workspace.data.status, subscriptionStatus: subscription.data?.status ?? null })) {
     return Response.json({ message: 'This workspace cannot start another subscription.' }, { status: 409 });
+  }
+
+  const attemptKey = crypto.randomUUID();
+  const checkoutExpiresAt = new Date(Date.now() + 35 * 60 * 1000);
+  const claimed = await database.claimCheckoutAttempt({
+    workspace_id: workspace.data.id,
+    attempt_key: attemptKey,
+    plan_key: plan.key,
+    expires_at: checkoutExpiresAt.toISOString(),
+  });
+  if (claimed.error) return Response.json({ message: 'Checkout could not be reserved.' }, { status: 503 });
+  if (!claimed.data.length) {
+    const existing = await database.from('checkout_attempts')
+      .select('attempt_key,plan_key,checkout_url')
+      .eq('workspace_id', workspace.data.id)
+      .maybeSingle<{ attempt_key: string; plan_key: string; checkout_url: string | null }>();
+    if (existing.error || !existing.data) return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
+    if (existing.data.plan_key !== plan.key) return Response.json({ message: 'Another plan checkout is already open. Finish it or wait for it to expire.' }, { status: 409 });
+    if (existing.data.checkout_url) return Response.redirect(existing.data.checkout_url, 303);
+    return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
   }
 
   try {
@@ -45,7 +66,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       const customer = await stripe.customers.create({
         name: workspace.data.name,
         metadata: { workspace_id: workspace.data.id, clerk_user_id: auth.userId },
-      });
+      }, { idempotencyKey: `workspace-customer:${workspace.data.id}` });
       customerId = customer.id;
       const saved = await database.from('client_workspaces').update({ stripe_customer_id: customerId }).eq('id', workspace.data.id);
       if (saved.error) return Response.json({ message: 'The billing customer could not be saved.' }, { status: 503 });
@@ -56,14 +77,26 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       customer: customerId,
       client_reference_id: workspace.data.id,
       line_items: [{ price: priceId, quantity: 1 }],
+      expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
       success_url: `${publicOrigin}/dashboard?checkout=success`,
       cancel_url: `${publicOrigin}/dashboard?checkout=cancelled`,
       metadata: { workspace_id: workspace.data.id, plan_key: plan.key },
       subscription_data: { metadata: { workspace_id: workspace.data.id, plan_key: plan.key } },
-    });
-    return session.url
-      ? Response.redirect(session.url, 303)
-      : Response.json({ message: 'Stripe did not return a Checkout URL.' }, { status: 502 });
+    }, { idempotencyKey: `workspace-checkout:${attemptKey}` });
+    if (!session.url) return Response.json({ message: 'Stripe did not return a Checkout URL.' }, { status: 502 });
+    const saved = await database.from('checkout_attempts').update({
+      stripe_session_id: session.id,
+      checkout_url: session.url,
+    }).eq('workspace_id', workspace.data.id).eq('attempt_key', attemptKey);
+    if (saved.error || !saved.data.length) {
+      await stripe.checkout.sessions.expire(session.id).catch(() => null);
+      return Response.json({
+        message: saved.error
+          ? 'Checkout started but could not be synchronized. Retry the same plan.'
+          : 'A newer checkout replaced this one. Retry to continue safely.',
+      }, { status: saved.error ? 503 : 409 });
+    }
+    return Response.redirect(session.url, 303);
   } catch {
     return Response.json({ message: 'Checkout could not start. Nothing was charged.' }, { status: 502 });
   }

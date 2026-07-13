@@ -2,6 +2,10 @@
 import { SignIn } from '@clerk/astro/components';
 
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { normalizeReturnPath } from '../../lib/request-security';
+
+const redirectUrl = normalizeReturnPath(Astro.url.searchParams.get('redirect_url'));
+const signUpUrl = `/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`;
 
 const appearance = {
   variables: {
@@ -36,8 +40,8 @@ const appearance = {
       <SignIn
         path="/sign-in"
         routing="path"
-        signUpUrl="/sign-up"
-        forceRedirectUrl="/dashboard"
+        signUpUrl={signUpUrl}
+        forceRedirectUrl={redirectUrl}
         {appearance}
       />
       <a class="auth-card__back" href={import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://leonsites.org'}>← Back to leonsites.org</a>

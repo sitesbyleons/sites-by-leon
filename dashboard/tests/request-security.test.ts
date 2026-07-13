@@ -18,10 +18,20 @@ describe('isTrustedOrigin', () => {
 });
 
 describe('normalizeReturnPath', () => {
-  it('keeps local dashboard paths and rejects external redirects', () => {
+  it('keeps only dashboard and admin paths', () => {
     expect(normalizeReturnPath('/dashboard?checkout=cancelled')).toBe('/dashboard?checkout=cancelled');
+    expect(normalizeReturnPath('/dashboard/billing')).toBe('/dashboard/billing');
+    expect(normalizeReturnPath('/admin')).toBe('/admin');
+    expect(normalizeReturnPath('/admin/tickets#open')).toBe('/admin/tickets#open');
+    expect(normalizeReturnPath('/unrelated')).toBe('/dashboard');
+  });
+
+  it('rejects external, backslash, and control-character redirects', () => {
     expect(normalizeReturnPath('https://evil.example/steal')).toBe('/dashboard');
     expect(normalizeReturnPath('//evil.example/steal')).toBe('/dashboard');
+    expect(normalizeReturnPath('/\\evil.example/steal')).toBe('/dashboard');
+    expect(normalizeReturnPath('/admin\\evil.example')).toBe('/dashboard');
+    expect(normalizeReturnPath('/admin\nLocation: https://evil.example')).toBe('/dashboard');
   });
 });
 

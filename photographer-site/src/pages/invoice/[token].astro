@@ -1,14 +1,17 @@
 ---
 import SiteLayout from '../../layouts/SiteLayout.astro';
+import { siteRepository } from '../../lib/content/repository';
+
+const portfolio = await siteRepository.getPortfolio();
 ---
 
 <SiteLayout
   title="Payment link"
-  description="This Northline Sports payment link is unavailable."
+  description={`This ${portfolio.studioName} payment link is unavailable.`}
   canonicalPath="/invoice/payment"
 >
   <section class="invoice-placeholder page-gutter" aria-labelledby="invoice-placeholder-title">
     <h1 id="invoice-placeholder-title">This payment link is unavailable.</h1>
-    <a class="text-link" href="/contact">Contact Northline</a>
+    <a class="text-link" href="/contact">Contact {portfolio.studioName}</a>
   </section>
 </SiteLayout>

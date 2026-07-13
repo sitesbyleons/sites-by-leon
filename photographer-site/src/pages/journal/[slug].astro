@@ -3,7 +3,8 @@ import SiteLayout from '../../layouts/SiteLayout.astro';
 import { siteRepository } from '../../lib/content/repository';
 
 const slug = Astro.params.slug ?? '';
-const post = await siteRepository.getPost(slug);
+const portfolio = await siteRepository.getPortfolio();
+const post = portfolio.posts.find((item) => item.slug === slug) ?? null;
 
 if (!post) {
   Astro.response.status = 404;
@@ -22,8 +23,8 @@ const publishedAt = post
 
 <SiteLayout
   title={post?.title ?? 'Field note not found'}
-  description={post?.excerpt ?? 'The requested Northline Sports field note could not be found.'}
-  image={post?.cover.src}
+  description={post?.excerpt ?? `The requested ${portfolio.studioName} field note could not be found.`}
+  image={post?.cover?.src}
   canonicalPath={`/journal/${slug}`}
 >
   {
@@ -34,16 +35,18 @@ const publishedAt = post
           <time datetime={post.publishedAt} data-entrance>{publishedAt}</time>
         </header>
 
-        <figure class="journal-story-cover page-gutter" data-entrance>
-          <img
-            src={post.cover.src}
-            alt={post.cover.alt}
-            width={post.cover.width}
-            height={post.cover.height}
-            loading="eager"
-            decoding="async"
-          />
-        </figure>
+        {post.cover && (
+          <figure class="journal-story-cover page-gutter" data-entrance>
+            <img
+              src={post.cover.src}
+              alt={post.cover.alt}
+              width={post.cover.width}
+              height={post.cover.height}
+              loading="eager"
+              decoding="async"
+            />
+          </figure>
+        )}
 
         <div class="journal-story-body page-gutter">
           {post.body.map((paragraph) => <p>{paragraph}</p>)}

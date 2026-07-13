@@ -29,10 +29,18 @@ test('support and billing are real dashboard pages', async ({ page }) => {
   await page.goto('/dashboard/billing?preview=true');
   await expect(page.getByRole('heading', { name: 'Billing' })).toBeVisible();
   await expect(page.getByText('Studio', { exact: true })).toBeVisible();
+  await expect(page.locator('form[action="/api/billing/portal"]')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Manage subscription' })).toBeVisible();
   await page.goto('/dashboard/billing?preview=true&subscription=none');
   expect(await page.locator('form[action="/api/billing/checkout"] input[name="plan"]').evaluateAll((inputs) =>
     inputs.map((input) => (input as HTMLInputElement).value),
   )).toEqual(['essential', 'studio', 'signature']);
+
+  await page.goto('/dashboard/billing?preview=true&subscription=canceled');
+  await expect(page.getByRole('heading', { name: 'Choose a plan' })).toBeVisible();
+  await expect(page.locator('form[action="/api/billing/checkout"]')).toHaveCount(3);
+  await expect(page.getByRole('button', { name: 'Choose' })).toHaveCount(3);
+  for (const button of await page.getByRole('button', { name: 'Choose' }).all()) await expect(button).toBeEnabled();
 });
 
 test('dashboard writes accept the HTTPS browser origin behind the private HTTP proxy', async ({ request }) => {
@@ -58,10 +66,26 @@ test('splits admin records into sortable pages', async ({ page }) => {
   await expect(page.getByRole('table', { name: 'User accounts' })).toBeVisible();
   await expect(page.getByText('Maya Carter')).toBeVisible();
 
-  await page.goto('/admin/tickets?preview=true&status=completed');
+  await page.goto('/admin/tickets?preview=true');
+  const tools = page.getByRole('form', { name: 'Sort and filter tickets' });
+  await tools.locator('select[name="status"]').selectOption('completed');
+  await tools.getByRole('button', { name: 'Apply' }).click();
+  await expect(page).toHaveURL(/status=completed/);
   await expect(page.getByRole('heading', { name: 'completed' })).toBeVisible();
   await expect(page.getByText('Update the booking link')).toBeVisible();
+  await expect(page.getByText('Update the contact button to use the new booking link.')).toBeVisible();
   await expect(page.getByText('Replace the featured gallery')).not.toBeVisible();
+
+  await tools.locator('select[name="status"]').selectOption('open');
+  await tools.locator('select[name="sort"]').selectOption('oldest');
+  await tools.getByRole('button', { name: 'Apply' }).click();
+  await expect(page).toHaveURL(/status=open/);
+  await expect(page).toHaveURL(/sort=oldest/);
+  const status = page.getByLabel('Status for Add fall mini sessions');
+  await expect(status).toHaveValue('planned');
+  await status.selectOption('completed');
+  await page.getByRole('button', { name: 'Save Add fall mini sessions' }).click();
+  await expect(page.getByText('completed preview')).toBeVisible();
 
   await page.goto('/admin/subscriptions?preview=true');
   await expect(page.getByRole('table', { name: 'Client subscriptions' })).toBeVisible();

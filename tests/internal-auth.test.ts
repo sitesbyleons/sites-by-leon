@@ -18,6 +18,6 @@ describe('self-hosted photographer payments', () => {
     );
     expect(webhookSource).toContain("request.headers.get('stripe-signature')");
     expect(webhookSource).toContain('constructEventAsync');
-    expect(webhookSource).toContain("from('stripe_events').insert");
+    expect(webhookSource).toContain('claimStripeEvent');
   });
 });

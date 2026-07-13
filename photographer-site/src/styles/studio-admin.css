@@ -100,6 +100,12 @@ a { color: inherit; }
 .studio-brand-controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 0; padding: 1rem; border: 1px solid var(--line); }
 .studio-brand-controls legend { padding: 0 0.4rem; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
 .studio-brand-controls input[type='color'] { min-height: 48px; padding: 0.25rem; }
+.studio-inquiry { display: grid; gap: 1rem; }
+.studio-inquiry-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.studio-inquiry-heading small { display: block; margin-top: 0.35rem; color: var(--muted); }
+.studio-inquiry > p { max-width: 65ch; margin: 0; line-height: 1.65; }
+.studio-form--inline { grid-template-columns: minmax(10rem, 15rem) auto minmax(0, 1fr); align-items: end; }
+.studio-form--inline .studio-form-status { align-self: center; }
 
 .studio-access-screen { display: grid; min-height: 100svh; padding: 1rem; place-items: center; background: #eef0f2; }
 .studio-access-card { position: relative; width: min(34rem, 100%); padding: clamp(1.5rem, 6vw, 3rem); border: 1px solid #d7dadd; background: #fff; box-shadow: 0 24px 70px rgb(9 13 18 / 0.12); }
@@ -117,4 +123,5 @@ a { color: inherit; }
   .studio-item-thumb, .studio-item-number { width: 58px; height: 58px; }
   .studio-item-actions { grid-column: 1 / -1; justify-content: flex-end; padding-top: 0.5rem; }
   .studio-brand-controls { grid-template-columns: 1fr 1fr; }
+  .studio-form--inline { grid-template-columns: 1fr; }
 }

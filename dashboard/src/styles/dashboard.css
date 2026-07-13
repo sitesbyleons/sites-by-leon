@@ -666,12 +666,26 @@ a { -webkit-tap-highlight-color: transparent; }
 .ticket-list,
 .site-list { border: 1px solid #d9dbde; border-radius: 0.75rem; overflow: hidden; background: #fff; }
 .ticket-list article { display: grid; min-height: 5rem; padding: 1rem 1.2rem; grid-template-columns: 8rem 1fr; gap: 1rem; align-items: center; border-bottom: 1px solid #e6e7e9; }
-.ticket-list--detailed article { grid-template-columns: 8rem minmax(12rem, 1fr) 9rem; }
-.ticket-list--detailed time { color: #62666c; font-size: 0.63rem; text-align: right; }
+.ticket-list--detailed article { grid-template-columns: 7rem minmax(12rem, 1fr) minmax(12rem, 18rem); align-items: start; }
+.ticket-list--detailed time { color: #62666c; font-size: 0.63rem; }
 .ticket-list article:last-child { border-bottom: 0; }
 .ticket-list article > div { display: grid; }
 .ticket-list strong { font-size: 0.8rem; }
 .ticket-list small { color: #686b70; font-size: 0.63rem; }
+.ticket-list__meta { gap: 0.65rem; }
+.ticket-list__copy { gap: 0.25rem; }
+.ticket-list__copy p { max-width: 46rem; margin: 0.55rem 0 0; color: #35383d; font-size: 0.72rem; line-height: 1.55; }
+.ticket-status-form { display: grid; grid-template-columns: 1fr auto; gap: 0.45rem; align-items: end; }
+.ticket-status-form label { display: grid; gap: 0.3rem; }
+.ticket-status-form label span { color: #62666c; font-size: 0.58rem; font-weight: 700; text-transform: uppercase; }
+.ticket-status-form select,
+.ticket-status-form button { min-height: 2.2rem; border: 1px solid #cfd1d5; background: #fff; color: #17181a; font: inherit; font-size: 0.65rem; }
+.ticket-status-form select { padding: 0 0.65rem; text-transform: capitalize; }
+.ticket-status-form button { padding: 0 0.8rem; background: #17181a; color: #fff; cursor: pointer; }
+.ticket-status-form > small { grid-column: 1 / -1; min-height: 1em; }
+.admin-pagination { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; margin-top: 1rem; font-size: 0.7rem; }
+.admin-pagination a { width: fit-content; padding: 0.55rem 0.75rem; border: 1px solid #cfd1d5; border-radius: 0.45rem; background: #fff; text-decoration: none; }
+.admin-pagination a:last-child { justify-self: end; }
 .ticket-status { width: max-content; padding: 0.28rem 0.55rem; border-radius: 999px; background: #eceef1; color: #5e6268; font-size: 0.57rem; font-weight: 720; text-transform: capitalize; }
 .ticket-status--new,
 .ticket-status--past_due { background: #fff0d3; color: #7a5515; }

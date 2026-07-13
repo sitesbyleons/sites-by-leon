@@ -2,6 +2,7 @@ import { clerkMiddleware } from '@clerk/astro/server';
 import { defineMiddleware, sequence } from 'astro:middleware';
 
 import { decidePublicStatus, type PublicStatus } from './lib/control/status';
+import { ManagedContentUnavailableError } from './lib/content/repository';
 import { createStudioDatabase } from './lib/database';
 import { requiresStudioAuth } from './lib/studio-auth';
 
@@ -25,7 +26,7 @@ const getPreviewStatus = (): PublicStatus | null => {
 };
 
 async function getDatabaseStatus(): Promise<PublicStatus | null> {
-  const siteKey = import.meta.env.SITE_KEY;
+  const siteKey = process.env.SITE_KEY;
   const database = createStudioDatabase();
   if (!database || !siteKey) return null;
   if (cachedStatus && cachedStatus.expiresAt > Date.now()) return cachedStatus.value;
@@ -42,19 +43,32 @@ async function getDatabaseStatus(): Promise<PublicStatus | null> {
 }
 
 const publicControl = defineMiddleware(async (context, next) => {
-  const { pathname } = context.url;
-  const method = context.request.method;
-  if ((method === 'GET' || method === 'HEAD') && !isExemptPath(pathname)) {
-    const previewStatus = getPreviewStatus();
-    const remoteStatus = previewStatus ?? await getDatabaseStatus();
-    const publicStatus = decidePublicStatus({
-      configured: previewStatus !== null || Boolean(process.env.DATABASE_URL),
-      remoteStatus,
-      lastKnownStatus: cachedStatus?.value ?? null,
-    });
-    if (publicStatus !== 'active') return context.redirect('/maintenance', 302);
+  try {
+    const { pathname } = context.url;
+    const method = context.request.method;
+    if ((method === 'GET' || method === 'HEAD') && !isExemptPath(pathname)) {
+      const previewStatus = getPreviewStatus();
+      const remoteStatus = previewStatus ?? await getDatabaseStatus();
+      const publicStatus = decidePublicStatus({
+        configured: previewStatus !== null || Boolean(process.env.DATABASE_URL),
+        remoteStatus,
+        lastKnownStatus: cachedStatus?.value ?? null,
+      });
+      if (publicStatus !== 'active') return context.redirect('/maintenance', 302);
+    }
+    return await next();
+  } catch (error) {
+    if (error instanceof ManagedContentUnavailableError) {
+      return new Response('Site temporarily unavailable. Please try again soon.', {
+        status: error.status,
+        headers: {
+          'cache-control': 'no-store',
+          'content-type': 'text/plain; charset=utf-8',
+        },
+      });
+    }
+    throw error;
   }
-  return next();
 });
 
 const authentication = defineMiddleware((context, next) => {

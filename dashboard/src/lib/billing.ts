@@ -16,10 +16,16 @@ type CheckoutContext = {
   subscriptionStatus: string | null;
 };
 
+const replaceableSubscriptionStatuses = new Set(['canceled', 'incomplete_expired']);
+
+export function canManageSubscription(status: string | null | undefined) {
+  return Boolean(status && !replaceableSubscriptionStatuses.has(status));
+}
+
 export function canStartCheckout(context: CheckoutContext) {
   return Boolean(
     context.userId &&
       (context.workspaceStatus === 'approved' || context.workspaceStatus === 'active') &&
-      !context.subscriptionStatus,
+      (!context.subscriptionStatus || replaceableSubscriptionStatuses.has(context.subscriptionStatus)),
   );
 }
