@@ -42,6 +42,7 @@ test('dashboard writes accept the HTTPS browser origin behind the private HTTP p
   });
 
   expect(response.status()).not.toBe(403);
+
 });
 
 test('shows Leon the studio-wide admin overview', async ({ page }) => {

@@ -300,6 +300,7 @@ test('public writes accept the HTTPS browser origin behind the private HTTP prox
   });
 
   expect(response.status()).not.toBe(403);
+
 });
 
 test('field notes use the sports fixtures and stay brief', async ({ page }) => {
