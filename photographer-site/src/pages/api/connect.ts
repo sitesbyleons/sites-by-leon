@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
+import { resolveTrustedOrigin } from '@leon/platform-core/request-security';
 
 import { resolveManagedStudio } from '../../lib/studio';
 
@@ -21,7 +22,8 @@ const accountStatus = (account: Stripe.Account) => ({
 });
 
 export const POST: APIRoute = async ({ request, locals, url }) => {
-  if (request.headers.get('origin') !== url.origin) {
+  const publicOrigin = resolveTrustedOrigin(request.headers.get('origin'), url.origin);
+  if (!publicOrigin) {
     return Response.json({ message: 'Request not allowed.' }, { status: 403 });
   }
   const auth = locals.auth();
@@ -80,8 +82,8 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     const link = await stripe.accountLinks.create({
       account: accountId,
       type: 'account_onboarding',
-      refresh_url: `${url.origin}/admin/invoices?connect=refresh`,
-      return_url: `${url.origin}/admin/invoices?connect=complete`,
+      refresh_url: `${publicOrigin}/admin/invoices?connect=refresh`,
+      return_url: `${publicOrigin}/admin/invoices?connect=complete`,
       collect: 'eventually_due',
     });
     return Response.json({ url: link.url, ...status });

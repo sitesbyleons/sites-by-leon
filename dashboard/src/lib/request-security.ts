@@ -1,6 +1,4 @@
-export function isTrustedOrigin(origin: string | null, expectedOrigin: string) {
-  return Boolean(origin && origin === expectedOrigin);
-}
+export { isTrustedOrigin, resolveTrustedOrigin } from '@leon/platform-core/request-security';
 
 export function normalizeReturnPath(value: string | null | undefined) {
   if (!value || !value.startsWith('/') || value.startsWith('//')) return '/dashboard';

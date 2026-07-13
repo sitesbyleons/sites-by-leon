@@ -3,11 +3,12 @@ import Stripe from 'stripe';
 
 import { canStartCheckout, getPlan } from '../../../lib/billing';
 import { createPlatformDatabase } from '../../../lib/database';
-import { isTrustedOrigin } from '../../../lib/request-security';
+import { resolveTrustedOrigin } from '../../../lib/request-security';
 import { resolveClientWorkspace } from '../../../lib/workspaces';
 
 export const POST: APIRoute = async ({ request, locals, url }) => {
-  if (!isTrustedOrigin(request.headers.get('origin'), url.origin)) {
+  const publicOrigin = resolveTrustedOrigin(request.headers.get('origin'), url.origin);
+  if (!publicOrigin) {
     return Response.json({ message: 'This request could not be verified.' }, { status: 403 });
   }
   const auth = locals.auth();
@@ -55,8 +56,8 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       customer: customerId,
       client_reference_id: workspace.data.id,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${url.origin}/dashboard?checkout=success`,
-      cancel_url: `${url.origin}/dashboard?checkout=cancelled`,
+      success_url: `${publicOrigin}/dashboard?checkout=success`,
+      cancel_url: `${publicOrigin}/dashboard?checkout=cancelled`,
       metadata: { workspace_id: workspace.data.id, plan_key: plan.key },
       subscription_data: { metadata: { workspace_id: workspace.data.id, plan_key: plan.key } },
     });

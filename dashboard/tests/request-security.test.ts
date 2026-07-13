@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { isTrustedOrigin, normalizeReturnPath, shouldBypassClerkForPreview } from '../src/lib/request-security';
+import { isTrustedOrigin, normalizeReturnPath, resolveTrustedOrigin, shouldBypassClerkForPreview } from '../src/lib/request-security';
 
 describe('isTrustedOrigin', () => {
   it('accepts only the request origin used by the dashboard', () => {
     expect(isTrustedOrigin('https://app.sites.by.leon', 'https://app.sites.by.leon')).toBe(true);
     expect(isTrustedOrigin('https://evil.example', 'https://app.sites.by.leon')).toBe(false);
     expect(isTrustedOrigin(null, 'https://app.sites.by.leon')).toBe(false);
+  });
+
+  it('accepts the public HTTPS origin when a private reverse proxy uses HTTP', () => {
+    expect(isTrustedOrigin('https://leonsites.org', 'http://leonsites.org')).toBe(true);
+    expect(resolveTrustedOrigin('https://leonsites.org', 'http://leonsites.org')).toBe('https://leonsites.org');
+    expect(isTrustedOrigin('http://leonsites.org', 'https://leonsites.org')).toBe(false);
+    expect(isTrustedOrigin('https://evil.example', 'http://leonsites.org')).toBe(false);
   });
 });
 
