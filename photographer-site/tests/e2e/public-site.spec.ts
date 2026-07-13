@@ -17,6 +17,9 @@ const expectNoSeriousOrCriticalAccessibilityViolations = async (page: Page) => {
   ).toEqual([]);
 };
 
+const navigate = (page: Page, url: string) =>
+  page.goto(url, { waitUntil: 'domcontentloaded' });
+
 const representativePublicRoutes = [
   '/',
   '/work',
@@ -38,7 +41,7 @@ for (const viewport of [
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
     for (const path of representativePublicRoutes) {
-      await page.goto(path);
+      await navigate(page, path);
       await page.waitForTimeout(100);
 
       const width = await page.evaluate(() => ({
@@ -56,7 +59,7 @@ test('client-controlled query and cookie values cannot pause the public site', a
     { name: 'NORTHLINE_PREVIEW_STATUS', value: 'paused', url: 'http://127.0.0.1:4344' },
   ]);
 
-  const response = await page.goto('/?NORTHLINE_PREVIEW_STATUS=paused&status=paused');
+  const response = await navigate(page, '/?NORTHLINE_PREVIEW_STATUS=paused&status=paused');
   expect(response?.status()).toBe(200);
   await expect(page.getByRole('heading', { name: 'Northline Sports' })).toBeVisible();
 });
@@ -72,7 +75,7 @@ test('health exposes only the public service status and version', async ({ reque
 });
 
 test('server-side preview pause redirects public pages and leaves health available', async ({ page, request }) => {
-  const response = await page.goto('http://127.0.0.1:4345/');
+  const response = await navigate(page, 'http://127.0.0.1:4345/');
   expect(response?.status()).toBe(200);
   await expect(page).toHaveURL('http://127.0.0.1:4345/maintenance');
   await expect(page.getByRole('heading', { name: 'This site is taking a short pause.' })).toBeVisible();
@@ -82,7 +85,7 @@ test('server-side preview pause redirects public pages and leaves health availab
 });
 
 test('paused mode exempts only explicit asset and reserved route boundaries', async ({ page, request }) => {
-  await page.goto('http://127.0.0.1:4345/invoice/foo.bar');
+  await navigate(page, 'http://127.0.0.1:4345/invoice/foo.bar');
   await expect(page).toHaveURL('http://127.0.0.1:4345/maintenance');
 
   const signIn = await request.get('http://127.0.0.1:4345/sign-in', { maxRedirects: 0 });
@@ -100,7 +103,7 @@ test('paused mode exempts only explicit asset and reserved route boundaries', as
 });
 
 test('home is an image-first editorial sports portfolio', async ({ page }) => {
-  await page.goto('/');
+  await navigate(page, '/');
 
   await expect(page.getByRole('heading', { name: 'Northline Sports' })).toBeVisible();
   await expect(
@@ -126,7 +129,7 @@ test('home is an image-first editorial sports portfolio', async ({ page }) => {
 test('always-on motion uses editorial reveal and image drift scenes', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
+  await navigate(page, '/');
   await page.waitForTimeout(900);
 
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'gsap-always');
@@ -147,7 +150,7 @@ test('always-on motion uses editorial reveal and image drift scenes', async ({ p
 
 test('mobile home keeps the editorial image rhythm without overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await navigate(page, '/');
   await page.waitForTimeout(200);
 
   const pageMetrics = await page.evaluate(() => ({
@@ -176,13 +179,13 @@ test('public pages contain no prototype language and contact collects event deta
     '/journal',
     '/invoice/example',
   ]) {
-    await page.goto(path);
+    await navigate(page, path);
     await expect(page.locator('body')).not.toContainText(
       /demo|fictional|concept|sample|prototype/i,
     );
   }
 
-  await page.goto('/contact');
+  await navigate(page, '/contact');
   await expect(page.locator('[data-inquiry-form]')).toHaveCount(1);
   await expect(page.getByLabel('Name')).toBeVisible();
   await expect(page.getByLabel('Desired date')).toBeVisible();
@@ -197,7 +200,7 @@ test('gallery titles and descriptions never overlap', async ({ page }) => {
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto('/work/friday-night');
+    await navigate(page, '/work/friday-night');
     const boxes = await page.evaluate(() => {
       const title = document.querySelector('.gallery-intro h1')!.getBoundingClientRect();
       const notes = document.querySelector('.gallery-intro-notes')!.getBoundingClientRect();
@@ -209,7 +212,7 @@ test('gallery titles and descriptions never overlap', async ({ page }) => {
 
 test('desktop gallery frames alternate across the page instead of stacking left', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/work/friday-night');
+  await navigate(page, '/work/friday-night');
   const frames = await page.locator('.gallery-frame').evaluateAll((items) =>
     items.map((item) => {
       const box = item.getBoundingClientRect();
@@ -224,7 +227,7 @@ test('desktop gallery frames alternate across the page instead of stacking left'
 });
 
 test('work archive presents football, basketball, and track without filler', async ({ page }) => {
-  await page.goto('/work');
+  await navigate(page, '/work');
   await expect(page.getByRole('heading', { name: 'Sports photography.' })).toBeVisible();
   await expect(page.locator('.work-card')).toHaveCount(3);
 
@@ -232,14 +235,14 @@ test('work archive presents football, basketball, and track without filler', asy
     await expect(page.getByRole('heading', { name: gallery.title })).toBeVisible();
   }
 
-  const missing = await page.goto('/work/not-on-the-schedule');
+  const missing = await navigate(page, '/work/not-on-the-schedule');
   expect(missing?.status()).toBe(404);
 });
 
 for (const gallery of demoPortfolio.galleries) {
   test(`${gallery.title} is a compact three-frame sports gallery on iPhone`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`/work/${gallery.slug}`);
+    await navigate(page, `/work/${gallery.slug}`);
 
     await expect(page.getByRole('heading', { name: gallery.title })).toBeVisible();
     const images = page.locator('.gallery-sequence img');
@@ -257,7 +260,7 @@ for (const gallery of demoPortfolio.galleries) {
 }
 
 test('coverage services stay concise and inquiry-only', async ({ page }) => {
-  await page.goto('/packages');
+  await navigate(page, '/packages');
   await expect(page.getByRole('heading', { name: 'Photography services.' })).toBeVisible();
   await expect(page.locator('.service-row')).toHaveCount(3);
   await expect(page.getByRole('link', { name: 'Ask about coverage' })).toHaveCount(3);
@@ -265,7 +268,7 @@ test('coverage services stay concise and inquiry-only', async ({ page }) => {
 });
 
 test('contact requires either email or phone before an inquiry can be sent', async ({ page }) => {
-  await page.goto('/contact?package=package-game');
+  await navigate(page, '/contact?package=package-game');
   await expect(page.getByRole('heading', { name: 'Contact Northline' })).toBeVisible();
   await page.getByLabel('Name').fill('Jordan Miles');
   await page.getByLabel('Desired date').fill('2026-09-12');
@@ -284,12 +287,12 @@ test('contact requires either email or phone before an inquiry can be sent', asy
 });
 
 test('field notes use the sports fixtures and stay brief', async ({ page }) => {
-  await page.goto('/journal');
+  await navigate(page, '/journal');
   for (const post of demoPortfolio.posts) {
     await expect(page.getByRole('heading', { name: post.title })).toBeVisible();
   }
 
-  await page.goto('/journal/working-the-sideline');
+  await navigate(page, '/journal/working-the-sideline');
   await expect(page.locator('.journal-story-body p')).toHaveCount(1);
 });
 
