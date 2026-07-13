@@ -5,6 +5,7 @@ import {
   normalizeSubscription,
   readClerkIdentity,
   resolvePlan,
+  shouldApplySubscriptionUpdate,
   subscriptionIdForEvent,
 } from '../platform-core/src/billing-core';
 
@@ -102,5 +103,22 @@ describe('normalizeSubscription', () => {
         items: { data: [] },
       }),
     ).toBeNull();
+  });
+});
+
+describe('shouldApplySubscriptionUpdate', () => {
+  it('ignores stale events from a replaced subscription', () => {
+    expect(shouldApplySubscriptionUpdate(
+      { stripe_subscription_id: 'sub_new', status: 'active' },
+      { stripe_subscription_id: 'sub_old', status: 'canceled' },
+    )).toBe(false);
+  });
+
+  it('allows the first replacement event after the previous subscription ended', () => {
+    expect(shouldApplySubscriptionUpdate(
+      { stripe_subscription_id: 'sub_old', status: 'canceled' },
+      { stripe_subscription_id: 'sub_new', status: 'incomplete' },
+    )).toBe(true);
+    expect(shouldApplySubscriptionUpdate(null, { stripe_subscription_id: 'sub_new', status: 'active' })).toBe(true);
   });
 });

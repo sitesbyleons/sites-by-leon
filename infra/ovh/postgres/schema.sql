@@ -1,4 +1,4 @@
-create function set_updated_at()
+create or replace function set_updated_at()
 returns trigger
 language plpgsql
 as $$
@@ -61,6 +61,34 @@ create table if not exists subscriptions (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists checkout_attempts (
+  workspace_id uuid primary key references client_workspaces(id) on delete cascade,
+  attempt_key uuid not null unique,
+  plan_key text not null check (plan_key in ('essential', 'studio', 'signature')),
+  stripe_session_id text unique,
+  checkout_url text,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists workspace_storage_usage (
+  workspace_id uuid primary key references client_workspaces(id) on delete cascade,
+  used_bytes bigint not null default 0,
+  quota_bytes bigint not null default 4294967296,
+  updated_at timestamptz not null default now(),
+  check (used_bytes >= 0),
+  check (quota_bytes >= 16777216),
+  check (used_bytes <= quota_bytes)
+);
+
+create table if not exists workspace_uploads (
+  storage_path text primary key,
+  workspace_id uuid not null references client_workspaces(id) on delete cascade,
+  size_bytes bigint not null check (size_bytes > 0 and size_bytes <= 15728640),
+  created_at timestamptz not null default now()
+);
+
 create table if not exists content_requests (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references client_workspaces(id) on delete cascade,
@@ -92,6 +120,12 @@ create table if not exists connected_payment_accounts (
   details_submitted boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+create table if not exists connected_payment_account_history (
+  stripe_account_id text primary key,
+  workspace_id uuid not null references client_workspaces(id) on delete cascade,
+  retired_at timestamptz not null default now()
 );
 
 create table if not exists studio_settings (
@@ -185,9 +219,10 @@ create table if not exists studio_invoices (
   workspace_id uuid not null references client_workspaces(id) on delete cascade,
   client_id uuid not null references studio_clients(id) on delete restrict,
   stripe_invoice_id text unique,
-  status text not null default 'draft' check (status in ('draft', 'open', 'paid', 'void', 'uncollectible')),
+  status text not null default 'draft' check (status in ('draft', 'sending', 'open', 'deposit_paid', 'paid', 'void', 'uncollectible', 'review')),
   description text not null,
   amount_due_cents integer not null check (amount_due_cents > 0),
+  amount_paid_cents integer not null default 0,
   deposit_cents integer check (deposit_cents is null or deposit_cents >= 0),
   due_date date,
   hosted_invoice_url text,
@@ -195,6 +230,29 @@ create table if not exists studio_invoices (
   updated_at timestamptz not null default now(),
   check (deposit_cents is null or deposit_cents <= amount_due_cents)
 );
+
+alter table studio_invoices
+  add column if not exists amount_paid_cents integer not null default 0;
+alter table studio_invoices
+  drop constraint if exists studio_invoices_status_check;
+alter table studio_invoices
+  add constraint studio_invoices_status_check
+  check (status in ('draft', 'sending', 'open', 'deposit_paid', 'paid', 'void', 'uncollectible', 'review'));
+alter table studio_invoices
+  drop constraint if exists studio_invoices_amount_paid_cents_check;
+alter table studio_invoices
+  add constraint studio_invoices_amount_paid_cents_check
+  check (amount_paid_cents >= 0);
+
+update studio_invoices
+set status = 'deposit_paid', amount_paid_cents = deposit_cents
+where status = 'paid'
+  and amount_paid_cents = 0
+  and deposit_cents > 0
+  and deposit_cents < amount_due_cents;
+update studio_invoices
+set amount_paid_cents = amount_due_cents
+where status = 'paid' and amount_paid_cents = 0;
 
 create table if not exists studio_inquiries (
   id uuid primary key default gen_random_uuid(),
@@ -249,25 +307,53 @@ create table if not exists stripe_events (
 );
 
 create index if not exists workspace_members_user_idx on workspace_members (clerk_user_id, created_at);
+create index if not exists workspace_uploads_workspace_idx on workspace_uploads (workspace_id, created_at);
+create index if not exists connected_payment_account_history_workspace_idx on connected_payment_account_history (workspace_id, retired_at desc);
 create index if not exists website_projects_workspace_updated_idx on website_projects (workspace_id, updated_at desc);
 create index if not exists content_requests_workspace_created_idx on content_requests (workspace_id, created_at desc);
 create index if not exists studio_galleries_workspace_sort_idx on studio_galleries (workspace_id, sort_order, created_at);
+create unique index if not exists studio_galleries_workspace_cover_path_unique_idx on studio_galleries (workspace_id, cover_storage_path) where cover_storage_path is not null;
 create index if not exists studio_gallery_images_gallery_sort_idx on studio_gallery_images (gallery_id, sort_order, created_at);
+create index if not exists studio_gallery_images_workspace_idx on studio_gallery_images (workspace_id);
+create unique index if not exists studio_gallery_images_workspace_storage_path_unique_idx on studio_gallery_images (workspace_id, storage_path) where storage_path is not null;
 create index if not exists studio_posts_workspace_sort_idx on studio_posts (workspace_id, sort_order, created_at);
+create unique index if not exists studio_posts_workspace_cover_path_unique_idx on studio_posts (workspace_id, cover_storage_path) where cover_storage_path is not null;
 create index if not exists studio_services_workspace_sort_idx on studio_services (workspace_id, sort_order, created_at);
+create index if not exists studio_clients_workspace_idx on studio_clients (workspace_id);
+create index if not exists studio_clients_service_idx on studio_clients (service_id);
+create index if not exists studio_invoices_workspace_idx on studio_invoices (workspace_id);
+create index if not exists studio_invoices_client_idx on studio_invoices (client_id);
 create index if not exists studio_inquiries_workspace_created_idx on studio_inquiries (workspace_id, created_at desc);
 
+drop trigger if exists client_workspaces_updated on client_workspaces;
 create trigger client_workspaces_updated before update on client_workspaces for each row execute function set_updated_at();
+drop trigger if exists website_projects_updated on website_projects;
 create trigger website_projects_updated before update on website_projects for each row execute function set_updated_at();
+drop trigger if exists subscriptions_updated on subscriptions;
 create trigger subscriptions_updated before update on subscriptions for each row execute function set_updated_at();
+drop trigger if exists checkout_attempts_updated on checkout_attempts;
+create trigger checkout_attempts_updated before update on checkout_attempts for each row execute function set_updated_at();
+drop trigger if exists workspace_storage_usage_updated on workspace_storage_usage;
+create trigger workspace_storage_usage_updated before update on workspace_storage_usage for each row execute function set_updated_at();
+drop trigger if exists content_requests_updated on content_requests;
 create trigger content_requests_updated before update on content_requests for each row execute function set_updated_at();
+drop trigger if exists connected_payment_accounts_updated on connected_payment_accounts;
 create trigger connected_payment_accounts_updated before update on connected_payment_accounts for each row execute function set_updated_at();
+drop trigger if exists studio_settings_updated on studio_settings;
 create trigger studio_settings_updated before update on studio_settings for each row execute function set_updated_at();
+drop trigger if exists studio_galleries_updated on studio_galleries;
 create trigger studio_galleries_updated before update on studio_galleries for each row execute function set_updated_at();
+drop trigger if exists studio_gallery_images_updated on studio_gallery_images;
 create trigger studio_gallery_images_updated before update on studio_gallery_images for each row execute function set_updated_at();
+drop trigger if exists studio_posts_updated on studio_posts;
 create trigger studio_posts_updated before update on studio_posts for each row execute function set_updated_at();
+drop trigger if exists studio_services_updated on studio_services;
 create trigger studio_services_updated before update on studio_services for each row execute function set_updated_at();
+drop trigger if exists studio_clients_updated on studio_clients;
 create trigger studio_clients_updated before update on studio_clients for each row execute function set_updated_at();
+drop trigger if exists studio_invoices_updated on studio_invoices;
 create trigger studio_invoices_updated before update on studio_invoices for each row execute function set_updated_at();
+drop trigger if exists studio_inquiries_updated on studio_inquiries;
 create trigger studio_inquiries_updated before update on studio_inquiries for each row execute function set_updated_at();
+drop trigger if exists site_connections_updated on site_connections;
 create trigger site_connections_updated before update on site_connections for each row execute function set_updated_at();

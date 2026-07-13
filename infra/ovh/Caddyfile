@@ -5,6 +5,9 @@
 
 :80 {
 	encode zstd gzip
+	request_body {
+		max_size 16MB
+	}
 
 	header {
 		-Server

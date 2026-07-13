@@ -31,6 +31,7 @@ export type AdminRequest = {
   id: string;
   workspace_id: string;
   subject: string;
+  details: string;
   status: string;
   created_at: string;
 };
@@ -71,7 +72,7 @@ export type AdminData = {
 
 export type ClerkUserClient = {
   users: {
-    getUserList(input: { limit: number; orderBy: '-created_at' }): Promise<{
+    getUserList(input: { limit: number; offset: number; orderBy: '-created_at' }): Promise<{
       data: Array<{
         id: string;
         firstName: string | null;
@@ -81,6 +82,7 @@ export type ClerkUserClient = {
         emailAddresses: Array<{ id: string; emailAddress: string }>;
         createdAt: number;
       }>;
+      totalCount?: number;
     }>;
   };
 };
@@ -100,9 +102,9 @@ export function getPreviewAdminData(): AdminData {
       { workspace_id: 'ws_northline', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
     ],
     requests: [
-      { id: 'req_1', workspace_id: 'ws_northline', subject: 'Replace the featured gallery', status: 'new', created_at: '2026-07-10T16:00:00.000Z' },
-      { id: 'req_2', workspace_id: 'ws_vow', subject: 'Add fall mini sessions', status: 'planned', created_at: '2026-07-09T14:00:00.000Z' },
-      { id: 'req_3', workspace_id: 'ws_northline', subject: 'Update the booking link', status: 'completed', created_at: '2026-07-06T11:00:00.000Z' },
+      { id: 'req_1', workspace_id: 'ws_northline', subject: 'Replace the featured gallery', details: 'Use the new championship gallery as the first featured collection.', status: 'new', created_at: '2026-07-10T16:00:00.000Z' },
+      { id: 'req_2', workspace_id: 'ws_vow', subject: 'Add fall mini sessions', details: 'Add the fall mini-session dates and the updated contact instructions.', status: 'planned', created_at: '2026-07-09T14:00:00.000Z' },
+      { id: 'req_3', workspace_id: 'ws_northline', subject: 'Update the booking link', details: 'Update the contact button to use the new booking link.', status: 'completed', created_at: '2026-07-06T11:00:00.000Z' },
     ],
     members: [
       { workspace_id: 'ws_northline', clerk_user_id: 'user_northline', role: 'owner' },
@@ -177,8 +179,14 @@ export async function loadAdminSession(input: LoadAdminSessionInput) {
 }
 
 export async function loadAdminUsers(client: ClerkUserClient): Promise<AdminUser[]> {
-  const result = await client.users.getUserList({ limit: 100, orderBy: '-created_at' });
-  return result.data.map((user) => {
+  const clerkUsers: Awaited<ReturnType<ClerkUserClient['users']['getUserList']>>['data'] = [];
+  const pageSize = 100;
+  for (let offset = 0; offset < 10_000; offset += pageSize) {
+    const page = await client.users.getUserList({ limit: pageSize, offset, orderBy: '-created_at' });
+    clerkUsers.push(...page.data);
+    if (page.data.length < pageSize || (page.totalCount !== undefined && clerkUsers.length >= page.totalCount)) break;
+  }
+  return clerkUsers.map((user) => {
     const primary = user.emailAddresses.find((email) => email.id === user.primaryEmailAddressId);
     const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
     return {
@@ -221,7 +229,8 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
       .order('updated_at', { ascending: false }),
     database
       .from('content_requests')
-      .select('id,workspace_id,subject,status,created_at')
+      .select('id,workspace_id,subject,details,status,created_at')
+      .in('status', ['new', 'planned', 'in_progress'])
       .order('created_at', { ascending: false })
       .limit(100),
     database.from('workspace_members').select('workspace_id,clerk_user_id,role'),

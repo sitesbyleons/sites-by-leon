@@ -12,8 +12,22 @@ const serviceNames = new Map(data.services.map((service) => [service.id, service
 
 <StudioAdminLayout title="Clients" active="clients" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
   <div class="studio-split">
-    <section><header class="studio-section-heading"><div><small>Contacts</small><h2>Your clients</h2></div></header><div class="studio-panel">
-      {data.clients.length ? <ul class="studio-list">{data.clients.map((client) => <li><div><strong>{client.name}</strong><small>{client.email ?? client.phone} · {client.service_id ? serviceNames.get(client.service_id) : 'No service selected'}</small></div></li>)}</ul> : <p class="studio-empty">No clients yet.</p>}
+    <section><header class="studio-section-heading"><div><small>Contacts</small><h2>Your clients</h2></div></header><div class="studio-stack">
+      {data.clients.length ? data.clients.map((client) => <article class="studio-item">
+        <span class="studio-item-number">{client.name.slice(0, 1).toUpperCase()}</span>
+        <div class="studio-item-copy"><strong>{client.name}</strong><small>{client.email ?? client.phone} · {client.service_id ? serviceNames.get(client.service_id) : 'No service selected'}</small></div>
+        <div class="studio-item-actions">
+          <details class="studio-editor"><summary>Edit</summary><form class="studio-form studio-editor-form" data-studio-form data-resource="clients">
+            <input type="hidden" name="id" value={client.id} />
+            <label class="wide"><span>Name</span><input name="name" value={client.name} autocomplete="name" required /></label>
+            <label><span>Email</span><input name="email" type="email" value={client.email ?? ''} autocomplete="email" /></label><label><span>Phone</span><input name="phone" type="tel" value={client.phone ?? ''} autocomplete="tel" /></label>
+            <label class="wide"><span>Service</span><select name="service_id"><option value="">No service</option>{data.services.map((service) => <option value={service.id} selected={client.service_id === service.id}>{service.name}</option>)}</select></label>
+            <label class="wide"><span>Notes</span><textarea name="notes">{client.notes}</textarea></label>
+            <div class="wide"><button type="submit">Save client</button></div><p class="studio-form-status wide" data-form-status></p>
+          </form></details>
+          <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="clients" data-id={client.id}>Delete</button>
+        </div>
+      </article>) : <p class="studio-empty">No clients yet.</p>}
     </div></section>
     <section><header class="studio-section-heading"><div><small>New client</small><h2>Add a client</h2></div></header><div class="studio-panel"><form class="studio-form" data-studio-form data-resource="clients">
       <label class="wide"><span>Name</span><input name="name" autocomplete="name" required /></label>

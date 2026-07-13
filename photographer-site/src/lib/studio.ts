@@ -77,6 +77,7 @@ export type StudioInvoice = {
   description: string;
   amount_due_cents: number;
   deposit_cents: number | null;
+  amount_paid_cents: number;
   due_date: string | null;
   hosted_invoice_url: string | null;
   created_at: string;
@@ -147,7 +148,7 @@ export function previewStudioData(): StudioAdminData {
       { id: 'client_1', workspace_id: previewWorkspace.id, service_id: 'service_game', name: 'Avery Thompson', email: 'avery@example.com', phone: null, notes: 'Home football game.', created_at: '2026-07-10T12:00:00.000Z' },
     ],
     invoices: [
-      { id: 'invoice_1', workspace_id: previewWorkspace.id, client_id: 'client_1', status: 'draft', description: 'Football game coverage', amount_due_cents: 45000, deposit_cents: 15000, due_date: '2026-08-15', hosted_invoice_url: null, created_at: '2026-07-10T13:00:00.000Z' },
+      { id: 'invoice_1', workspace_id: previewWorkspace.id, client_id: 'client_1', status: 'draft', description: 'Football game coverage', amount_due_cents: 45000, deposit_cents: 15000, amount_paid_cents: 0, due_date: '2026-08-15', hosted_invoice_url: null, created_at: '2026-07-10T13:00:00.000Z' },
     ],
     inquiries: [
       { id: 'inquiry_1', workspace_id: previewWorkspace.id, name: 'Morgan Lee', email: 'morgan@example.com', phone: null, desired_date: '2026-09-12', message: 'Football coverage for our home game.', status: 'new', created_at: '2026-07-11T12:00:00.000Z' },
@@ -159,7 +160,7 @@ export function previewStudioData(): StudioAdminData {
 
 export async function loadStudioAdminData(
   client: DataClient | null,
-  workspaceSlug = import.meta.env.SITE_WORKSPACE_SLUG ?? 'northline',
+  workspaceSlug = process.env.SITE_WORKSPACE_SLUG ?? 'northline',
 ): Promise<StudioAdminData> {
   const empty: StudioAdminData = {
     workspace: null, settings: null, galleries: [], images: [], posts: [], services: [],
@@ -184,7 +185,7 @@ export async function loadStudioAdminData(
     client.from('studio_posts').select('id,workspace_id,title,slug,excerpt,body,cover_image_url,cover_storage_path,status,published_at,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_services').select('id,workspace_id,name,description,price_type,price_cents,is_active,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_clients').select('id,workspace_id,service_id,name,email,phone,notes,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
-    client.from('studio_invoices').select('id,workspace_id,client_id,status,description,amount_due_cents,deposit_cents,due_date,hosted_invoice_url,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
+    client.from('studio_invoices').select('id,workspace_id,client_id,status,description,amount_due_cents,deposit_cents,amount_paid_cents,due_date,hosted_invoice_url,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('studio_inquiries').select('id,workspace_id,name,email,phone,desired_date,message,status,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('connected_payment_accounts').select('onboarding_status,charges_enabled,payouts_enabled,details_submitted').eq('workspace_id', id).maybeSingle<ConnectStatus>(),
   ]);
@@ -212,7 +213,7 @@ export async function resolveManagedStudio(clerkUserId: string) {
   const workspace = await client
     .from('client_workspaces')
     .select('id')
-    .eq('slug', import.meta.env.SITE_WORKSPACE_SLUG ?? 'northline')
+    .eq('slug', process.env.SITE_WORKSPACE_SLUG ?? 'northline')
     .maybeSingle<{ id: string }>();
   if (!workspace.data || !(await userCanManageWorkspace(client, clerkUserId, workspace.data.id))) {
     return { client: null, workspaceId: null };

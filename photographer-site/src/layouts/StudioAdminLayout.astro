@@ -5,7 +5,7 @@ import '../styles/studio-admin.css';
 
 interface Props {
   title: string;
-  active: 'overview' | 'content' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices';
+  active: 'overview' | 'content' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries';
   studioName: string;
   isPreview: boolean;
   error?: string | null;
@@ -21,6 +21,7 @@ const links = [
   { key: 'posts', label: 'Posts', href: `/admin/posts${suffix}` },
   { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
   { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
+  { key: 'inquiries', label: 'Inquiries', href: `/admin/inquiries${suffix}` },
   { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
 ] as const;
 ---
@@ -62,6 +63,12 @@ const links = [
         const input = form.querySelector<HTMLInputElement>('[data-image-upload]');
         const file = input?.files?.[0];
         if (!file) return null;
+        const urlField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
+        const pathField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
+        const signature = `${file.name}:${file.size}:${file.lastModified}`;
+        if (form.dataset.pendingUploadSignature === signature
+          && form.dataset.pendingUploadPath
+          && pathField?.value === form.dataset.pendingUploadPath) return form.dataset.pendingUploadPath;
         const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
         if (!allowed.has(file.type)) throw new Error('Choose a JPG, PNG, WebP, or AVIF image.');
         if (file.size > 15 * 1024 * 1024) throw new Error('Choose an image smaller than 15 MB.');
@@ -75,10 +82,15 @@ const links = [
         });
         const approved = await response.json().catch(() => null);
         if (!response.ok || !approved?.path || !approved?.publicUrl) throw new Error(approved?.message ?? 'Image could not be uploaded.');
-        const urlField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
-        const pathField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
+        if (!form.dataset.previousUploadCaptured) {
+          form.dataset.previousUploadCaptured = 'true';
+          form.dataset.previousUploadUrl = urlField?.value ?? '';
+          form.dataset.previousUploadPath = pathField?.value ?? '';
+        }
         if (urlField) urlField.value = approved.publicUrl;
         if (pathField) pathField.value = approved.path;
+        form.dataset.pendingUploadSignature = signature;
+        form.dataset.pendingUploadPath = approved.path;
         return approved.path as string;
       };
 
@@ -124,8 +136,22 @@ const links = [
           }).catch(() => null);
           const payload = await response?.json().catch(() => null);
           if (!response?.ok) {
-            if (uploadedPath) await fetch('/api/admin/upload', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: uploadedPath }) });
-            status.textContent = payload?.message ?? 'Changes were not saved.';
+            const definiteRejection = Boolean(response && response.status >= 400 && response.status < 500);
+            if (uploadedPath && definiteRejection) {
+              await fetch('/api/admin/upload', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: uploadedPath }) });
+              const urlField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
+              const pathField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
+              if (urlField) urlField.value = form.dataset.previousUploadUrl ?? '';
+              if (pathField) pathField.value = form.dataset.previousUploadPath ?? '';
+              delete form.dataset.pendingUploadSignature;
+              delete form.dataset.pendingUploadPath;
+              delete form.dataset.previousUploadCaptured;
+              delete form.dataset.previousUploadUrl;
+              delete form.dataset.previousUploadPath;
+            }
+            status.textContent = payload?.message ?? (definiteRejection
+              ? 'Changes were not saved.'
+              : 'The connection ended before confirmation. The image was kept; press Save again.');
             return;
           }
 
@@ -152,8 +178,9 @@ const links = [
             body: JSON.stringify(action === 'delete' ? { id } : { id, direction: action }),
           }).catch(() => null);
           if (!response?.ok) {
+            const payload = await response?.json().catch(() => null);
             button.disabled = false;
-            button.textContent = 'Try again';
+            button.textContent = payload?.message ?? 'Try again';
             return;
           }
           window.location.reload();

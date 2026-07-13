@@ -3,21 +3,25 @@ import GalleryGrid from '../../components/GalleryGrid.astro';
 import SiteLayout from '../../layouts/SiteLayout.astro';
 import { siteRepository } from '../../lib/content/repository';
 
-const galleries = await siteRepository.listGalleries();
+const portfolio = await siteRepository.getPortfolio();
+const galleries = portfolio.galleries;
+const workHeading = `${portfolio.home.eyebrow?.trim() || 'Photography portfolio'}.`;
+const gallerySummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' })
+  .format(galleries.map((gallery) => gallery.title));
 ---
 
 <SiteLayout
   title="Work"
-  description="Football, basketball, and track photography by Northline Sports."
+  description={`Photography portfolio by ${portfolio.studioName}.`}
   image={galleries[0]?.cover.src}
   canonicalPath="/work"
 >
   <header class="page-intro page-gutter">
-    <h1 id="work-title" data-entrance>Sports photography.</h1>
-    <p data-entrance>Football, basketball, and track coverage.</p>
+    <h1 id="work-title" data-entrance>{workHeading}</h1>
+    <p data-entrance>{gallerySummary ? `${gallerySummary}.` : `${portfolio.studioName} portfolio.`}</p>
   </header>
 
-  <section class="work-archive page-gutter" aria-label="Sports galleries">
+  <section class="work-archive page-gutter" aria-label={`${portfolio.studioName} galleries`}>
     <GalleryGrid galleries={galleries} />
   </section>
 </SiteLayout>

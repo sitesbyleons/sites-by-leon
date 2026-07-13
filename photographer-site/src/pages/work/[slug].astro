@@ -3,7 +3,8 @@ import SiteLayout from '../../layouts/SiteLayout.astro';
 import { siteRepository } from '../../lib/content/repository';
 
 const slug = Astro.params.slug ?? '';
-const gallery = await siteRepository.getGallery(slug);
+const portfolio = await siteRepository.getPortfolio();
+const gallery = portfolio.galleries.find((item) => item.slug === slug) ?? null;
 
 if (!gallery) {
   Astro.response.status = 404;
@@ -15,7 +16,7 @@ const placements = gallery?.images.map((image, index) => ({ image, index }));
 
 <SiteLayout
   title={gallery?.title ?? 'Gallery not found'}
-  description={gallery?.description ?? 'The requested Northline Sports gallery could not be found.'}
+  description={gallery?.description ?? `The requested ${portfolio.studioName} gallery could not be found.`}
   image={gallery?.cover.src}
   canonicalPath={`/work/${slug}`}
 >

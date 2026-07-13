@@ -4,8 +4,8 @@ import { createStudioDatabase } from '../../lib/database';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url }) => {
-  const siteKey = url.searchParams.get('siteKey') ?? import.meta.env.SITE_KEY ?? '';
+export const GET: APIRoute = async () => {
+  const siteKey = process.env.SITE_KEY ?? '';
   const database = createStudioDatabase();
   if (!database || !siteKey) return Response.json({ status: 'maintenance' }, { status: 503 });
   const result = await database

@@ -15,6 +15,8 @@ export const POST: APIRoute = async ({ request, url }) => {
   const input = await request.json().catch(() => null);
   const validation = validateInquiry(input);
   if (!validation.ok) return Response.json({ ok: false, errors: validation.errors }, { status: 422 });
+  const workspaceSlug = process.env.SITE_WORKSPACE_SLUG ?? 'northline';
+  if (validation.payload.workspaceSlug !== workspaceSlug) return Response.json({ ok: false }, { status: 422 });
 
   const database = createStudioDatabase();
   const hashSalt = process.env.CONTACT_HASH_SALT;
@@ -22,7 +24,7 @@ export const POST: APIRoute = async ({ request, url }) => {
   const workspace = await database
     .from('client_workspaces')
     .select<{ id: string; status: string }>('id,status')
-    .eq('slug', validation.payload.workspaceSlug)
+    .eq('slug', workspaceSlug)
     .maybeSingle();
   if (!workspace.data || workspace.data.status === 'closed') return Response.json({ ok: false }, { status: 503 });
 
@@ -30,18 +32,7 @@ export const POST: APIRoute = async ({ request, url }) => {
     ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     ?? 'unknown';
   const ipHash = createHash('sha256').update(`${hashSalt}:${sourceIp}`).digest('hex');
-  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  const recent = await database
-    .from('studio_inquiries')
-    .select('id')
-    .eq('workspace_id', workspace.data.id)
-    .eq('ip_hash', ipHash)
-    .gte('created_at', since)
-    .limit(5);
-  if (recent.error) return Response.json({ ok: false }, { status: 503 });
-  if (recent.data.length >= 5) return Response.json({ ok: false }, { status: 429 });
-
-  const created = await database.from('studio_inquiries').insert({
+  const created = await database.createRateLimitedInquiry({
     workspace_id: workspace.data.id,
     name: validation.payload.name,
     email: validation.payload.email || null,
@@ -50,7 +41,8 @@ export const POST: APIRoute = async ({ request, url }) => {
     message: validation.payload.message,
     ip_hash: ipHash,
   });
-  return created.error
-    ? Response.json({ ok: false }, { status: 503 })
-    : Response.json({ ok: true });
+  if (created.error) return Response.json({ ok: false }, { status: 503 });
+  return created.data.length
+    ? Response.json({ ok: true })
+    : Response.json({ ok: false }, { status: 429 });
 };

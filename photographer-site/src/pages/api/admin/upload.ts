@@ -6,12 +6,20 @@ import { isTrustedOrigin } from '@leon/platform-core/request-security';
 import type { APIRoute } from 'astro';
 
 import { resolveManagedStudio } from '../../../lib/studio';
+import { sweepOrphanedUploads } from '../../../lib/upload-cleanup';
 
 export const prerender = false;
 
 const uploadRoot = process.env.UPLOAD_ROOT ?? '/data/uploads';
 const mediaOrigin = (process.env.PUBLIC_MEDIA_URL ?? 'https://api.leonsites.org').replace(/\/$/, '');
 const maxImageBytes = 15 * 1024 * 1024;
+const defaultWorkspaceQuotaBytes = 4 * 1024 * 1024 * 1024;
+const configuredWorkspaceQuota = Number(process.env.WORKSPACE_UPLOAD_QUOTA_BYTES ?? defaultWorkspaceQuotaBytes);
+const workspaceQuotaBytes = Number.isSafeInteger(configuredWorkspaceQuota)
+  && configuredWorkspaceQuota >= 16 * 1024 * 1024
+  && configuredWorkspaceQuota <= 1_099_511_627_776
+  ? configuredWorkspaceQuota
+  : defaultWorkspaceQuotaBytes;
 const uploadKinds = new Set(['galleries', 'posts', 'covers']);
 
 const publicUrl = (managedPath: string) =>
@@ -25,21 +33,27 @@ const route: APIRoute = async ({ request, locals, url }) => {
 
   const auth = locals.auth();
   if (!auth.userId) return Response.json({ message: 'Sign in again.' }, { status: 401 });
-  const { workspaceId } = await resolveManagedStudio(auth.userId);
-  if (!workspaceId) return Response.json({ message: 'You do not have access to this studio.' }, { status: 403 });
+  const { client, workspaceId } = await resolveManagedStudio(auth.userId);
+  if (!client || !workspaceId) return Response.json({ message: 'You do not have access to this studio.' }, { status: 403 });
 
   if (request.method === 'DELETE') {
     const source = await request.json().catch(() => null);
     const managedPath = typeof source?.path === 'string' ? source.path : '';
     const absolute = resolveManagedUpload(uploadRoot, workspaceId, managedPath);
     if (!absolute) return Response.json({ message: 'Invalid image path.' }, { status: 422 });
+    const reference = await client.isWorkspaceUploadReferenced(workspaceId, managedPath);
+    if (reference.error) return Response.json({ message: 'Image use could not be checked. Try again.' }, { status: 503 });
+    if (reference.data) return Response.json({ ok: true, retained: true });
     await unlink(absolute).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'ENOENT') throw error;
     });
+    const released = await client.releaseWorkspaceUpload(workspaceId, managedPath);
+    if (released.error) return Response.json({ message: 'Image was removed, but storage accounting needs a retry.' }, { status: 503 });
     return Response.json({ ok: true });
   }
 
   if (request.method !== 'POST') return Response.json({ message: 'Method not allowed.' }, { status: 405 });
+  await sweepOrphanedUploads(client, workspaceId, uploadRoot);
   const form = await request.formData().catch(() => null);
   const file = form?.get('file');
   const requestedKind = form?.get('kind');
@@ -55,8 +69,20 @@ const route: APIRoute = async ({ request, locals, url }) => {
   const managedPath = `${workspaceId}/${kind}/${crypto.randomUUID()}.${extension}`;
   const absolute = resolveManagedUpload(uploadRoot, workspaceId, managedPath);
   if (!absolute) return Response.json({ message: 'Upload path could not be created.' }, { status: 500 });
-  await mkdir(path.dirname(absolute), { recursive: true, mode: 0o750 });
-  await writeFile(absolute, bytes, { flag: 'wx', mode: 0o640 });
+  const claimed = await client.claimWorkspaceUpload(workspaceId, managedPath, bytes.byteLength, workspaceQuotaBytes);
+  if (claimed.error) return Response.json({ message: 'Storage could not be reserved.' }, { status: 503 });
+  if (!claimed.data.length) return Response.json({ message: 'This studio has reached its image storage limit. Contact Leon to add storage.' }, { status: 413 });
+  try {
+    await mkdir(path.dirname(absolute), { recursive: true, mode: 0o750 });
+    await writeFile(absolute, bytes, { flag: 'wx', mode: 0o640 });
+  } catch {
+    const released = await client.releaseWorkspaceUpload(workspaceId, managedPath);
+    return Response.json({
+      message: released.error
+        ? 'Image storage failed and its quota reservation needs support.'
+        : 'Image storage is temporarily unavailable.',
+    }, { status: released.error ? 503 : 507 });
+  }
   return Response.json({ path: managedPath, publicUrl: publicUrl(managedPath) }, { status: 201 });
 };
 

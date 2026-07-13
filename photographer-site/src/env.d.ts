@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly UPLOAD_ROOT?: string;
   readonly PUBLIC_MEDIA_URL?: string;
   readonly SITE_WORKSPACE_SLUG?: string;
+  readonly SITE_CONTENT_MODE?: 'managed' | 'demo' | 'preview';
   readonly SITE_KEY?: string;
 }
 

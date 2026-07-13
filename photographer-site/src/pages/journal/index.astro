@@ -8,7 +8,8 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
   timeZone: 'UTC',
 });
-const posts = (await siteRepository.listPosts()).map((post) => ({
+const portfolio = await siteRepository.getPortfolio();
+const posts = portfolio.posts.map((post) => ({
   post,
   publishedAt: dateFormatter.format(new Date(post.publishedAt)),
 }));
@@ -16,32 +17,34 @@ const posts = (await siteRepository.listPosts()).map((post) => ({
 
 <SiteLayout
   title="Field Notes"
-  description="Short field notes on sports photography from Northline Sports."
-  image={posts[0]?.post.cover.src}
+  description={`Photography notes from ${portfolio.studioName}.`}
+  image={posts[0]?.post.cover?.src}
   canonicalPath="/journal"
 >
   <header class="page-intro page-gutter">
     <h1 id="journal-title" data-entrance>Photography notes.</h1>
-    <p data-entrance>Football, basketball, and track.</p>
+    <p data-entrance>{portfolio.studioName}</p>
   </header>
 
-  <section class="journal-archive page-gutter" aria-label="Sports photography notes">
+  <section class="journal-archive page-gutter" aria-label={`${portfolio.studioName} photography notes`}>
     <ol class="journal-list">
       {
         posts.map(({ post, publishedAt }) => (
           <li class="journal-card" data-entrance>
             <article>
               <a href={`/journal/${post.slug}`}>
-                <figure>
-                  <img
-                    src={post.cover.src}
-                    alt={post.cover.alt}
-                    width={post.cover.width}
-                    height={post.cover.height}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </figure>
+                {post.cover && (
+                  <figure>
+                    <img
+                      src={post.cover.src}
+                      alt={post.cover.alt}
+                      width={post.cover.width}
+                      height={post.cover.height}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                )}
                 <div class="journal-card-copy">
                   <time datetime={post.publishedAt}>{publishedAt}</time>
                   <h2>{post.title}</h2>

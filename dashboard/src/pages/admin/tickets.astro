@@ -2,6 +2,8 @@
 import AdminFrame from '../../components/AdminFrame.astro';
 import { decideAdminAccess } from '../../lib/access';
 import { loadAdminSession } from '../../lib/admin';
+import { adminTicketStatuses } from '../../lib/admin-tickets';
+import { createPlatformDatabase } from '../../lib/database';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -15,38 +17,124 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 
 const data = session.data!;
 const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
-const status = Astro.url.searchParams.get('status') ?? 'open';
-const sort = Astro.url.searchParams.get('sort') ?? 'newest';
+const requestedStatus = Astro.url.searchParams.get('status') ?? 'open';
+const status = ['open', 'all', ...adminTicketStatuses].includes(requestedStatus as never) ? requestedStatus : 'open';
+const requestedSort = Astro.url.searchParams.get('sort') ?? 'newest';
+const sort = ['newest', 'oldest', 'status'].includes(requestedSort) ? requestedSort : 'newest';
+const requestedPage = Number(Astro.url.searchParams.get('page') ?? '1');
+const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, 20_000) : 1;
+const pageSize = 50;
 const isOpen = (value: string) => !['completed', 'declined'].includes(value);
-const tickets = data.requests
-  .filter((ticket) => status === 'all' || (status === 'open' ? isOpen(ticket.status) : ticket.status === status))
+let ticketRows = data.requests;
+let ticketError: string | null = null;
+let hasNext = false;
+if (!isPreview) {
+  const database = createPlatformDatabase();
+  if (!database) {
+    ticketError = 'Tickets could not be loaded.';
+    ticketRows = [];
+  }
+  else {
+    let query = database.from('content_requests')
+      .select('id,workspace_id,subject,details,status,created_at');
+    if (status === 'open') query = query.in('status', ['new', 'planned', 'in_progress']);
+    else if (status !== 'all') query = query.eq('status', status);
+    query = query
+      .order(sort === 'status' ? 'status' : 'created_at', { ascending: sort === 'oldest' || sort === 'status' })
+      .order('created_at', { ascending: sort === 'oldest' })
+      .limit(pageSize + 1)
+      .offset((page - 1) * pageSize);
+    const result = await query;
+    if (result.error) {
+      ticketError = 'Tickets could not be loaded.';
+      ticketRows = [];
+    }
+    else {
+      hasNext = result.data.length > pageSize;
+      ticketRows = result.data.slice(0, pageSize) as typeof data.requests;
+    }
+  }
+}
+const tickets = ticketRows
+  .filter((ticket) => !isPreview || status === 'all' || (status === 'open' ? isOpen(ticket.status) : ticket.status === status))
   .sort((a, b) => {
+    if (!isPreview) return 0;
     if (sort === 'oldest') return Date.parse(a.created_at) - Date.parse(b.created_at);
-    if (sort === 'client') return (workspaceNames.get(a.workspace_id) ?? '').localeCompare(workspaceNames.get(b.workspace_id) ?? '');
     if (sort === 'status') return a.status.localeCompare(b.status);
     return Date.parse(b.created_at) - Date.parse(a.created_at);
   });
 const date = (value: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
+const pageHref = (target: number) => `/admin/tickets?status=${encodeURIComponent(status)}&sort=${encodeURIComponent(sort)}&page=${target}`;
 ---
 
 <AdminFrame active="tickets" title="Tickets" eyebrow="Support" description="Separate what needs action from what is already handled." isPreview={isPreview} error={session.error}>
   <form class="admin-tools" method="get" aria-label="Sort and filter tickets">
     {isPreview && <input type="hidden" name="preview" value="true" />}
     <label><span>Status</span><select name="status"><option value="open" selected={status === 'open'}>Open</option><option value="new" selected={status === 'new'}>New</option><option value="planned" selected={status === 'planned'}>Planned</option><option value="in_progress" selected={status === 'in_progress'}>In progress</option><option value="completed" selected={status === 'completed'}>Completed</option><option value="declined" selected={status === 'declined'}>Declined</option><option value="all" selected={status === 'all'}>All tickets</option></select></label>
-    <label><span>Sort</span><select name="sort"><option value="newest" selected={sort === 'newest'}>Newest first</option><option value="oldest" selected={sort === 'oldest'}>Oldest first</option><option value="client" selected={sort === 'client'}>Client A–Z</option><option value="status" selected={sort === 'status'}>Status A–Z</option></select></label>
+    <label><span>Sort</span><select name="sort"><option value="newest" selected={sort === 'newest'}>Newest first</option><option value="oldest" selected={sort === 'oldest'}>Oldest first</option><option value="status" selected={sort === 'status'}>Status A–Z</option></select></label>
     <button type="submit">Apply</button>
   </form>
 
   <section class="admin-list-section admin-list-section--results">
     <header><div><span>Support queue</span><h2>{status === 'all' ? 'All tickets' : status.replace('_', ' ')}</h2></div><p>{tickets.length} shown</p></header>
+    {ticketError && <p class="simple-notice" role="status">{ticketError}</p>}
     <div class="ticket-list ticket-list--detailed">
       {tickets.length ? tickets.map((ticket) => (
         <article>
-          <span class={`ticket-status ticket-status--${ticket.status}`}>{ticket.status.replace('_', ' ')}</span>
-          <div><strong>{ticket.subject}</strong><small>{workspaceNames.get(ticket.workspace_id) ?? 'Client'}</small></div>
-          <time datetime={ticket.created_at}>{date(ticket.created_at)}</time>
+          <div class="ticket-list__meta">
+            <span class={`ticket-status ticket-status--${ticket.status}`}>{ticket.status.replace('_', ' ')}</span>
+            <time datetime={ticket.created_at}>{date(ticket.created_at)}</time>
+          </div>
+          <div class="ticket-list__copy">
+            <strong>{ticket.subject}</strong>
+            <small>{workspaceNames.get(ticket.workspace_id) ?? 'Client'}</small>
+            <p>{ticket.details}</p>
+          </div>
+          <form class="ticket-status-form" data-ticket-status>
+            <input type="hidden" name="ticket_id" value={ticket.id} />
+            <label>
+              <span>Status</span>
+              <select name="status" aria-label={`Status for ${ticket.subject}`}>
+                {adminTicketStatuses.map((option) => <option value={option} selected={ticket.status === option}>{option.replace('_', ' ')}</option>)}
+              </select>
+            </label>
+            <button type="submit" aria-label={`Save ${ticket.subject}`}>Save</button>
+            <small data-ticket-status-message aria-live="polite"></small>
+          </form>
         </article>
       )) : <p class="simple-empty">No tickets match that status.</p>}
     </div>
+    {(page > 1 || hasNext) && <nav class="admin-pagination" aria-label="Ticket pages">
+      {page > 1 ? <a href={pageHref(page - 1)}>Previous</a> : <span />}
+      <span>Page {page}</span>
+      {hasNext ? <a href={pageHref(page + 1)}>Next</a> : <span />}
+    </nav>}
   </section>
+
+  <script>
+    document.querySelectorAll<HTMLFormElement>('[data-ticket-status]').forEach((form) => {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const message = form.querySelector<HTMLElement>('[data-ticket-status-message]');
+        const selection = form.querySelector<HTMLSelectElement>('select[name="status"]');
+        if (!message || !selection) return;
+        message.textContent = 'Saving...';
+
+        if (new URL(location.href).searchParams.get('preview') === 'true') {
+          message.textContent = `${selection.value.replace('_', ' ')} preview`;
+          return;
+        }
+
+        const formData = new FormData(form);
+        const response = await fetch('/api/admin/tickets', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ticket_id: formData.get('ticket_id'), status: formData.get('status') }),
+        });
+        const payload = await response.json().catch(() => null);
+        message.textContent = response.ok ? 'Saved' : (payload?.message ?? 'Not saved');
+        if (response.ok) window.setTimeout(() => location.reload(), 400);
+      });
+    });
+  </script>
 </AdminFrame>

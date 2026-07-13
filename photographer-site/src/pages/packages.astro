@@ -3,16 +3,18 @@ import SiteLayout from '../layouts/SiteLayout.astro';
 import { siteRepository } from '../lib/content/repository';
 
 const portfolio = await siteRepository.getPortfolio();
+const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' })
+  .format(portfolio.packages.map((service) => service.name));
 ---
 
 <SiteLayout
   title="Services"
-  description="Game, season, and athlete photography coverage from Northline Sports."
+  description={`Photography services from ${portfolio.studioName}.`}
   canonicalPath="/packages"
 >
   <header class="page-intro page-gutter">
     <h1 id="packages-title" data-entrance>Photography services.</h1>
-    <p data-entrance>Game coverage, season coverage, and athlete sessions.</p>
+    <p data-entrance>{serviceSummary ? `${serviceSummary}.` : `Contact ${portfolio.studioName} for current availability.`}</p>
   </header>
 
   <section class="service-list page-gutter" aria-label="Photography services">

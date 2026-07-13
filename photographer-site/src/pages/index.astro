@@ -9,11 +9,13 @@ const featuredGalleries = portfolio.home.featuredGallerySlugs
   .filter((gallery) => gallery !== undefined);
 const leadLandscape = featuredGalleries[0]?.images[1] ?? featuredGalleries[0]?.cover;
 const leadPortrait = featuredGalleries[1]?.images[2] ?? featuredGalleries[1]?.cover;
+const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' })
+  .format(portfolio.packages.map((service) => service.name));
 ---
 
 <SiteLayout
   title={portfolio.studioName}
-  description="Sports photography for teams and athletes."
+  description={portfolio.home.introduction || `Photography by ${portfolio.studioName}.`}
   image={leadLandscape?.src}
   canonicalPath="/"
 >
@@ -58,16 +60,24 @@ const leadPortrait = featuredGalleries[1]?.images[2] ?? featuredGalleries[1]?.co
 
   <ContactSheet galleries={featuredGalleries} />
 
-  <section class="service-preview page-gutter" aria-labelledby="service-preview-title" data-entrance>
-    <div>
-      <h2 id="service-preview-title">Photography services</h2>
-      <p>Game coverage, season coverage, and athlete sessions.</p>
-    </div>
-    <a class="text-link" href="/packages">Services</a>
-  </section>
+  {
+    portfolio.packages.length > 0 && (
+      <section class="service-preview page-gutter" aria-labelledby="service-preview-title" data-entrance>
+        <div>
+          <h2 id="service-preview-title">Photography services</h2>
+          <p>{serviceSummary}.</p>
+        </div>
+        <a class="text-link" href="/packages">Services</a>
+      </section>
+    )
+  }
 
   <section class="home-contact page-gutter" aria-labelledby="home-contact-title" data-entrance>
     <h2 id="home-contact-title">Need a photographer?</h2>
-    <a href={`mailto:${portfolio.email}`}>{portfolio.email}</a>
+    {
+      portfolio.email
+        ? <a href={`mailto:${portfolio.email}`}>{portfolio.email}</a>
+        : <a href="/contact">Contact</a>
+    }
   </section>
 </SiteLayout>

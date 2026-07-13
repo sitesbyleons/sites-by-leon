@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { requiresStudioAuth } from '../src/lib/studio-auth';
+import { normalizeStudioReturnPath, requiresStudioAuth } from '../src/lib/studio-auth';
 import { decideStudioAdminAccess } from '../src/lib/studio';
+import fs from 'node:fs';
 
 describe('studio authentication boundaries', () => {
   it('leaves the public portfolio and public APIs independent from Clerk secrets', () => {
@@ -34,5 +35,18 @@ describe('studio owner authorization', () => {
 
   it('allows an authorized owner to open the editor', () => {
     expect(decideStudioAdminAccess({ authenticated: true, authorized: true }, '/admin/services')).toEqual({ kind: 'admin' });
+  });
+
+  it('sanitizes Clerk return paths instead of accepting external redirects', () => {
+    const signIn = fs.readFileSync(new URL('../src/pages/sign-in/[...signin].astro', import.meta.url), 'utf8');
+    const signUp = fs.readFileSync(new URL('../src/pages/sign-up/[...signup].astro', import.meta.url), 'utf8');
+    expect(signIn).toContain('normalizeStudioReturnPath');
+    expect(signUp).toContain('normalizeStudioReturnPath');
+    expect(normalizeStudioReturnPath('/admin')).toBe('/admin');
+    expect(normalizeStudioReturnPath('/admin/galleries?view=draft')).toBe('/admin/galleries?view=draft');
+    expect(normalizeStudioReturnPath('/dashboard')).toBe('/admin');
+    expect(normalizeStudioReturnPath('//evil.example')).toBe('/admin');
+    expect(normalizeStudioReturnPath('/\\evil.example')).toBe('/admin');
+    expect(normalizeStudioReturnPath('/admin\\evil.example')).toBe('/admin');
   });
 });

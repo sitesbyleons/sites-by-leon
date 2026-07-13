@@ -8,6 +8,7 @@ const pages = [
   ['/admin/services', 'Services'],
   ['/admin/clients', 'Clients'],
   ['/admin/invoices', 'Invoices'],
+  ['/admin/inquiries', 'Inquiries'],
 ] as const;
 
 for (const [path, title] of pages) {
@@ -31,7 +32,7 @@ test('studio pages expose the requested management areas', async ({ page }) => {
 
   await page.goto('/admin/clients?preview=true');
   await expect(page.getByRole('button', { name: 'Add client' })).toBeVisible();
-  await expect(page.getByLabel('Service')).toBeVisible();
+  await expect(page.getByLabel('Service').last()).toBeVisible();
 
   await page.goto('/admin/invoices?preview=true');
   await expect(page.getByRole('button', { name: 'Create draft' })).toBeVisible();
@@ -70,4 +71,25 @@ test('homepage editor offers controlled colors and font presets', async ({ page 
   await expect(page.getByLabel('Page color')).toHaveValue('#f4f6f8');
   await expect(page.getByLabel('Accent color')).toHaveValue('#ff3b30');
   await expect(page.getByLabel('Font style')).toHaveValue('athletic');
+});
+
+test('legacy settings URL opens the single homepage and brand editor', async ({ page }) => {
+  await page.goto('/admin/settings?preview=true');
+  await expect(page).toHaveURL(/\/admin\/content\?preview=true$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Homepage' })).toBeVisible();
+});
+
+test('clients, inquiries, and draft invoices expose focused management controls', async ({ page }) => {
+  await page.goto('/admin/clients?preview=true');
+  await expect(page.locator('summary', { hasText: 'Edit' })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(1);
+
+  await page.goto('/admin/inquiries?preview=true');
+  await expect(page.getByText('Football coverage for our home game.')).toBeVisible();
+  await expect(page.getByLabel('Status')).toHaveValue('new');
+  await expect(page.getByRole('button', { name: 'Save status' })).toBeVisible();
+
+  await page.goto('/admin/invoices?preview=true');
+  await expect(page.locator('summary', { hasText: 'Edit' })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Delete draft' })).toHaveCount(1);
 });

@@ -130,3 +130,16 @@ export function normalizeSubscription(subscription: StripeSubscriptionLike) {
     cancel_at_period_end: subscription.cancel_at_period_end === true,
   };
 }
+
+type SubscriptionIdentity = {
+  stripe_subscription_id: string;
+  status: string;
+};
+
+export function shouldApplySubscriptionUpdate(
+  existing: SubscriptionIdentity | null,
+  incoming: SubscriptionIdentity,
+) {
+  if (!existing || existing.stripe_subscription_id === incoming.stripe_subscription_id) return true;
+  return existing.status === 'canceled' || existing.status === 'incomplete_expired';
+}

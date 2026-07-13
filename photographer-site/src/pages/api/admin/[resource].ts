@@ -5,7 +5,9 @@ import { isTrustedOrigin } from '@leon/platform-core/request-security';
 import type { DataClient } from '@leon/platform-core';
 import type { APIRoute } from 'astro';
 
+import { MIN_STRIPE_USD_CENTS, parseUsdCents } from '../../../lib/invoice-events';
 import { resolveManagedStudio } from '../../../lib/studio';
+import { sweepOrphanedUploads } from '../../../lib/upload-cleanup';
 
 export const prerender = false;
 
@@ -13,7 +15,7 @@ const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const colorPattern = /^#[0-9a-f]{6}$/i;
 const orderable = new Set(['galleries', 'images', 'posts', 'services']);
-const deletable = new Set(['galleries', 'images', 'posts', 'services']);
+const deletable = new Set(['galleries', 'images', 'posts', 'services', 'clients', 'invoices']);
 const uploadRoot = process.env.UPLOAD_ROOT ?? '/data/uploads';
 
 const text = (source: Record<string, unknown>, key: string, max = 2000) => {
@@ -23,14 +25,21 @@ const text = (source: Record<string, unknown>, key: string, max = 2000) => {
 const nullable = (value: string) => value || null;
 const managedPath = (workspaceId: string, value: string) => value.startsWith(`${workspaceId}/`) ? value : null;
 
-async function nextSort(client: DataClient, table: string, workspaceId: string, extra?: { column: string; value: string }) {
-  let query = client.from(table).select('sort_order').eq('workspace_id', workspaceId).order('sort_order', { ascending: false }).limit(1);
-  if (extra) query = query.eq(extra.column, extra.value);
-  const result = await query.maybeSingle<{ sort_order: number }>();
-  return (result.data?.sort_order ?? 0) + 1;
-}
+type UploadBackedResource =
+  | { table: 'studio_galleries'; pathColumn: 'cover_storage_path'; path: string }
+  | { table: 'studio_gallery_images'; pathColumn: 'storage_path'; path: string }
+  | { table: 'studio_posts'; pathColumn: 'cover_storage_path'; path: string };
 
-async function removeFiles(workspaceId: string, paths: Array<string | null | undefined>) {
+const findUploadBackedResource = (client: DataClient, workspaceId: string, upload: UploadBackedResource) => client
+  .from(upload.table)
+  .select('id')
+  .eq('workspace_id', workspaceId)
+  .eq(upload.pathColumn, upload.path)
+  .maybeSingle<{ id: string }>();
+
+const isUniqueViolation = (message = '') => /duplicate key|unique constraint/i.test(message);
+
+async function removeFiles(client: DataClient, workspaceId: string, paths: Array<string | null | undefined>) {
   const unique = [...new Set(paths.filter((path): path is string => Boolean(path)))];
   await Promise.all(unique.map(async (managedPath) => {
     const absolute = resolveManagedUpload(uploadRoot, workspaceId, managedPath);
@@ -38,6 +47,8 @@ async function removeFiles(workspaceId: string, paths: Array<string | null | und
     await unlink(absolute).catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'ENOENT') throw error;
     });
+    const released = await client.releaseWorkspaceUpload(workspaceId, managedPath);
+    if (released.error) throw new Error(released.error.message);
   }));
 }
 
@@ -65,23 +76,19 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     const table = resource === 'galleries' ? 'studio_galleries' : resource === 'images' ? 'studio_gallery_images' : resource === 'posts' ? 'studio_posts' : 'studio_services';
     const current = await client.from(table).select(resource === 'images' ? 'id,sort_order,gallery_id' : 'id,sort_order').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<Record<string, unknown>>();
     if (!current.data) return Response.json({ message: 'Item not found.' }, { status: 404 });
-    let list = client.from(table).select('id,sort_order').eq('workspace_id', workspaceId).order('sort_order').order('created_at');
-    if (resource === 'images') list = list.eq('gallery_id', String(current.data.gallery_id));
-    const rows = (await list).data ?? [];
-    const index = rows.findIndex((row) => row.id === id);
-    const neighbor = rows[index + (direction === 'up' ? -1 : 1)];
-    if (!neighbor) return Response.json({ ok: true, reload: false });
-    const currentOrder = Number(current.data.sort_order ?? index + 1);
-    const neighborOrder = Number(neighbor.sort_order ?? index + (direction === 'up' ? 0 : 2));
-    const first = await client.from(table).update({ sort_order: neighborOrder }).eq('workspace_id', workspaceId).eq('id', id);
-    if (first.error) return Response.json({ message: 'Item could not be moved.' }, { status: 400 });
-    const second = await client.from(table).update({ sort_order: currentOrder }).eq('workspace_id', workspaceId).eq('id', neighbor.id);
-    return second.error ? Response.json({ message: 'Item could not be moved.' }, { status: 400 }) : Response.json({ ok: true });
+    const moved = await client.moveOrderedItem(table, workspaceId, id, direction as 'up' | 'down');
+    if (moved.error) return Response.json({ message: 'Item could not be moved.' }, { status: 400 });
+    return Response.json({ ok: true, reload: moved.data.length > 0 });
   }
 
   if (method === 'DELETE') {
     if (!deletable.has(resource) || !uuidPattern.test(id)) return Response.json({ message: 'Invalid item.' }, { status: 422 });
-    const table = resource === 'galleries' ? 'studio_galleries' : resource === 'images' ? 'studio_gallery_images' : resource === 'posts' ? 'studio_posts' : 'studio_services';
+    const table = resource === 'galleries' ? 'studio_galleries'
+      : resource === 'images' ? 'studio_gallery_images'
+        : resource === 'posts' ? 'studio_posts'
+          : resource === 'services' ? 'studio_services'
+            : resource === 'clients' ? 'studio_clients'
+              : 'studio_invoices';
     let paths: Array<string | null> = [];
     if (resource === 'galleries') {
       const gallery = await client.from('studio_galleries').select('cover_storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ cover_storage_path: string | null }>();
@@ -93,17 +100,31 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     } else if (resource === 'posts') {
       const row = await client.from(table).select('cover_storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ cover_storage_path: string | null }>();
       paths = [row.data?.cover_storage_path ?? null];
+    } else if (resource === 'clients') {
+      const invoice = await client.from('studio_invoices').select('id').eq('workspace_id', workspaceId).eq('client_id', id).limit(1).maybeSingle();
+      if (invoice.data) return Response.json({ message: 'Keep this client because an invoice is attached.' }, { status: 409 });
+    } else if (resource === 'invoices') {
+      const invoice = await client.from('studio_invoices').select('status').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ status: string }>();
+      if (!invoice.data) return Response.json({ message: 'Invoice not found.' }, { status: 404 });
+      if (invoice.data.status !== 'draft') return Response.json({ message: 'Only draft invoices can be deleted.' }, { status: 409 });
     }
-    const result = await client.from(table).delete().eq('workspace_id', workspaceId).eq('id', id);
+    let deletion = client.from(table).delete().eq('workspace_id', workspaceId).eq('id', id);
+    if (resource === 'invoices') deletion = deletion.eq('status', 'draft');
+    const result = await deletion;
     if (result.error) return Response.json({ message: 'Item could not be deleted.' }, { status: 400 });
-    await removeFiles(workspaceId, paths.map((path) => path ? managedPath(workspaceId, path) : null));
+    if (!result.data.length) return Response.json({
+      message: resource === 'invoices' ? 'This invoice is already being sent and cannot be deleted.' : 'Item not found.',
+    }, { status: resource === 'invoices' ? 409 : 404 });
+    await removeFiles(client, workspaceId, paths.map((path) => path ? managedPath(workspaceId, path) : null)).catch(() => null);
+    await sweepOrphanedUploads(client, workspaceId, uploadRoot);
     return Response.json({ ok: true });
   }
 
   if (method !== 'POST') return Response.json({ message: 'Method not allowed.' }, { status: 405 });
 
-  let operation: PromiseLike<{ error: { message?: string } | null }>;
+  let operation: PromiseLike<{ data: Record<string, unknown>[]; error: { message?: string } | null }>;
   let oldPath: string | null = null;
+  let uploadBackedCreate: UploadBackedResource | null = null;
 
   if (resource === 'settings') {
     const siteTitle = text(source, 'site_title', 100);
@@ -130,7 +151,15 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
       const previous = await client.from('studio_galleries').select('cover_storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ cover_storage_path: string | null }>();
       oldPath = previous.data?.cover_storage_path ?? null;
       operation = client.from('studio_galleries').update(values).eq('workspace_id', workspaceId).eq('id', id);
-    } else operation = client.from('studio_galleries').insert({ ...values, workspace_id: workspaceId, sort_order: await nextSort(client, 'studio_galleries', workspaceId) });
+    } else {
+      if (coverPath) {
+        uploadBackedCreate = { table: 'studio_galleries', pathColumn: 'cover_storage_path', path: coverPath };
+        const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
+        if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
+        if (existing.data) return Response.json({ ok: true });
+      }
+      operation = client.insertOrdered('studio_galleries', workspaceId, values);
+    }
   } else if (resource === 'images') {
     const galleryId = text(source, 'gallery_id', 64);
     const imageUrl = text(source, 'image_url', 2048);
@@ -145,7 +174,13 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     } else {
       const gallery = await client.from('studio_galleries').select('id').eq('workspace_id', workspaceId).eq('id', galleryId).maybeSingle();
       if (!gallery.data) return Response.json({ message: 'Choose a gallery from this studio.' }, { status: 422 });
-      operation = client.from('studio_gallery_images').insert({ workspace_id: workspaceId, gallery_id: galleryId, image_url: imageUrl, alt_text: altText, storage_path: storagePath, sort_order: await nextSort(client, 'studio_gallery_images', workspaceId, { column: 'gallery_id', value: galleryId }) });
+      if (storagePath) {
+        uploadBackedCreate = { table: 'studio_gallery_images', pathColumn: 'storage_path', path: storagePath };
+        const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
+        if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
+        if (existing.data) return Response.json({ ok: true });
+      }
+      operation = client.insertOrdered('studio_gallery_images', workspaceId, { gallery_id: galleryId, image_url: imageUrl, alt_text: altText, storage_path: storagePath });
     }
   } else if (resource === 'posts') {
     const title = text(source, 'title', 140);
@@ -159,7 +194,15 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
       const previous = await client.from('studio_posts').select('cover_storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ cover_storage_path: string | null }>();
       oldPath = previous.data?.cover_storage_path ?? null;
       operation = client.from('studio_posts').update(values).eq('workspace_id', workspaceId).eq('id', id);
-    } else operation = client.from('studio_posts').insert({ ...values, workspace_id: workspaceId, sort_order: await nextSort(client, 'studio_posts', workspaceId) });
+    } else {
+      if (coverPath) {
+        uploadBackedCreate = { table: 'studio_posts', pathColumn: 'cover_storage_path', path: coverPath };
+        const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
+        if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
+        if (existing.data) return Response.json({ ok: true });
+      }
+      operation = client.insertOrdered('studio_posts', workspaceId, values);
+    }
   } else if (resource === 'services') {
     const name = text(source, 'name', 100);
     const priceType = text(source, 'price_type', 20);
@@ -170,25 +213,51 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     if (id) {
       if (!uuidPattern.test(id)) return Response.json({ message: 'Invalid service.' }, { status: 422 });
       operation = client.from('studio_services').update(values).eq('workspace_id', workspaceId).eq('id', id);
-    } else operation = client.from('studio_services').insert({ ...values, workspace_id: workspaceId, sort_order: await nextSort(client, 'studio_services', workspaceId) });
+    } else operation = client.insertOrdered('studio_services', workspaceId, values);
   } else if (resource === 'clients') {
     const name = text(source, 'name', 120); const email = text(source, 'email', 254); const phone = text(source, 'phone', 32); const serviceId = text(source, 'service_id', 64);
     if (name.length < 2 || (!email && !phone)) return Response.json({ message: 'Enter a name and either email or phone.' }, { status: 422 });
     if (serviceId && !uuidPattern.test(serviceId)) return Response.json({ message: 'Choose a valid service.' }, { status: 422 });
     if (serviceId) { const selected = await client.from('studio_services').select('id').eq('id', serviceId).eq('workspace_id', workspaceId).maybeSingle(); if (!selected.data) return Response.json({ message: 'Choose a service from this studio.' }, { status: 422 }); }
-    operation = client.from('studio_clients').insert({ workspace_id: workspaceId, service_id: nullable(serviceId), name, email: nullable(email), phone: nullable(phone), notes: text(source, 'notes', 3000) });
+    const values = { service_id: nullable(serviceId), name, email: nullable(email), phone: nullable(phone), notes: text(source, 'notes', 3000) };
+    if (id) {
+      if (!uuidPattern.test(id)) return Response.json({ message: 'Invalid client.' }, { status: 422 });
+      operation = client.from('studio_clients').update(values).eq('workspace_id', workspaceId).eq('id', id);
+    } else operation = client.from('studio_clients').insert({ workspace_id: workspaceId, ...values });
   } else if (resource === 'invoices') {
-    const clientId = text(source, 'client_id', 64); const description = text(source, 'description', 1000); const amount = Number(text(source, 'amount', 20)); const depositText = text(source, 'deposit', 20); const deposit = depositText ? Number(depositText) : null;
-    if (!uuidPattern.test(clientId) || description.length < 2 || !Number.isFinite(amount) || amount <= 0 || (deposit !== null && (!Number.isFinite(deposit) || deposit < 0 || deposit > amount))) return Response.json({ message: 'Choose a client and enter valid invoice amounts.' }, { status: 422 });
+    const clientId = text(source, 'client_id', 64); const description = text(source, 'description', 1000); const amount = parseUsdCents(text(source, 'amount', 20)); const depositText = text(source, 'deposit', 20); const deposit = depositText ? parseUsdCents(depositText) : null;
+    if (!uuidPattern.test(clientId) || description.length < 2 || amount === null || (depositText && deposit === null) || (deposit !== null && (deposit >= amount || amount - deposit < MIN_STRIPE_USD_CENTS))) return Response.json({ message: 'Choose a client and enter valid invoice amounts of at least $0.50 per payment.' }, { status: 422 });
     const selected = await client.from('studio_clients').select('id').eq('id', clientId).eq('workspace_id', workspaceId).maybeSingle();
     if (!selected.data) return Response.json({ message: 'Choose a client from this studio.' }, { status: 422 });
-    operation = client.from('studio_invoices').insert({ workspace_id: workspaceId, client_id: clientId, description, amount_due_cents: Math.round(amount * 100), deposit_cents: deposit === null ? null : Math.round(deposit * 100), due_date: nullable(text(source, 'due_date', 10)), status: 'draft' });
+    const values = { client_id: clientId, description, amount_due_cents: amount, deposit_cents: deposit, due_date: nullable(text(source, 'due_date', 10)) };
+    if (id) {
+      if (!uuidPattern.test(id)) return Response.json({ message: 'Invalid invoice.' }, { status: 422 });
+      const current = await client.from('studio_invoices').select('status').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ status: string }>();
+      if (!current.data || current.data.status !== 'draft') return Response.json({ message: 'Only draft invoices can be edited.' }, { status: 409 });
+      const updated = await client.from('studio_invoices').update(values).eq('workspace_id', workspaceId).eq('id', id).eq('status', 'draft');
+      if (updated.error) return Response.json({ message: 'Changes could not be saved.' }, { status: 400 });
+      if (!updated.data.length) return Response.json({ message: 'This invoice is already being sent and cannot be edited.' }, { status: 409 });
+      return Response.json({ ok: true });
+    } else operation = client.from('studio_invoices').insert({ workspace_id: workspaceId, ...values, status: 'draft' });
+  } else if (resource === 'inquiries') {
+    const status = text(source, 'status', 20);
+    if (!uuidPattern.test(id) || !['new', 'contacted', 'booked', 'closed'].includes(status)) return Response.json({ message: 'Choose a valid inquiry status.' }, { status: 422 });
+    operation = client.from('studio_inquiries').update({ status }).eq('workspace_id', workspaceId).eq('id', id);
   } else return Response.json({ message: 'Unknown studio resource.' }, { status: 404 });
 
   const result = await operation;
-  if (result.error) return Response.json({ message: 'Changes could not be saved.' }, { status: 400 });
+  if (result.error) {
+    if (uploadBackedCreate && isUniqueViolation(result.error.message)) {
+      const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
+      if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
+      if (existing.data) return Response.json({ ok: true });
+    }
+    return Response.json({ message: 'Changes could not be saved.' }, { status: 400 });
+  }
+  if (!result.data.length) return Response.json({ message: 'This item no longer exists. Refresh and try again.' }, { status: 404 });
   const newPath = text(source, resource === 'images' ? 'storage_path' : 'cover_storage_path', 1024);
-  if (oldPath && oldPath !== newPath) await removeFiles(workspaceId, [managedPath(workspaceId, oldPath)]);
+  if (oldPath && oldPath !== newPath) await removeFiles(client, workspaceId, [managedPath(workspaceId, oldPath)]).catch(() => null);
+  await sweepOrphanedUploads(client, workspaceId, uploadRoot);
   return Response.json({ ok: true });
 };
 

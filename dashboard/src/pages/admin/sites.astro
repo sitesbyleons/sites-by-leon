@@ -11,7 +11,8 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 
 const data = session.data!;
 const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
-const status = Astro.url.searchParams.get('status') ?? 'all';
+const requestedStatus = Astro.url.searchParams.get('status') ?? 'all';
+const status = ['all', 'onboarding', 'design', 'review', 'live', 'paused'].includes(requestedStatus) ? requestedStatus : 'all';
 const sort = Astro.url.searchParams.get('sort') ?? 'updated';
 const sites = data.projects
   .filter((project) => status === 'all' || project.status === status)
@@ -27,7 +28,7 @@ const connections = new Map(data.connections.map((connection) => [connection.wor
 <AdminFrame active="sites" title="Sites" eyebrow="Client websites" description="Track every photographer site from design through launch." isPreview={isPreview} error={session.error}>
   <form class="admin-tools" method="get" aria-label="Sort and filter sites">
     {isPreview && <input type="hidden" name="preview" value="true" />}
-    <label><span>Status</span><select name="status"><option value="all" selected={status === 'all'}>All stages</option><option value="design" selected={status === 'design'}>Design</option><option value="build" selected={status === 'build'}>Build</option><option value="review" selected={status === 'review'}>Review</option><option value="live" selected={status === 'live'}>Live</option></select></label>
+    <label><span>Status</span><select name="status"><option value="all" selected={status === 'all'}>All stages</option><option value="onboarding" selected={status === 'onboarding'}>Onboarding</option><option value="design" selected={status === 'design'}>Design</option><option value="review" selected={status === 'review'}>Review</option><option value="live" selected={status === 'live'}>Live</option><option value="paused" selected={status === 'paused'}>Paused</option></select></label>
     <label><span>Sort</span><select name="sort"><option value="updated" selected={sort === 'updated'}>Recently updated</option><option value="progress_high" selected={sort === 'progress_high'}>Most complete</option><option value="progress_low" selected={sort === 'progress_low'}>Least complete</option><option value="client" selected={sort === 'client'}>Client A–Z</option></select></label>
     <button type="submit">Apply</button>
   </form>

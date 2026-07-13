@@ -24,7 +24,7 @@ export type JournalPost = {
   title: string;
   excerpt: string;
   body: string[];
-  cover: GalleryImage;
+  cover: GalleryImage | null;
   relatedGallerySlug: string | null;
   publishedAt: string;
 };
