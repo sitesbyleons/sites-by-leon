@@ -74,6 +74,8 @@ describe('fully self-hosted production stack', () => {
     expect(healthcheck).toContain('com.docker.compose.project=${COMPOSE_PROJECT_NAME}');
     expect(healthcheck).toContain('com.docker.compose.service=database');
     expect(healthcheck).toContain('docker exec "${database_container}"');
+    expect(healthcheck).toContain('--connect-timeout "${CURL_CONNECT_TIMEOUT_SECONDS}"');
+    expect(healthcheck).toContain('--max-time "${CURL_MAX_TIME_SECONDS}"');
     expect(healthcheck).not.toContain('docker compose');
   });
 

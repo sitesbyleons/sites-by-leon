@@ -8,7 +8,7 @@ fi
 
 SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}
 SOURCE_ROOT=$(readlink -f "${SOURCE_ROOT}")
-LIBEXEC_ROOT=${LIBEXEC_ROOT:-/usr/local/libexec/leon-platform}
+LIBEXEC_ROOT=/usr/local/libexec/leon-platform
 BACKUP_ENV=/opt/leon-platform/secrets/backup.env
 
 require_root_secret() {

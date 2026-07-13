@@ -183,13 +183,19 @@ fi
 cleanup() {
   local status=$?
   trap - EXIT
-  rm -f "${dump}"
-  rm -rf -- "${staging}"
   if [[ ${stop_attempted} -eq 1 ]]; then
     if ! restart_application_containers; then
       echo "The backup failed and application recovery did not pass health checks." >&2
       status=1
     fi
+  fi
+  if ! rm -f "${dump}"; then
+    echo "Could not remove the temporary PostgreSQL dump." >&2
+    status=1
+  fi
+  if ! rm -rf -- "${staging}"; then
+    echo "Could not remove the temporary upload staging directory." >&2
+    status=1
   fi
   exit "${status}"
 }

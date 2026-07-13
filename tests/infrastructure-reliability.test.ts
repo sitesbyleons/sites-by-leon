@@ -21,7 +21,7 @@ describe('OVH infrastructure reliability', () => {
 
     expect(backup).toContain('SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}');
     expect(installer).toContain('SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}');
-    expect(installer).toContain('LIBEXEC_ROOT=${LIBEXEC_ROOT:-/usr/local/libexec/leon-platform}');
+    expect(installer).toContain('LIBEXEC_ROOT=/usr/local/libexec/leon-platform');
     expect(installer).toContain('install -o root -g root -m 0755');
     expect(service).toContain('/usr/local/libexec/leon-platform/backup-database.sh');
     expect(service).toContain('UMask=0077');
@@ -54,6 +54,17 @@ describe('OVH infrastructure reliability', () => {
     expect(backup).toContain('SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${BACKUP_HEALTHCHECK_SCRIPT}"');
     expect(backup).toContain('Application health checks did not recover after backup restart.');
     expect(backup).toContain('BACKUP_HEALTHCHECK_SCRIPT must be root-owned and not group- or world-writable.');
+  });
+
+  it('recovers application containers before deleting temporary backup files', () => {
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+    const cleanup = backup.slice(backup.indexOf('cleanup() {'), backup.indexOf('trap cleanup EXIT'));
+
+    expect(cleanup.indexOf('restart_application_containers')).toBeGreaterThan(-1);
+    expect(cleanup.indexOf('rm -f "${dump}"')).toBeGreaterThan(cleanup.indexOf('restart_application_containers'));
+    expect(cleanup.indexOf('rm -rf -- "${staging}"')).toBeGreaterThan(cleanup.indexOf('restart_application_containers'));
+    expect(cleanup).toContain('if ! rm -f "${dump}"');
+    expect(cleanup).toContain('if ! rm -rf -- "${staging}"');
   });
 
   it('excludes the configured Restic password file from every encrypted snapshot', () => {
