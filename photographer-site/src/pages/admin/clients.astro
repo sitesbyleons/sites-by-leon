@@ -10,7 +10,7 @@ const data = session.data!;
 const serviceNames = new Map(data.services.map((service) => [service.id, service.name]));
 ---
 
-<StudioAdminLayout title="Clients" active="clients" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
+<StudioAdminLayout title="Clients" active="clients" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
   <div class="studio-split">
     <section><header class="studio-section-heading"><div><small>Contacts</small><h2>Your clients</h2></div></header><div class="studio-stack">
       {data.clients.length ? data.clients.map((client) => <article class="studio-item">

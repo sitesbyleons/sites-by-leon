@@ -26,7 +26,7 @@ const schema = {
   subscriptions: ['id', 'workspace_id', 'stripe_customer_id', 'stripe_subscription_id', 'stripe_price_id', 'plan_key', 'status', 'current_period_end', 'cancel_at_period_end', 'created_at', 'updated_at'],
   website_projects: ['id', 'workspace_id', 'name', 'status', 'plan_key', 'progress', 'next_step', 'live_url', 'created_at', 'updated_at'],
   workspace_storage_usage: ['workspace_id', 'used_bytes', 'quota_bytes', 'updated_at'],
-  workspace_uploads: ['storage_path', 'workspace_id', 'size_bytes', 'created_at'],
+  workspace_uploads: ['storage_path', 'workspace_id', 'size_bytes', 'original_filename', 'media_kind', 'is_retained', 'created_at'],
   workspace_members: ['id', 'workspace_id', 'clerk_user_id', 'role', 'created_at'],
 } as const;
 
@@ -453,7 +453,7 @@ export function createDataClient(executeQuery: QueryExecutor) {
     async findOrphanedWorkspaceUploads(workspaceId: string, createdBefore: string, limit: number): Promise<DataResult<Record<string, unknown>[]>> {
       try {
         if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) throw new Error('Invalid orphan cleanup limit.');
-        const text = `select pending.${quote('storage_path')} from ${quote('workspace_uploads')} as pending where pending.${quote('workspace_id')} = $1 and pending.${quote('created_at')} < $2 and not exists (select 1 from ${quote('studio_galleries')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_gallery_images')} where ${quote('workspace_id')} = $1 and ${quote('storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_posts')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = pending.${quote('storage_path')}) order by pending.${quote('created_at')} asc limit $3`;
+        const text = `select pending.${quote('storage_path')} from ${quote('workspace_uploads')} as pending where pending.${quote('workspace_id')} = $1 and pending.${quote('is_retained')} = false and pending.${quote('created_at')} < $2 and not exists (select 1 from ${quote('studio_galleries')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_gallery_images')} where ${quote('workspace_id')} = $1 and ${quote('storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_posts')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = pending.${quote('storage_path')}) order by pending.${quote('created_at')} asc limit $3`;
         return { data: await executeQuery(text, [workspaceId, createdBefore, limit]), error: null };
       } catch (error) {
         return { data: [], error: { message: error instanceof Error ? error.message : 'Orphan upload scan failed.' } };

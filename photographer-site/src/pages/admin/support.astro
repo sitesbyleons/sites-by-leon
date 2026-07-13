@@ -1,0 +1,59 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), getToken: async () => auth ? (await auth.getToken()) ?? null : null });
+const access = decideStudioAdminAccess(session, '/admin/support');
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+const data = session.data!;
+const formatDate = (value: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
+---
+
+<StudioAdminLayout title="Support" active="support" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
+  <div class="studio-split studio-split--support">
+    <section>
+      <header class="studio-section-heading"><div><small>Leon Sites</small><h2>Your tickets</h2></div></header>
+      <div class="studio-ticket-list">
+        {data.supportTickets.length ? data.supportTickets.map((ticket) => (
+          <article class="studio-ticket">
+            <div><span class={`studio-status studio-status--${ticket.status}`}>{ticket.status.replace('_', ' ')}</span><time datetime={ticket.created_at}>{formatDate(ticket.created_at)}</time></div>
+            <strong>{ticket.subject}</strong>
+            <p>{ticket.details}</p>
+          </article>
+        )) : <p class="studio-empty">No support tickets yet.</p>}
+      </div>
+    </section>
+    <section>
+      <header class="studio-section-heading"><div><small>New ticket</small><h2>Ask Leon</h2></div></header>
+      <div class="studio-panel">
+        <form class="studio-form studio-form--single" data-support-ticket>
+          <label><span>Subject</span><input name="subject" minlength="5" maxlength="120" placeholder="What do you need help with?" required /></label>
+          <label><span>Details</span><textarea name="details" minlength="20" maxlength="2000" placeholder="Tell me what happened, what page it is on, and what you expected." required></textarea></label>
+          <div><button type="submit">Send ticket</button></div>
+          <p class="studio-form-status" data-ticket-status aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </div>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('[data-support-ticket]');
+    const status = document.querySelector<HTMLElement>('[data-ticket-status]');
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!status) return;
+      if (document.body.dataset.preview === 'true') { status.textContent = 'Preview ticket ready.'; return; }
+      status.textContent = 'Sending...';
+      const fields = new FormData(form);
+      const response = await fetch('/api/admin/support', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ subject: fields.get('subject'), details: fields.get('details') }),
+      }).catch(() => null);
+      const payload = await response?.json().catch(() => null);
+      status.textContent = response?.ok ? 'Ticket sent to Leon.' : payload?.message ?? 'Ticket not sent.';
+      if (response?.ok) window.setTimeout(() => window.location.reload(), 500);
+    });
+  </script>
+</StudioAdminLayout>

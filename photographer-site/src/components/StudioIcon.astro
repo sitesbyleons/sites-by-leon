@@ -1,0 +1,21 @@
+---
+interface Props { name: string; }
+const { name } = Astro.props;
+---
+<svg class="studio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  {name === 'overview' && <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>}
+  {name === 'content' && <><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10.5V21h13V10.5" /><path d="M9.5 21v-6h5v6" /></>}
+  {name === 'media' && <><rect x="3" y="5" width="18" height="15" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6" /><circle cx="16.5" cy="9" r="1.5" /></>}
+  {name === 'galleries' && <><rect x="5" y="3" width="16" height="16" rx="2" /><path d="M3 7v12a2 2 0 0 0 2 2h12" /><path d="m8 15 3-3 2.5 2.5L16 12l2 2" /></>}
+  {name === 'posts' && <><path d="M5 3h11l3 3v15H5z" /><path d="M15 3v4h4M8 11h8M8 15h8M8 19h5" /></>}
+  {name === 'services' && <><path d="M4 7h16M7 3v4M17 3v4M6 11h12v10H6z" /><path d="M9 15h6" /></>}
+  {name === 'clients' && <><circle cx="9" cy="8" r="3" /><path d="M3.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6" /><path d="M16 8.5a2.5 2.5 0 1 1 0 5M16 15.5c2.7.2 4.2 1.7 4.5 4.5" /></>}
+  {name === 'inquiries' && <><path d="M4 5h16v12H8l-4 4z" /><path d="M8 9h8M8 13h5" /></>}
+  {name === 'invoices' && <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6M9 16h3" /></>}
+  {name === 'support' && <><circle cx="12" cy="12" r="9" /><path d="M9.8 9a2.4 2.4 0 1 1 3.5 2.1c-.9.5-1.3 1-1.3 2M12 17h.01" /></>}
+  {name === 'external' && <><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 13v7H4V6h7" /></>}
+  {name === 'menu' && <><path d="M4 7h16M4 12h16M4 17h16" /></>}
+  {name === 'close' && <><path d="m6 6 12 12M18 6 6 18" /></>}
+  {name === 'upload' && <><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 16v4h16v-4" /></>}
+  {name === 'search' && <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>}
+</svg>

@@ -2,6 +2,7 @@
 import { SignOutButton, UserButton } from '@clerk/astro/components';
 
 import DashboardLayout from '../layouts/DashboardLayout.astro';
+import AdminIcon from './AdminIcon.astro';
 
 interface Props {
   active: 'overview' | 'users' | 'tickets' | 'subscriptions' | 'sites';
@@ -25,37 +26,42 @@ const links = [
 
 <DashboardLayout title={title} shell>
   <div class="studio-admin">
-    <header class="studio-admin__header">
-      <a class="portal-brand portal-brand--small" href={`/admin${preview}`} aria-label="Sites By Leon admin">
-        <span>Sites</span><span>By</span><span>Leon</span>
+    <aside class="studio-admin__header" data-admin-sidebar>
+      <a class="admin-brand" href={`/admin${preview}`} aria-label="Sites By Leon admin">
+        <span>L</span><span><strong>Leon Sites</strong><small>Business admin</small></span>
       </a>
+      <button class="admin-nav-close" type="button" data-admin-nav-toggle aria-label="Close navigation"><AdminIcon name="close" /></button>
       <nav aria-label="Admin dashboard">
+        <small>Manage</small>
         {links.map((link) => (
           <a href={link.href} class:list={{ 'is-active': active === link.key }} aria-current={active === link.key ? 'page' : undefined}>
-            {link.label}
+            <AdminIcon name={link.key} /><span>{link.label}</span>
           </a>
         ))}
       </nav>
-      <div class="studio-admin__account">
-        {!isPreview && <UserButton />}
-      </div>
-    </header>
+      {!isPreview && <div class="studio-admin__account"><UserButton /><a href="/dashboard">Client view</a><SignOutButton><button type="button">Sign out</button></SignOutButton></div>}
+    </aside>
+    <button class="admin-nav-scrim" type="button" data-admin-nav-toggle aria-label="Close navigation"></button>
 
     <main class="studio-admin__main">
-      <section class="admin-intro">
-        <div><span>{eyebrow}</span><h1>{title}</h1></div>
-        <p>{description}</p>
-      </section>
+      <header class="admin-topbar">
+        <button class="admin-nav-open" type="button" data-admin-nav-toggle aria-label="Open navigation"><AdminIcon name="menu" /></button>
+        <div><small>{eyebrow} / {title}</small><strong>{title}</strong></div>
+        {!isPreview && <UserButton />}
+      </header>
+      <div class="admin-workspace">
+        <section class="admin-intro"><div><span>{eyebrow}</span><h1>{title}</h1></div><p>{description}</p></section>
 
-      {error && <p class="simple-notice" role="status">{error}</p>}
-      <slot />
+        {error && <p class="simple-notice" role="status">{error}</p>}
+        <slot />
 
-      {!isPreview && (
-        <footer class="studio-admin__footer">
-          <a href="/dashboard">Client view</a>
-          <SignOutButton><button type="button">Sign out</button></SignOutButton>
-        </footer>
-      )}
+        <footer class="studio-admin__footer"><span>Sites By Leon</span><small>Private business workspace</small></footer>
+      </div>
     </main>
   </div>
+  <script>
+    document.querySelectorAll<HTMLButtonElement>('[data-admin-nav-toggle]').forEach((button) => {
+      button.addEventListener('click', () => document.body.classList.toggle('admin-nav-visible'));
+    });
+  </script>
 </DashboardLayout>

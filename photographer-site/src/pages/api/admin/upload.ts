@@ -58,6 +58,7 @@ const route: APIRoute = async ({ request, locals, url }) => {
   const file = form?.get('file');
   const requestedKind = form?.get('kind');
   const kind = typeof requestedKind === 'string' && uploadKinds.has(requestedKind) ? requestedKind : 'galleries';
+  const retain = form?.get('retain') === 'true';
   if (!(file instanceof File) || file.size < 1 || file.size > maxImageBytes) {
     return Response.json({ message: 'Choose a JPG, PNG, WebP, or AVIF image smaller than 15 MB.' }, { status: 422 });
   }
@@ -83,7 +84,26 @@ const route: APIRoute = async ({ request, locals, url }) => {
         : 'Image storage is temporarily unavailable.',
     }, { status: released.error ? 503 : 507 });
   }
-  return Response.json({ path: managedPath, publicUrl: publicUrl(managedPath) }, { status: 201 });
+  if (retain) {
+    const originalFilename = file.name.trim().slice(0, 160) || `image.${extension}`;
+    const retained = await client.from('workspace_uploads').update({
+      original_filename: originalFilename,
+      media_kind: kind,
+      is_retained: true,
+    }).eq('workspace_id', workspaceId).eq('storage_path', managedPath);
+    if (retained.error || !retained.data.length) {
+      await unlink(absolute).catch(() => null);
+      await client.releaseWorkspaceUpload(workspaceId, managedPath);
+      return Response.json({ message: 'The image could not be added to your files.' }, { status: 503 });
+    }
+  }
+  return Response.json({
+    path: managedPath,
+    publicUrl: publicUrl(managedPath),
+    filename: file.name.trim().slice(0, 160) || `image.${extension}`,
+    kind,
+    size: bytes.byteLength,
+  }, { status: 201 });
 };
 
 export const POST = route;

@@ -1,5 +1,6 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import StudioMediaField from '../../components/StudioMediaField.astro';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -9,7 +10,7 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 ---
 
-<StudioAdminLayout title="Posts" active="posts" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} workspaceId={data.workspace?.id}>
+<StudioAdminLayout title="Posts" active="posts" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} workspaceId={data.workspace?.id} media={data.uploads}>
   <header class="studio-section-heading"><div><small>Updates</small><h2>Your posts</h2></div><p>Edit, reorder, or delete posts.</p></header>
   <section class="studio-stack">
     {data.posts.length ? data.posts.map((post) => (
@@ -19,11 +20,11 @@ const data = session.data!;
         <div class="studio-item-actions">
           <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="posts" data-id={post.id}>↑</button><button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="posts" data-id={post.id}>↓</button>
           <details class="studio-editor"><summary>Edit</summary><form class="studio-form studio-editor-form" data-studio-form data-resource="posts" data-upload-kind="post">
-            <input type="hidden" name="id" value={post.id} /><input type="hidden" name="cover_image_url" value={post.cover_image_url ?? ''} /><input type="hidden" name="cover_storage_path" value={post.cover_storage_path ?? ''} />
+            <input type="hidden" name="id" value={post.id} />
             <label><span>Title</span><input name="title" value={post.title} required /></label><label><span>URL</span><input name="slug" value={post.slug} required /></label>
             <label class="wide"><span>Short description</span><textarea name="excerpt">{post.excerpt}</textarea></label><label class="wide"><span>Post</span><textarea name="body">{post.body}</textarea></label>
             <label><span>Status</span><select name="status"><option value="draft" selected={post.status === 'draft'}>Draft</option><option value="published" selected={post.status === 'published'}>Published</option></select></label>
-            <label><span>Replace cover</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-image-upload /></label>
+            <StudioMediaField kind="post" resource="posts" label="Cover image" url={post.cover_image_url} path={post.cover_storage_path} currentId={post.id} />
             <div class="wide"><button type="submit">Save post</button></div><p class="studio-form-status wide" data-form-status></p>
           </form></details>
           <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="posts" data-id={post.id}>Delete</button>
@@ -34,10 +35,10 @@ const data = session.data!;
 
   <header class="studio-section-heading"><div><small>New post</small><h2>Add an update</h2></div></header>
   <section class="studio-panel studio-panel--narrow"><form class="studio-form" data-studio-form data-resource="posts" data-upload-kind="post">
-    <input type="hidden" name="cover_image_url" /><input type="hidden" name="cover_storage_path" />
     <label><span>Title</span><input name="title" required /></label><label><span>URL</span><input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /></label>
     <label class="wide"><span>Short description</span><textarea name="excerpt" maxlength="400"></textarea></label><label class="wide"><span>Post</span><textarea name="body" maxlength="20000"></textarea></label>
-    <label><span>Cover image</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-image-upload /></label><label><span>Status</span><select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
+    <label><span>Status</span><select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
+    <StudioMediaField kind="post" resource="posts" label="Cover image" />
     <div class="wide"><button type="submit">Create post</button></div><p class="studio-form-status wide" data-form-status></p>
   </form></section>
 </StudioAdminLayout>

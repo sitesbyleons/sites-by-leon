@@ -11,7 +11,7 @@ const price = (cents: number | null) => cents === null ? '' : String(cents / 100
 const displayPrice = (type: string, cents: number | null) => type === 'custom' ? 'Custom price' : (type === 'from' ? 'From ' : '') + dollars(cents);
 ---
 
-<StudioAdminLayout title="Services" active="services" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
+<StudioAdminLayout title="Services" active="services" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
   <header class="studio-section-heading"><div><small>Offerings</small><h2>Your services</h2></div><p>Keep only the packages clients should ask about.</p></header>
   <section class="studio-stack">
     {data.services.length ? data.services.map((service) => (

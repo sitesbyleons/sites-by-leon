@@ -1,64 +1,285 @@
 ---
 import { UserButton } from '@clerk/astro/components';
 
+import StudioIcon from '../components/StudioIcon.astro';
+import type { StudioUpload } from '../lib/studio';
 import '../styles/studio-admin.css';
 
 interface Props {
   title: string;
-  active: 'overview' | 'content' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries';
+  active: 'overview' | 'content' | 'media' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries' | 'support';
   studioName: string;
   isPreview: boolean;
   error?: string | null;
   workspaceId?: string;
+  media?: StudioUpload[];
 }
 
-const { title, active, studioName, isPreview, error = null, workspaceId = '' } = Astro.props;
+const { title, active, studioName, isPreview, error = null, workspaceId = '', media = [] } = Astro.props;
 const suffix = isPreview ? '?preview=true' : '';
-const links = [
-  { key: 'overview', label: 'Overview', href: `/admin${suffix}` },
-  { key: 'content', label: 'Homepage', href: `/admin/content${suffix}` },
-  { key: 'galleries', label: 'Galleries', href: `/admin/galleries${suffix}` },
-  { key: 'posts', label: 'Posts', href: `/admin/posts${suffix}` },
-  { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
-  { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
-  { key: 'inquiries', label: 'Inquiries', href: `/admin/inquiries${suffix}` },
-  { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
+const groups = [
+  {
+    label: 'Studio',
+    links: [
+      { key: 'overview', label: 'Overview', href: `/admin${suffix}` },
+      { key: 'content', label: 'Homepage', href: `/admin/content${suffix}` },
+      { key: 'media', label: 'Files', href: `/admin/media${suffix}` },
+      { key: 'galleries', label: 'Galleries', href: `/admin/galleries${suffix}` },
+      { key: 'posts', label: 'Posts', href: `/admin/posts${suffix}` },
+    ],
+  },
+  {
+    label: 'Business',
+    links: [
+      { key: 'inquiries', label: 'Inquiries', href: `/admin/inquiries${suffix}` },
+      { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
+      { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
+      { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
+    ],
+  },
 ] as const;
+const formatBytes = (bytes: number) => bytes >= 1_048_576
+  ? `${(bytes / 1_048_576).toFixed(1)} MB`
+  : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
+    <meta name="color-scheme" content="dark light" />
     <title>{title} | {studioName}</title>
   </head>
   <body data-preview={isPreview ? 'true' : 'false'} data-workspace-id={workspaceId}>
     <div class="studio-shell">
-      <aside class="studio-sidebar">
-        <a class="studio-brand" href={`/admin${suffix}`}>
-          <span>{studioName}</span>
-          <small>Studio admin</small>
-        </a>
+      <aside class="studio-sidebar" data-studio-sidebar>
+        <div class="studio-sidebar__head">
+          <a class="studio-brand" href={`/admin${suffix}`}>
+            <span class="studio-brand__mark">{studioName.slice(0, 1).toUpperCase()}</span>
+            <span><strong>{studioName}</strong><small>Studio workspace</small></span>
+          </a>
+          <button class="studio-nav-close" type="button" data-studio-nav-toggle aria-label="Close navigation"><StudioIcon name="close" /></button>
+        </div>
+
         <nav aria-label="Studio admin">
-          {links.map((link) => (
-            <a href={link.href} aria-current={active === link.key ? 'page' : undefined}>{link.label}</a>
+          {groups.map((group) => (
+            <div class="studio-nav-group">
+              <small>{group.label}</small>
+              {group.links.map((link) => (
+                <a href={link.href} aria-current={active === link.key ? 'page' : undefined}>
+                  <StudioIcon name={link.key} /><span>{link.label}</span>
+                </a>
+              ))}
+            </div>
           ))}
+          <div class="studio-nav-group studio-nav-group--support">
+            <a href={`/admin/support${suffix}`} aria-current={active === 'support' ? 'page' : undefined}>
+              <StudioIcon name="support" /><span>Support</span>
+            </a>
+          </div>
         </nav>
-        <a class="studio-public-link" href="/" target="_blank">View website</a>
+
+        <a class="studio-public-link" href="/" target="_blank" rel="noreferrer"><StudioIcon name="external" /><span>View website</span></a>
       </aside>
+      <button class="studio-nav-scrim" type="button" data-studio-nav-toggle aria-label="Close navigation"></button>
 
       <main class="studio-main">
         <header class="studio-topbar">
-          <div><small>{studioName}</small><h1>{title}</h1></div>
-          {!isPreview && <UserButton />}
+          <button class="studio-nav-open" type="button" data-studio-nav-toggle aria-label="Open navigation"><StudioIcon name="menu" /></button>
+          <div><small>Workspace / {title}</small><h1>{title}</h1></div>
+          <div class="studio-topbar__tools">
+            <button class="studio-topbar__files" type="button" data-open-media-library><StudioIcon name="media" /><span>Files</span></button>
+            {!isPreview && <UserButton />}
+          </div>
         </header>
         {error && <p class="studio-notice" role="status">{error}</p>}
-        <slot />
+        <div class="studio-workspace"><slot /></div>
       </main>
     </div>
+
+    <dialog class="studio-media-dialog" data-media-dialog>
+      <div class="studio-media-dialog__shell">
+        <header>
+          <div><small>Studio files</small><h2>Choose an image</h2></div>
+          <button type="button" data-media-close aria-label="Close files"><StudioIcon name="close" /></button>
+        </header>
+        <div class="studio-media-toolbar">
+          <label class="studio-media-search"><StudioIcon name="search" /><input type="search" placeholder="Search files" data-media-search /></label>
+          <div class="studio-media-filters" aria-label="Filter files">
+            <button type="button" data-media-filter="all" aria-pressed="true">All</button>
+            <button type="button" data-media-filter="galleries" aria-pressed="false">Galleries</button>
+            <button type="button" data-media-filter="covers" aria-pressed="false">Covers</button>
+            <button type="button" data-media-filter="posts" aria-pressed="false">Posts</button>
+          </div>
+          <label class="studio-upload-button"><StudioIcon name="upload" /><span>Add images</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple data-media-upload /></label>
+        </div>
+        <p class="studio-media-dialog__status" data-media-dialog-status aria-live="polite"></p>
+        <div class="studio-media-browser" data-media-browser>
+          {media.map((file) => (
+            <button
+              class="studio-media-card"
+              type="button"
+              data-media-card
+              data-media-path={file.storage_path}
+              data-media-url={file.public_url}
+              data-media-kind={file.media_kind}
+              data-media-name={file.original_filename.toLowerCase()}
+              data-media-used-in={file.used_in.join(',')}
+            >
+              <img src={file.public_url} alt="" loading="lazy" />
+              <span><strong>{file.original_filename}</strong><small>{formatBytes(file.size_bytes)}{file.used_in.length ? ` · Used in ${file.used_in.join(', ')}` : ''}</small></span>
+            </button>
+          ))}
+          {!media.length && <p class="studio-media-empty" data-media-empty>Add your first image to start the file library.</p>}
+        </div>
+      </div>
+    </dialog>
+
     <script>
+      const dialog = document.querySelector<HTMLDialogElement>('[data-media-dialog]');
+      const mediaBrowser = document.querySelector<HTMLElement>('[data-media-browser]');
+      const dialogStatus = document.querySelector<HTMLElement>('[data-media-dialog-status]');
+      const mediaUpload = document.querySelector<HTMLInputElement>('[data-media-upload]');
+      const mediaSearch = document.querySelector<HTMLInputElement>('[data-media-search]');
+      let activeMediaPicker: HTMLButtonElement | null = null;
+      let activeMediaFilter = 'all';
+
+      const openMediaDialog = (picker: HTMLButtonElement | null = null) => {
+        activeMediaPicker = picker;
+        if (dialogStatus) dialogStatus.textContent = '';
+        const heading = dialog?.querySelector('h2');
+        if (heading) heading.textContent = picker ? 'Choose an image' : 'Your image library';
+        dialog?.showModal();
+      };
+
+      document.querySelectorAll<HTMLButtonElement>('[data-studio-nav-toggle]').forEach((button) => {
+        button.addEventListener('click', () => document.body.classList.toggle('studio-nav-visible'));
+      });
+      document.querySelectorAll<HTMLButtonElement>('[data-media-picker]').forEach((button) => {
+        button.addEventListener('click', () => openMediaDialog(button));
+      });
+      document.querySelectorAll<HTMLButtonElement>('[data-open-media-library]').forEach((button) => {
+        button.addEventListener('click', () => openMediaDialog());
+      });
+      document.querySelectorAll<HTMLButtonElement>('[data-media-close]').forEach((button) => {
+        button.addEventListener('click', () => dialog?.close());
+      });
+      dialog?.addEventListener('click', (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+
+      const applyMediaFilters = () => {
+        const query = mediaSearch?.value.trim().toLowerCase() ?? '';
+        document.querySelectorAll<HTMLButtonElement>('[data-media-card]').forEach((card) => {
+          const matchesKind = activeMediaFilter === 'all' || card.dataset.mediaKind === activeMediaFilter;
+          const matchesSearch = !query || (card.dataset.mediaName ?? '').includes(query);
+          card.hidden = !matchesKind || !matchesSearch;
+        });
+      };
+      document.querySelectorAll<HTMLButtonElement>('[data-media-filter]').forEach((button) => {
+        button.addEventListener('click', () => {
+          activeMediaFilter = button.dataset.mediaFilter ?? 'all';
+          document.querySelectorAll<HTMLButtonElement>('[data-media-filter]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+          applyMediaFilters();
+        });
+      });
+      mediaSearch?.addEventListener('input', applyMediaFilters);
+
+      const chooseMedia = (card: HTMLButtonElement) => {
+        if (!activeMediaPicker) return;
+        const field = activeMediaPicker.closest<HTMLElement>('[data-media-field]');
+        const form = activeMediaPicker.closest<HTMLFormElement>('form');
+        if (!field || !form) return;
+        const pathName = form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path';
+        const urlName = form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url';
+        const pathField = form.elements.namedItem(pathName) as HTMLInputElement | null;
+        const urlField = form.elements.namedItem(urlName) as HTMLInputElement | null;
+        const selectedPath = card.dataset.mediaPath ?? '';
+        const usedIn = (card.dataset.mediaUsedIn ?? '').split(',').filter(Boolean);
+        const resource = activeMediaPicker.dataset.mediaResource ?? '';
+        const status = field.querySelector<HTMLElement>('[data-media-field-status]');
+        if (usedIn.includes(resource) && pathField?.value !== selectedPath) {
+          if (dialogStatus) dialogStatus.textContent = `That file is already used in another ${resource === 'images' ? 'gallery image' : resource.slice(0, -1)}. Choose another file.`;
+          return;
+        }
+        if (pathField) pathField.value = selectedPath;
+        if (urlField) urlField.value = card.dataset.mediaUrl ?? '';
+        const preview = field.querySelector<HTMLElement>('[data-media-preview]');
+        if (preview) {
+          preview.replaceChildren();
+          const image = document.createElement('img');
+          image.src = card.dataset.mediaUrl ?? '';
+          image.alt = '';
+          preview.append(image);
+        }
+        const copy = activeMediaPicker.querySelector('strong');
+        if (copy) copy.textContent = 'Change image';
+        if (status) status.textContent = card.dataset.mediaName ?? 'Image selected';
+        dialog?.close();
+      };
+
+      mediaBrowser?.addEventListener('click', (event) => {
+        const card = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-media-card]');
+        if (card) chooseMedia(card);
+      });
+
+      const addMediaCard = (file: { path: string; publicUrl: string; filename: string; kind: string; size: number }) => {
+        if (!mediaBrowser) return null;
+        mediaBrowser.querySelector('[data-media-empty]')?.remove();
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'studio-media-card';
+        card.dataset.mediaCard = '';
+        card.dataset.mediaPath = file.path;
+        card.dataset.mediaUrl = file.publicUrl;
+        card.dataset.mediaKind = file.kind;
+        card.dataset.mediaName = file.filename.toLowerCase();
+        card.dataset.mediaUsedIn = '';
+        const image = document.createElement('img');
+        image.src = file.publicUrl;
+        image.alt = '';
+        const copy = document.createElement('span');
+        const name = document.createElement('strong');
+        name.textContent = file.filename;
+        const size = document.createElement('small');
+        size.textContent = file.size >= 1_048_576 ? `${(file.size / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+        copy.append(name, size);
+        card.append(image, copy);
+        mediaBrowser.prepend(card);
+        return card;
+      };
+
+      mediaUpload?.addEventListener('change', async () => {
+        const files = [...(mediaUpload.files ?? [])];
+        if (!files.length || !dialogStatus) return;
+        const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+        const invalid = files.find((file) => !allowed.has(file.type) || file.size < 1 || file.size > 15 * 1024 * 1024);
+        if (invalid) { dialogStatus.textContent = 'Choose JPG, PNG, WebP, or AVIF images smaller than 15 MB.'; mediaUpload.value = ''; return; }
+        if (document.body.dataset.preview === 'true') { dialogStatus.textContent = 'Uploads are disabled in preview.'; mediaUpload.value = ''; return; }
+        const uploadKind = activeMediaPicker?.dataset.mediaUploadKind ?? 'galleries';
+        let firstCard: HTMLButtonElement | null = null;
+        for (let index = 0; index < files.length; index += 1) {
+          dialogStatus.textContent = `Uploading ${index + 1} of ${files.length}...`;
+          const body = new FormData();
+          body.append('file', files[index]);
+          body.append('kind', uploadKind);
+          body.append('retain', 'true');
+          const response = await fetch('/api/admin/upload', { method: 'POST', body }).catch(() => null);
+          const payload = await response?.json().catch(() => null);
+          if (!response?.ok || !payload?.path || !payload?.publicUrl) {
+            dialogStatus.textContent = payload?.message ?? 'An image could not be uploaded.';
+            mediaUpload.value = '';
+            return;
+          }
+          firstCard ??= addMediaCard(payload);
+        }
+        dialogStatus.textContent = files.length === 1 ? 'Image added.' : `${files.length} images added.`;
+        mediaUpload.value = '';
+        if (activeMediaPicker && firstCard) chooseMedia(firstCard);
+      });
+
       const uploadImage = async (form: HTMLFormElement) => {
         const input = form.querySelector<HTMLInputElement>('[data-image-upload]');
         const file = input?.files?.[0];
@@ -66,9 +287,7 @@ const links = [
         const urlField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
         const pathField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
         const signature = `${file.name}:${file.size}:${file.lastModified}`;
-        if (form.dataset.pendingUploadSignature === signature
-          && form.dataset.pendingUploadPath
-          && pathField?.value === form.dataset.pendingUploadPath) return form.dataset.pendingUploadPath;
+        if (form.dataset.pendingUploadSignature === signature && form.dataset.pendingUploadPath && pathField?.value === form.dataset.pendingUploadPath) return form.dataset.pendingUploadPath;
         const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
         if (!allowed.has(file.type)) throw new Error('Choose a JPG, PNG, WebP, or AVIF image.');
         if (file.size > 15 * 1024 * 1024) throw new Error('Choose an image smaller than 15 MB.');
@@ -76,10 +295,7 @@ const links = [
         const upload = new FormData();
         upload.append('file', file);
         upload.append('kind', kind);
-        const response = await fetch('/api/admin/upload', {
-          method: 'POST',
-          body: upload,
-        });
+        const response = await fetch('/api/admin/upload', { method: 'POST', body: upload });
         const approved = await response.json().catch(() => null);
         if (!response.ok || !approved?.path || !approved?.publicUrl) throw new Error(approved?.message ?? 'Image could not be uploaded.');
         if (!form.dataset.previousUploadCaptured) {
@@ -102,7 +318,6 @@ const links = [
         close.addEventListener('click', () => form.closest('details')?.removeAttribute('open'));
         form.prepend(close);
       });
-
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') document.querySelectorAll('details.studio-editor[open]').forEach((editor) => editor.removeAttribute('open'));
       });
@@ -113,27 +328,13 @@ const links = [
           const status = form.querySelector<HTMLElement>('[data-form-status]');
           if (!status) return;
           status.textContent = 'Saving...';
-
-          if (document.body.dataset.preview === 'true') {
-            status.textContent = 'Preview saved locally. Sign in to save real changes.';
-            return;
-          }
-
+          if (document.body.dataset.preview === 'true') { status.textContent = 'Preview saved locally. Sign in to save real changes.'; return; }
           const resource = form.dataset.resource;
           let uploadedPath: string | null = null;
-          try {
-            uploadedPath = await uploadImage(form);
-          } catch (error) {
-            status.textContent = error instanceof Error ? error.message : 'Image could not be uploaded.';
-            return;
-          }
+          try { uploadedPath = await uploadImage(form); } catch (error) { status.textContent = error instanceof Error ? error.message : 'Image could not be uploaded.'; return; }
           const data = Object.fromEntries(new FormData(form).entries());
           Object.keys(data).forEach((key) => { if (data[key] instanceof File) delete data[key]; });
-          const response = await fetch(`/api/admin/${resource}`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(data),
-          }).catch(() => null);
+          const response = await fetch(`/api/admin/${resource}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) }).catch(() => null);
           const payload = await response?.json().catch(() => null);
           if (!response?.ok) {
             const definiteRejection = Boolean(response && response.status >= 400 && response.status < 500);
@@ -149,12 +350,9 @@ const links = [
               delete form.dataset.previousUploadUrl;
               delete form.dataset.previousUploadPath;
             }
-            status.textContent = payload?.message ?? (definiteRejection
-              ? 'Changes were not saved.'
-              : 'The connection ended before confirmation. The image was kept; press Save again.');
+            status.textContent = payload?.message ?? (definiteRejection ? 'Changes were not saved.' : 'The connection ended before confirmation. Press Save again.');
             return;
           }
-
           status.textContent = 'Saved.';
           if (payload?.reload !== false) window.setTimeout(() => window.location.reload(), 450);
         });
@@ -167,16 +365,9 @@ const links = [
           const action = button.dataset.studioAction;
           if (!resource || !id || !action) return;
           if (action === 'delete' && !window.confirm('Delete this item? This cannot be undone.')) return;
-          if (document.body.dataset.preview === 'true') {
-            button.textContent = 'Preview only';
-            return;
-          }
+          if (document.body.dataset.preview === 'true') { button.textContent = 'Preview only'; return; }
           button.disabled = true;
-          const response = await fetch(`/api/admin/${resource}`, {
-            method: action === 'delete' ? 'DELETE' : 'PATCH',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(action === 'delete' ? { id } : { id, direction: action }),
-          }).catch(() => null);
+          const response = await fetch(`/api/admin/${resource}`, { method: action === 'delete' ? 'DELETE' : 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(action === 'delete' ? { id } : { id, direction: action }) }).catch(() => null);
           if (!response?.ok) {
             const payload = await response?.json().catch(() => null);
             button.disabled = false;
@@ -184,6 +375,20 @@ const links = [
             return;
           }
           window.location.reload();
+        });
+      });
+
+      document.querySelectorAll<HTMLButtonElement>('[data-media-delete]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          if (!window.confirm('Delete this file?')) return;
+          if (document.body.dataset.preview === 'true') { button.textContent = 'Preview only'; return; }
+          button.disabled = true;
+          const response = await fetch('/api/admin/upload', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: button.dataset.mediaDelete }) }).catch(() => null);
+          const payload = await response?.json().catch(() => null);
+          const status = button.closest<HTMLElement>('[data-media-manage-card]')?.querySelector<HTMLElement>('[data-media-delete-status]');
+          if (!response?.ok) { if (status) status.textContent = payload?.message ?? 'File not deleted.'; button.disabled = false; return; }
+          if (payload?.retained) { if (status) status.textContent = 'This file is in use. Remove it from the page first.'; button.disabled = false; return; }
+          button.closest('[data-media-manage-card]')?.remove();
         });
       });
     </script>

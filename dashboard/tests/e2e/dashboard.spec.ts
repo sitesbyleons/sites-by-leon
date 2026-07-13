@@ -100,7 +100,9 @@ test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
     await page.goto(path);
     const dimensions = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
     expect(dimensions.content, path).toBeLessThanOrEqual(dimensions.viewport);
+    await page.getByRole('button', { name: 'Open navigation' }).click();
     await expect(page.getByRole('navigation', { name: 'Admin dashboard' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close navigation' }).first().click();
   }
 });
 

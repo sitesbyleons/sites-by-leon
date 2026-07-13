@@ -9,12 +9,25 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const clientNames = new Map(data.clients.map((client) => [client.id, client.name]));
 const paymentsReady = Boolean(data.connect?.charges_enabled && data.connect?.payouts_enabled);
+const connectState = data.connect?.onboarding_status ?? 'not_started';
+const connectCopy = paymentsReady
+  ? { title: 'Connected', body: 'Invoices are paid directly into your Stripe account.', action: '' }
+  : connectState === 'restricted'
+    ? { title: 'Needs attention', body: 'Stripe needs more information before payments can continue.', action: 'Review Stripe setup' }
+    : connectState === 'pending'
+      ? { title: 'Setup in progress', body: 'Finish your business details and payout account in Stripe.', action: 'Continue Stripe setup' }
+      : connectState === 'disabled'
+        ? { title: 'Connection closed', body: 'Start a fresh Stripe connection to accept payments.', action: 'Reconnect Stripe' }
+        : { title: 'Not connected', body: 'Connect your own Stripe account before sharing invoice payment links.', action: 'Connect Stripe' };
 const price = (cents: number | null) => cents === null ? '' : String(cents / 100);
 ---
 
-<StudioAdminLayout title="Invoices" active="invoices" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
-  <section class="studio-card"><small>Stripe Connect</small><strong>{paymentsReady ? 'Ready' : 'Not connected'}</strong><p>{paymentsReady ? 'Invoices can be sent and paid to your connected account.' : 'Draft invoices are available now. Stripe onboarding is required before sharing a payment link.'}</p>
-    {!paymentsReady && <button class="studio-button" type="button" data-connect-stripe>Connect Stripe</button>}
+<StudioAdminLayout title="Invoices" active="invoices" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
+  <section class="studio-card studio-connect-card"><div><small>Stripe Connect</small><span class={`studio-status studio-status--${connectState}`}>{connectState.replace('_', ' ')}</span></div><strong>{connectCopy.title}</strong><p>{connectCopy.body}</p>
+    <div class="studio-connect-actions">
+      {!paymentsReady && <button class="studio-button" type="button" data-connect-stripe>{connectCopy.action}</button>}
+      {paymentsReady && <a href="https://dashboard.stripe.com/" target="_blank" rel="noreferrer">Open Stripe dashboard</a>}
+    </div>
     <p class="studio-form-status" data-connect-status aria-live="polite"></p>
   </section>
   <div class="studio-split">
@@ -61,11 +74,16 @@ const price = (cents: number | null) => cents === null ? '' : String(cents / 100
       const payload = await response.json().catch(() => null);
       if (!response.ok) { connectStatus.textContent = payload?.message ?? 'Stripe is unavailable.'; return; }
       if (action === 'start' && payload?.url) location.href = payload.url;
-      else { connectStatus.textContent = payload?.payouts_enabled ? 'Stripe is ready.' : 'Stripe still needs information.'; window.setTimeout(() => location.reload(), 700); }
+      else {
+        connectStatus.textContent = payload?.payouts_enabled && payload?.charges_enabled ? 'Stripe is ready.' : 'Stripe still needs information.';
+        history.replaceState(null, '', '/admin/invoices');
+        window.setTimeout(() => location.reload(), 700);
+      }
     };
 
     connectButton?.addEventListener('click', () => callConnect('start'));
-    if (connectReturn && ['return', 'complete', 'refresh'].includes(connectReturn)) callConnect('status');
+    if (connectReturn === 'refresh') callConnect('start');
+    else if (connectReturn && ['return', 'complete'].includes(connectReturn)) callConnect('status');
 
     document.querySelectorAll<HTMLButtonElement>('[data-send-invoice]').forEach((button) => {
       button.addEventListener('click', async () => {

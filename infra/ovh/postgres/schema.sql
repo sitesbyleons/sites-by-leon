@@ -86,8 +86,15 @@ create table if not exists workspace_uploads (
   storage_path text primary key,
   workspace_id uuid not null references client_workspaces(id) on delete cascade,
   size_bytes bigint not null check (size_bytes > 0 and size_bytes <= 15728640),
+  original_filename text,
+  media_kind text not null default 'library',
+  is_retained boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table workspace_uploads add column if not exists original_filename text;
+alter table workspace_uploads add column if not exists media_kind text not null default 'library';
+alter table workspace_uploads add column if not exists is_retained boolean not null default false;
 
 create table if not exists content_requests (
   id uuid primary key default gen_random_uuid(),
@@ -317,6 +324,35 @@ create table if not exists stripe_events (
 
 create index if not exists workspace_members_user_idx on workspace_members (clerk_user_id, created_at);
 create index if not exists workspace_uploads_workspace_idx on workspace_uploads (workspace_id, created_at);
+
+-- Files already attached to published content predate the reusable media library.
+-- Keep them visible and protected from orphan cleanup after this migration runs.
+update workspace_uploads as upload
+set
+  is_retained = true,
+  original_filename = coalesce(nullif(upload.original_filename, ''), regexp_replace(upload.storage_path, '^.*/', '')),
+  media_kind = case
+    when upload.media_kind = 'library' and split_part(upload.storage_path, '/', 2) in ('galleries', 'images', 'posts')
+      then split_part(upload.storage_path, '/', 2)
+    else upload.media_kind
+  end
+where
+  exists (
+    select 1 from studio_galleries
+    where studio_galleries.workspace_id = upload.workspace_id
+      and studio_galleries.cover_storage_path = upload.storage_path
+  )
+  or exists (
+    select 1 from studio_gallery_images
+    where studio_gallery_images.workspace_id = upload.workspace_id
+      and studio_gallery_images.storage_path = upload.storage_path
+  )
+  or exists (
+    select 1 from studio_posts
+    where studio_posts.workspace_id = upload.workspace_id
+      and studio_posts.cover_storage_path = upload.storage_path
+  );
+
 create index if not exists connected_payment_account_history_workspace_idx on connected_payment_account_history (workspace_id, retired_at desc);
 create index if not exists website_projects_workspace_updated_idx on website_projects (workspace_id, updated_at desc);
 create index if not exists content_requests_workspace_created_idx on content_requests (workspace_id, created_at desc);

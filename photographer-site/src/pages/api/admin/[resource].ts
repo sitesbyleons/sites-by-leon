@@ -42,6 +42,12 @@ const isUniqueViolation = (message = '') => /duplicate key|unique constraint/i.t
 async function removeFiles(client: DataClient, workspaceId: string, paths: Array<string | null | undefined>) {
   const unique = [...new Set(paths.filter((path): path is string => Boolean(path)))];
   await Promise.all(unique.map(async (managedPath) => {
+    const upload = await client.from('workspace_uploads')
+      .select('is_retained')
+      .eq('workspace_id', workspaceId)
+      .eq('storage_path', managedPath)
+      .maybeSingle<{ is_retained: boolean }>();
+    if (upload.data?.is_retained) return;
     const absolute = resolveManagedUpload(uploadRoot, workspaceId, managedPath);
     if (!absolute) return;
     await unlink(absolute).catch((error: NodeJS.ErrnoException) => {

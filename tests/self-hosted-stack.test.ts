@@ -63,8 +63,10 @@ describe('fully self-hosted production stack', () => {
   it('receives both Stripe webhook streams inside the VPS applications', () => {
     const billingWebhook = read('dashboard/src/pages/api/webhooks/stripe.ts');
     const connectWebhook = read('photographer-site/src/pages/api/webhooks/stripe-connect.ts');
+    const connectV2Webhook = read('photographer-site/src/pages/api/webhooks/stripe-connect-v2.ts');
     expect(billingWebhook).toContain('constructEventAsync');
     expect(connectWebhook).toContain('constructEventAsync');
+    expect(connectV2Webhook).toContain('parseEventNotificationAsync');
     expect(billingWebhook).not.toMatch(/supabase/i);
     expect(connectWebhook).not.toMatch(/supabase/i);
   });

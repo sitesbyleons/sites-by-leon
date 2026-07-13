@@ -137,6 +137,25 @@ describe('OVH infrastructure reliability', () => {
     expect(caddy).toContain('max_size 16MB');
   });
 
+  it('keeps selected media-library files while still sweeping abandoned uploads', () => {
+    const schema = read('infra/ovh/postgres/schema.sql');
+    const core = read('platform-core/src/index.ts');
+
+    expect(schema).toContain('is_retained boolean not null default false');
+    expect(schema).toContain('original_filename text');
+    expect(schema).toContain('update workspace_uploads as upload');
+    expect(schema).toContain('is_retained = true');
+    expect(core).toContain("pending.${quote('is_retained')} = false");
+  });
+
+  it('prevents private admin and API responses from being cached', () => {
+    const caddy = read('infra/ovh/Caddyfile');
+
+    expect(caddy).toContain('header @private Cache-Control "private, no-store"');
+    expect(caddy).toContain('Cross-Origin-Resource-Policy same-site');
+    expect(caddy).toContain('X-Permitted-Cross-Domain-Policies none');
+  });
+
   it('keeps the schema safe to apply more than once', () => {
     const schema = read('infra/ovh/postgres/schema.sql');
 

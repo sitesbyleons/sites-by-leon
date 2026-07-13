@@ -99,6 +99,23 @@ export type ConnectStatus = {
   payouts_enabled: boolean;
   details_submitted: boolean;
 };
+export type StudioUpload = {
+  storage_path: string;
+  public_url: string;
+  original_filename: string;
+  media_kind: string;
+  size_bytes: number;
+  created_at: string;
+  used_in: Array<'galleries' | 'images' | 'posts'>;
+};
+export type StudioSupportTicket = {
+  id: string;
+  subject: string;
+  details: string;
+  status: 'new' | 'planned' | 'in_progress' | 'completed' | 'declined';
+  created_at: string;
+  updated_at: string;
+};
 
 export type StudioAdminData = {
   workspace: StudioWorkspace | null;
@@ -110,6 +127,8 @@ export type StudioAdminData = {
   clients: StudioClient[];
   invoices: StudioInvoice[];
   inquiries: StudioInquiry[];
+  uploads: StudioUpload[];
+  supportTickets: StudioSupportTicket[];
   connect: ConnectStatus | null;
   error: string | null;
 };
@@ -153,6 +172,14 @@ export function previewStudioData(): StudioAdminData {
     inquiries: [
       { id: 'inquiry_1', workspace_id: previewWorkspace.id, name: 'Morgan Lee', email: 'morgan@example.com', phone: null, desired_date: '2026-09-12', message: 'Football coverage for our home game.', status: 'new', created_at: '2026-07-11T12:00:00.000Z' },
     ],
+    uploads: [
+      { storage_path: 'ws_northline/galleries/football-huddle.webp', public_url: '/images/sports/football-huddle.webp', original_filename: 'football-huddle.webp', media_kind: 'galleries', size_bytes: 842_000, created_at: '2026-07-12T12:00:00.000Z', used_in: ['galleries', 'images'] },
+      { storage_path: 'ws_northline/galleries/basketball-action.webp', public_url: '/images/sports/basketball-action.webp', original_filename: 'basketball-action.webp', media_kind: 'galleries', size_bytes: 694_000, created_at: '2026-07-11T12:00:00.000Z', used_in: ['galleries'] },
+      { storage_path: 'ws_northline/posts/football-field.webp', public_url: '/images/sports/football-field.webp', original_filename: 'football-field.webp', media_kind: 'posts', size_bytes: 756_000, created_at: '2026-07-10T12:00:00.000Z', used_in: ['images', 'posts'] },
+    ],
+    supportTickets: [
+      { id: 'ticket_1', subject: 'Update homepage schedule', details: 'Please change the next available game date on the homepage.', status: 'in_progress', created_at: '2026-07-10T12:00:00.000Z', updated_at: '2026-07-11T12:00:00.000Z' },
+    ],
     connect: { onboarding_status: 'pending', charges_enabled: false, payouts_enabled: false, details_submitted: false },
     error: null,
   };
@@ -164,7 +191,7 @@ export async function loadStudioAdminData(
 ): Promise<StudioAdminData> {
   const empty: StudioAdminData = {
     workspace: null, settings: null, galleries: [], images: [], posts: [], services: [],
-    clients: [], invoices: [], inquiries: [], connect: null, error: null,
+    clients: [], invoices: [], inquiries: [], uploads: [], supportTickets: [], connect: null, error: null,
   };
   if (!client) return { ...empty, error: 'The secure studio database is not configured.' };
 
@@ -178,7 +205,7 @@ export async function loadStudioAdminData(
   }
   const workspace = workspaceResult.data;
   const id = workspace.id;
-  const [settings, galleries, images, posts, services, clients, invoices, inquiries, connect] = await Promise.all([
+  const [settings, galleries, images, posts, services, clients, invoices, inquiries, uploads, supportTickets, connect] = await Promise.all([
     client.from('studio_settings').select('workspace_id,site_title,hero_title,hero_subtitle,contact_email,contact_phone,paper_color,ink_color,accent_color,font_preset').eq('workspace_id', id).maybeSingle<StudioSettings>(),
     client.from('studio_galleries').select('id,workspace_id,title,slug,category,description,cover_image_url,cover_storage_path,status,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_gallery_images').select('id,workspace_id,gallery_id,image_url,alt_text,storage_path,sort_order').eq('workspace_id', id).order('sort_order'),
@@ -187,21 +214,49 @@ export async function loadStudioAdminData(
     client.from('studio_clients').select('id,workspace_id,service_id,name,email,phone,notes,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('studio_invoices').select('id,workspace_id,client_id,status,description,amount_due_cents,deposit_cents,amount_paid_cents,due_date,hosted_invoice_url,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('studio_inquiries').select('id,workspace_id,name,email,phone,desired_date,message,status,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
+    client.from('workspace_uploads').select('storage_path,size_bytes,original_filename,media_kind,created_at').eq('workspace_id', id).eq('is_retained', true).order('created_at', { ascending: false }),
+    client.from('content_requests').select('id,subject,details,status,created_at,updated_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('connected_payment_accounts').select('onboarding_status,charges_enabled,payouts_enabled,details_submitted').eq('workspace_id', id).maybeSingle<ConnectStatus>(),
   ]);
 
-  const failed = [settings, galleries, images, posts, services, clients, invoices, inquiries, connect]
+  const failed = [settings, galleries, images, posts, services, clients, invoices, inquiries, uploads, supportTickets, connect]
     .some((result) => Boolean(result.error));
+  const galleryRows = (galleries.data ?? []) as StudioGallery[];
+  const imageRows = (images.data ?? []) as StudioImage[];
+  const postRows = (posts.data ?? []) as StudioPost[];
+  const galleryPaths = new Set(galleryRows.map((item) => item.cover_storage_path).filter(Boolean));
+  const imagePaths = new Set(imageRows.map((item) => item.storage_path).filter(Boolean));
+  const postPaths = new Set(postRows.map((item) => item.cover_storage_path).filter(Boolean));
+  const mediaOrigin = (process.env.PUBLIC_MEDIA_URL ?? 'https://api.leonsites.org').replace(/\/$/, '');
+  const mediaRows = (uploads.data ?? []).map((upload) => {
+    const storagePath = String(upload.storage_path ?? '');
+    const fallbackName = storagePath.split('/').at(-1) ?? 'image';
+    const usedIn: StudioUpload['used_in'] = [];
+    if (galleryPaths.has(storagePath)) usedIn.push('galleries');
+    if (imagePaths.has(storagePath)) usedIn.push('images');
+    if (postPaths.has(storagePath)) usedIn.push('posts');
+    return {
+      storage_path: storagePath,
+      public_url: `${mediaOrigin}/media/${storagePath.split('/').map(encodeURIComponent).join('/')}`,
+      original_filename: String(upload.original_filename ?? fallbackName),
+      media_kind: String(upload.media_kind ?? storagePath.split('/')[1] ?? 'library'),
+      size_bytes: Number(upload.size_bytes ?? 0),
+      created_at: String(upload.created_at ?? ''),
+      used_in: usedIn,
+    };
+  });
   return {
     workspace,
     settings: settings.data,
-    galleries: (galleries.data ?? []) as StudioGallery[],
-    images: (images.data ?? []) as StudioImage[],
-    posts: (posts.data ?? []) as StudioPost[],
+    galleries: galleryRows,
+    images: imageRows,
+    posts: postRows,
     services: (services.data ?? []) as StudioService[],
     clients: (clients.data ?? []) as StudioClient[],
     invoices: (invoices.data ?? []) as StudioInvoice[],
     inquiries: (inquiries.data ?? []) as StudioInquiry[],
+    uploads: mediaRows,
+    supportTickets: (supportTickets.data ?? []) as StudioSupportTicket[],
     connect: connect.data,
     error: failed ? 'Some studio records could not be loaded.' : null,
   };

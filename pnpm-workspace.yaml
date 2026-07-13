@@ -3,6 +3,9 @@ packages:
   - platform-core
   - photographer-site
 
+overrides:
+  esbuild: 0.28.1
+
 allowBuilds:
   esbuild: true
   sharp: true

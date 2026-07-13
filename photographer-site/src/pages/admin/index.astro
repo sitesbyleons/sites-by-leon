@@ -11,7 +11,7 @@ const data = session.data!;
 const studioName = data.workspace?.name ?? 'Studio';
 ---
 
-<StudioAdminLayout title="Overview" active="overview" studioName={studioName} isPreview={isPreview} error={data.error}>
+<StudioAdminLayout title="Overview" active="overview" studioName={studioName} isPreview={isPreview} error={data.error} media={data.uploads}>
   <section class="studio-grid" aria-label="Studio summary">
     <article class="studio-card"><small>Galleries</small><strong>{data.galleries.length}</strong><p>{data.images.length} photographs</p></article>
     <article class="studio-card"><small>Clients</small><strong>{data.clients.length}</strong><p>{data.inquiries.filter((item) => item.status === 'new').length} new inquiries</p></article>

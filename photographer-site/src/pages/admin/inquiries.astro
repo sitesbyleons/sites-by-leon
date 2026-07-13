@@ -11,7 +11,7 @@ const data = session.data!;
 const statuses = ['new', 'contacted', 'booked', 'closed'] as const;
 ---
 
-<StudioAdminLayout title="Inquiries" active="inquiries" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error}>
+<StudioAdminLayout title="Inquiries" active="inquiries" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
   <header class="studio-section-heading"><div><small>Inbox</small><h2>Client inquiries</h2></div><p>Open the message, follow up, then update its status.</p></header>
   <section class="studio-stack">
     {data.inquiries.length ? data.inquiries.map((inquiry) => (

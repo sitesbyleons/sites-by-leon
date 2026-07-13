@@ -759,3 +759,98 @@ a { -webkit-tap-highlight-color: transparent; }
   .site-list article { min-width: 42rem; }
   .site-list--compact article { min-width: 0; }
 }
+
+/* Quiet admin workspace */
+.dashboard-shell { background: #f2f3ef; color: #20221f; }
+.admin-icon { width: 1rem; height: 1rem; flex: 0 0 auto; }
+.studio-admin { display: grid; min-height: 100dvh; grid-template-columns: 13.75rem minmax(0, 1fr); background: #f2f3ef; color: #20221f; }
+.studio-admin__header { position: sticky; z-index: 30; top: 0; display: flex; height: 100dvh; flex-direction: column; padding: 0.8rem; border-right: 1px solid #292c29; background: #151715; color: #d7dbd5; }
+.admin-brand { display: flex; min-width: 0; min-height: 3.7rem; align-items: center; gap: 0.7rem; padding: 0.35rem 0.4rem 0.9rem; text-decoration: none; }
+.admin-brand > span:first-child { display: grid; width: 1.85rem; height: 1.85rem; flex: 0 0 auto; place-items: center; border: 1px solid #454a45; border-radius: 6px; background: #242724; color: #fff; font-size: 0.75rem; font-weight: 800; }
+.admin-brand > span:last-child { display: grid; min-width: 0; line-height: 1.2; }
+.admin-brand strong { color: #f6f7f4; font-size: 0.77rem; font-weight: 650; }
+.admin-brand small { color: #9aa099; font-size: 0.55rem; }
+.studio-admin__header nav { display: grid; margin-top: 0.6rem; gap: 0.12rem; }
+.studio-admin__header nav > small { padding: 0 0.58rem 0.38rem; color: #9aa099; font-size: 0.57rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.studio-admin__header nav a { display: flex; min-height: 2.1rem; align-items: center; gap: 0.62rem; padding: 0.48rem 0.58rem; border: 1px solid transparent; border-radius: 6px; color: #9ea49d; font-size: 0.74rem; text-decoration: none; }
+.studio-admin__header nav a:hover { border-bottom-color: transparent; background: #1b1e1b; color: #e5e8e3; }
+.studio-admin__header nav a.is-active { border-color: #303430; background: #1d201d; color: #f8f9f6; box-shadow: inset 2px 0 #5c72e8; }
+.studio-admin__header nav a.is-active::before { display: none; }
+.studio-admin__header nav a .admin-icon { color: #747b74; }
+.studio-admin__header nav a.is-active .admin-icon { color: #aab6ff; }
+.studio-admin__account { display: grid; margin-top: auto; grid-template-columns: auto 1fr; align-items: center; gap: 0.25rem 0.7rem; padding: 0.8rem 0.45rem 0.35rem; border-top: 1px solid #292c29; }
+.studio-admin__account > a, .studio-admin__account > button { padding: 0; border: 0; background: transparent; color: #a0a69f; cursor: pointer; font: inherit; font-size: 0.61rem; text-align: left; text-decoration: none; }
+.studio-admin__account > a { grid-column: 2; }
+.studio-admin__account > button { grid-column: 2; }
+.studio-admin__main { min-width: 0; padding: 0; }
+.admin-topbar { position: sticky; z-index: 20; top: 0; display: flex; min-height: 4.15rem; align-items: center; gap: 1rem; padding: 0.65rem clamp(1.1rem, 3vw, 2.5rem); border-bottom: 1px solid #dfe1dc; background: rgb(242 243 239 / 0.94); backdrop-filter: blur(14px); }
+.admin-topbar > div { display: grid; min-width: 0; margin-right: auto; line-height: 1.15; }
+.admin-topbar small { overflow: hidden; color: #61665f; font-size: 0.58rem; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.admin-topbar strong { margin-top: 0.12rem; font-size: 1.12rem; font-weight: 650; letter-spacing: -0.025em; }
+.admin-nav-open, .admin-nav-close { display: none; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.admin-nav-scrim { display: none; }
+.admin-workspace { width: min(100%, 92rem); margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.6rem); }
+.admin-intro { display: flex; min-height: 0; align-items: end; justify-content: space-between; gap: 2rem; padding: 0 0 1.25rem; border-bottom: 1px solid #dfe1dc; }
+.admin-intro h1 { margin: 0.15rem 0 0; font-family: var(--font-body); font-size: clamp(1.8rem, 4vw, 2.7rem); font-weight: 650; letter-spacing: -0.05em; line-height: 1; }
+.admin-intro > p { max-width: 30rem; margin: 0; color: #61665f; font-size: 0.72rem; line-height: 1.55; text-align: right; }
+.admin-intro span, .admin-list-section header span { color: #61665f; font-size: 0.58rem; letter-spacing: 0.06em; }
+.admin-summary { gap: 0.65rem; margin-top: 0.8rem; }
+.admin-summary article, .admin-summary > a { min-height: 6.8rem; padding: 1rem; border-color: #dfe1dc; border-radius: 8px; background: #fbfcf9; }
+.admin-summary > a:hover { border-color: #b7bbb5; transform: none; background: #fff; }
+.admin-summary span { color: #61665f; font-size: 0.61rem; }
+.admin-summary strong { margin-top: 0.65rem; font-size: 1.75rem; font-weight: 640; }
+.admin-summary small { margin-top: 0.3rem; color: #61665f; font-size: 0.58rem; }
+.admin-overview-grid { gap: 0.8rem; }
+.admin-list-section { padding-top: 2.2rem; }
+.admin-list-section > header { min-height: 2.5rem; margin-bottom: 0.65rem; }
+.admin-list-section h2 { margin: 0.15rem 0 0; font-size: 1.08rem; font-weight: 650; letter-spacing: -0.025em; }
+.admin-list-section header a { color: #485fae; font-size: 0.63rem; }
+.admin-list-section--results { padding-top: 0.8rem; }
+.admin-tools { margin-top: 0.8rem; padding: 0.75rem; gap: 0.55rem; border-color: #dfe1dc; border-radius: 8px; background: #fbfcf9; }
+.admin-tools label { color: #61665f; font-size: 0.55rem; }
+.admin-tools input, .admin-tools select { min-height: 2.35rem; border-color: #c9ccc5; border-radius: 6px; color: #20221f; font-size: 0.66rem; }
+.admin-tools button { min-height: 2.35rem; border-radius: 6px; background: #272a27; font-size: 0.63rem; }
+.ticket-list, .site-list, .user-list, .subscription-list { border-color: #dfe1dc; border-radius: 8px; background: #fbfcf9; }
+.ticket-list article, .site-list article { min-height: 4.25rem; padding: 0.78rem 0.9rem; border-bottom-color: #e5e7e2; }
+.ticket-list--detailed article { grid-template-columns: 6.2rem minmax(12rem, 1fr) minmax(12rem, 17rem); }
+.ticket-list strong, .site-list strong { font-size: 0.73rem; }
+.ticket-list small, .site-list small, .site-list article > span { color: #61665f; font-size: 0.59rem; }
+.ticket-list__copy p { margin-top: 0.35rem; color: #565b56; font-size: 0.67rem; }
+.ticket-status { border-radius: 999px; font-size: 0.52rem; }
+.ticket-status-form select { min-height: 2.1rem; border-radius: 5px; font-size: 0.6rem; }
+.ticket-status-form button { min-height: 2.1rem; border-radius: 5px; background: #272a27; font-size: 0.58rem; }
+.site-progress { background: #e2e4df; }
+.site-progress span { background: #5c72e8; }
+.site-control-actions button { border-radius: 5px; }
+.studio-admin__footer { display: flex; justify-content: space-between; padding: 3rem 0 0; color: #61665f; }
+.studio-admin__footer span, .studio-admin__footer small { font-size: 0.58rem; }
+
+@media (max-width: 920px) {
+  .studio-admin { grid-template-columns: 1fr; }
+  .studio-admin__header { position: fixed; left: 0; width: min(17rem, 84vw); transform: translateX(-105%); box-shadow: 20px 0 70px rgb(0 0 0 / 0.3); transition: transform 170ms ease; }
+  .admin-nav-visible .studio-admin__header { transform: translateX(0); }
+  .admin-nav-visible { overflow: hidden; }
+  .admin-nav-open, .admin-nav-close { display: grid; width: 2rem; height: 2rem; place-items: center; }
+  .admin-nav-close { position: absolute; top: 1rem; right: 0.7rem; color: #a9afa8; }
+  .admin-nav-scrim { position: fixed; z-index: 29; inset: 0; border: 0; background: rgb(9 11 9 / 0.55); }
+  .admin-nav-visible .admin-nav-scrim { display: block; }
+  .studio-admin__header nav { display: grid; width: auto; margin: 0.6rem 0 0; overflow: visible; }
+  .studio-admin__header nav a { min-width: 0; padding: 0.48rem 0.58rem; }
+  .studio-admin__account { display: grid; }
+  .admin-summary--four { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 620px) {
+  .admin-topbar { min-height: 3.7rem; padding: 0.55rem 0.75rem; }
+  .admin-topbar small { display: none; }
+  .admin-topbar strong { font-size: 0.92rem; }
+  .admin-workspace { padding: 1rem 0.75rem 2rem; }
+  .admin-intro { display: block; min-height: 0; padding: 0 0 1rem; }
+  .admin-intro > p { margin-top: 0.55rem; text-align: left; }
+  .admin-summary--four { grid-template-columns: 1fr 1fr; }
+  .admin-summary > a { min-height: 6rem; }
+  .ticket-list article, .ticket-list--detailed article { grid-template-columns: 1fr; gap: 0.45rem; }
+  .site-list { overflow-x: auto; }
+  .site-list article { min-width: 40rem; }
+  .site-list--compact article { min-width: 0; }
+}

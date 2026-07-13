@@ -3,12 +3,14 @@ import { expect, test } from '@playwright/test';
 const pages = [
   ['/admin', 'Overview'],
   ['/admin/content', 'Homepage'],
+  ['/admin/media', 'Files'],
   ['/admin/galleries', 'Galleries'],
   ['/admin/posts', 'Posts'],
   ['/admin/services', 'Services'],
   ['/admin/clients', 'Clients'],
   ['/admin/invoices', 'Invoices'],
   ['/admin/inquiries', 'Inquiries'],
+  ['/admin/support', 'Support'],
 ] as const;
 
 for (const [path, title] of pages) {
@@ -53,17 +55,33 @@ test('studio admin remains usable at iPhone width', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
-test('portfolio items expose focused edit, order, upload, and delete controls', async ({ page }) => {
+test('portfolio items use the shared file browser with focused edit, order, and delete controls', async ({ page }) => {
   await page.goto('/admin/galleries?preview=true');
-  await expect(page.locator('input[type="file"]')).toHaveCount(8);
+  await expect(page.locator('input[type="file"]')).toHaveCount(1);
+  await expect(page.locator('[data-media-picker]')).toHaveCount(8);
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(6);
   await expect(page.locator('summary', { hasText: 'Edit' })).toHaveCount(6);
   await page.locator('summary', { hasText: 'Edit' }).first().click();
   await expect(page.getByRole('button', { name: 'Save gallery' })).toBeVisible();
+  await page.locator('[data-media-picker]').first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('[data-media-card]')).toHaveCount(3);
 
   await page.goto('/admin/services?preview=true');
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(3);
   await expect(page.getByLabel('Show on website')).toHaveCount(4);
+});
+
+test('files and support are complete studio tools', async ({ page }) => {
+  await page.goto('/admin/media?preview=true');
+  await expect(page.getByRole('heading', { name: '3 files' })).toBeVisible();
+  await expect(page.locator('[data-media-manage-card]')).toHaveCount(3);
+
+  await page.goto('/admin/support?preview=true');
+  await page.getByLabel('Subject').fill('Homepage image issue');
+  await page.getByLabel('Details').fill('The homepage image is cropped too tightly on my phone.');
+  await page.getByRole('button', { name: 'Send ticket' }).click();
+  await expect(page.locator('[data-ticket-status]')).toContainText('Preview ticket ready');
 });
 
 test('homepage editor offers controlled colors and font presets', async ({ page }) => {

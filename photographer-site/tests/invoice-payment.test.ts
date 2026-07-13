@@ -33,7 +33,17 @@ describe('studio invoice payment lifecycle', () => {
     const connect = read('src/pages/api/connect.ts');
     expect(connect).toContain('createAccount(`studio-connect-account:');
     expect(connect).toContain('replaceConnectedAccount');
+    expect(connect).toContain('stripe.v2.core.accounts.create');
+    expect(connect).toContain('stripe.v2.core.accountLinks.create');
     expect(connect).not.toContain('connected Stripe account is no longer available');
+  });
+
+  it('keeps Accounts v2 requirements synchronized through a signed event destination', () => {
+    const webhook = read('src/pages/api/webhooks/stripe-connect-v2.ts');
+    expect(webhook).toContain('parseEventNotificationAsync');
+    expect(webhook).toContain('STRIPE_CONNECT_V2_WEBHOOK_SECRET');
+    expect(webhook).toContain('connectAccountStatus');
+    expect(webhook).toContain('resolveWorkspaceForStripeAccount');
   });
 
   it('recovers a customer missing from the current Connect account without a stale rebind', () => {

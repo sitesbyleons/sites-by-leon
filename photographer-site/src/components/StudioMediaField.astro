@@ -1,0 +1,33 @@
+---
+interface Props {
+  kind: 'cover' | 'image' | 'post';
+  resource: 'galleries' | 'images' | 'posts';
+  label: string;
+  url?: string | null;
+  path?: string | null;
+  currentId?: string;
+}
+const { kind, resource, label, url = '', path = '', currentId = '' } = Astro.props;
+const urlName = kind === 'image' ? 'image_url' : 'cover_image_url';
+const pathName = kind === 'image' ? 'storage_path' : 'cover_storage_path';
+const uploadKind = kind === 'image' ? 'galleries' : kind === 'post' ? 'posts' : 'covers';
+---
+<div class="studio-media-field wide" data-media-field>
+  <span class="studio-field-label">{label}</span>
+  <input type="hidden" name={urlName} value={url ?? ''} />
+  <input type="hidden" name={pathName} value={path ?? ''} />
+  <button
+    class="studio-media-choice"
+    type="button"
+    data-media-picker
+    data-media-resource={resource}
+    data-media-current-id={currentId}
+    data-media-upload-kind={uploadKind}
+  >
+    <span class="studio-media-choice__preview" data-media-preview>
+      {url ? <img src={url} alt="" /> : <span>No image</span>}
+    </span>
+    <span><strong>{url ? 'Change image' : 'Choose an image'}</strong><small>Browse files or upload a new one</small></span>
+  </button>
+  <small class="studio-media-field__status" data-media-field-status aria-live="polite"></small>
+</div>

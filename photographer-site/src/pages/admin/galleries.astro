@@ -1,5 +1,6 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import StudioMediaField from '../../components/StudioMediaField.astro';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -9,7 +10,7 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 ---
 
-<StudioAdminLayout title="Galleries" active="galleries" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} workspaceId={data.workspace?.id}>
+<StudioAdminLayout title="Galleries" active="galleries" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} workspaceId={data.workspace?.id} media={data.uploads}>
   <header class="studio-section-heading"><div><small>Portfolio</small><h2>Your galleries</h2></div><p>Edit, move, or remove each gallery.</p></header>
   <section class="studio-stack">
     {data.galleries.length ? data.galleries.map((gallery) => (
@@ -21,11 +22,11 @@ const data = session.data!;
           <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="galleries" data-id={gallery.id} aria-label="Move gallery down">↓</button>
           <details class="studio-editor"><summary>Edit</summary>
             <form class="studio-form studio-editor-form" data-studio-form data-resource="galleries" data-upload-kind="cover">
-              <input type="hidden" name="id" value={gallery.id} /><input type="hidden" name="cover_image_url" value={gallery.cover_image_url} /><input type="hidden" name="cover_storage_path" value={gallery.cover_storage_path ?? ''} />
+              <input type="hidden" name="id" value={gallery.id} />
               <label><span>Title</span><input name="title" value={gallery.title} required /></label><label><span>URL</span><input name="slug" value={gallery.slug} required /></label>
               <label><span>Category</span><input name="category" value={gallery.category} required /></label><label><span>Status</span><select name="status"><option value="draft" selected={gallery.status === 'draft'}>Draft</option><option value="published" selected={gallery.status === 'published'}>Published</option></select></label>
               <label class="wide"><span>Description</span><textarea name="description">{gallery.description}</textarea></label>
-              <label class="wide"><span>Replace cover</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-image-upload /></label>
+              <StudioMediaField kind="cover" resource="galleries" label="Cover image" url={gallery.cover_image_url} path={gallery.cover_storage_path} currentId={gallery.id} />
               <div class="wide"><button type="submit">Save gallery</button></div><p class="studio-form-status wide" data-form-status></p>
             </form>
           </details>
@@ -38,19 +39,17 @@ const data = session.data!;
   <div class="studio-split">
     <section><header class="studio-section-heading"><div><small>New gallery</small><h2>Add a gallery</h2></div></header><div class="studio-panel">
       <form class="studio-form" data-studio-form data-resource="galleries" data-upload-kind="cover">
-        <input type="hidden" name="cover_image_url" /><input type="hidden" name="cover_storage_path" />
         <label><span>Title</span><input name="title" required /></label><label><span>URL</span><input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /></label>
         <label><span>Category</span><input name="category" required /></label><label><span>Status</span><select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
         <label class="wide"><span>Description</span><textarea name="description" maxlength="500"></textarea></label>
-        <label class="wide"><span>Cover image</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-image-upload required /></label>
+        <StudioMediaField kind="cover" resource="galleries" label="Cover image" />
         <div class="wide"><button type="submit">Create gallery</button></div><p class="studio-form-status wide" data-form-status></p>
       </form>
     </div></section>
     <section><header class="studio-section-heading"><div><small>New photograph</small><h2>Add an image</h2></div></header><div class="studio-panel">
       <form class="studio-form" data-studio-form data-resource="images" data-upload-kind="image">
-        <input type="hidden" name="image_url" /><input type="hidden" name="storage_path" />
         <label class="wide"><span>Gallery</span><select name="gallery_id" required><option value="">Choose gallery</option>{data.galleries.map((gallery) => <option value={gallery.id}>{gallery.title}</option>)}</select></label>
-        <label class="wide"><span>Photograph</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-image-upload required /></label>
+        <StudioMediaField kind="image" resource="images" label="Photograph" />
         <label class="wide"><span>Image description</span><input name="alt_text" required maxlength="300" /></label>
         <div class="wide"><button type="submit">Add image</button></div><p class="studio-form-status wide" data-form-status></p>
       </form>
@@ -66,8 +65,9 @@ const data = session.data!;
         <div class="studio-item-actions">
           <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="images" data-id={image.id}>↑</button><button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="images" data-id={image.id}>↓</button>
           <details class="studio-editor"><summary>Edit</summary><form class="studio-form studio-editor-form" data-studio-form data-resource="images" data-upload-kind="image">
-            <input type="hidden" name="id" value={image.id} /><input type="hidden" name="image_url" value={image.image_url} /><input type="hidden" name="storage_path" value={image.storage_path ?? ''} />
-            <label class="wide"><span>Image description</span><input name="alt_text" value={image.alt_text} required /></label><label class="wide"><span>Replace image</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-image-upload /></label>
+            <input type="hidden" name="id" value={image.id} />
+            <label class="wide"><span>Image description</span><input name="alt_text" value={image.alt_text} required /></label>
+            <StudioMediaField kind="image" resource="images" label="Photograph" url={image.image_url} path={image.storage_path} currentId={image.id} />
             <div class="wide"><button type="submit">Save image</button></div><p class="studio-form-status wide" data-form-status></p>
           </form></details>
           <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="images" data-id={image.id}>Delete</button>
