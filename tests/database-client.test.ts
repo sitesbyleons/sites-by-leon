@@ -237,6 +237,8 @@ describe('Leon PostgreSQL data client', () => {
 
     expect(recorder.calls[0].text).toContain('"workspace_storage_usage"');
     expect(recorder.calls[0].text).toContain('"workspace_uploads"');
+    expect(recorder.calls[0].text).toContain('$3::bigint');
+    expect(recorder.calls[0].text).toContain('$4::bigint');
     expect(recorder.calls[0].text).toContain('"used_bytes" + excluded."used_bytes" <= "workspace_storage_usage"."quota_bytes"');
     expect(recorder.calls[1].text).toContain('greatest(0');
   });
