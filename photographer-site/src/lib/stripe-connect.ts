@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 export const connectAccountIncludes = [
   'configuration.merchant',
   'defaults',
+  'identity',
   'requirements',
 ] satisfies Stripe.V2.Core.AccountRetrieveParams['include'];
 
@@ -43,9 +44,13 @@ export const connectAccountStatus = (account: Stripe.V2.Core.Account): ConnectAc
 export const connectAccountCreateParams = (
   workspaceId: string,
   displayName: string,
+  contactEmail: string,
+  country = 'us',
 ): Stripe.V2.Core.AccountCreateParams => ({
+  contact_email: contactEmail,
   dashboard: 'full',
   display_name: displayName,
+  identity: { country },
   configuration: {
     merchant: {
       capabilities: {

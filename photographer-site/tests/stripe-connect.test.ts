@@ -27,13 +27,16 @@ const account = (overrides: Record<string, unknown> = {}) => ({
 
 describe('Accounts v2 Connect setup', () => {
   it('creates a full-dashboard merchant while Stripe owns fees and account risk', () => {
-    const params = connectAccountCreateParams('workspace-1', 'Northline Sports');
+    const params = connectAccountCreateParams('workspace-1', 'Northline Sports', 'studio@example.com', 'us');
 
     expect(params.dashboard).toBe('full');
+    expect(params.contact_email).toBe('studio@example.com');
+    expect(params.identity).toEqual({ country: 'us' });
     expect(params.configuration?.merchant?.capabilities?.card_payments?.requested).toBe(true);
     expect(params.defaults?.responsibilities).toEqual({ fees_collector: 'stripe', losses_collector: 'stripe' });
     expect(params.metadata).toEqual({ workspace_id: 'workspace-1' });
     expect(params.include).toContain('requirements');
+    expect(params.include).toContain('identity');
   });
 
   it('uses hosted onboarding and collects future requirements up front', () => {

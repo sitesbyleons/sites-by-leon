@@ -52,21 +52,33 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     const stripe = new Stripe(stripeKey);
     let accountId = existing.data?.stripe_account_id ?? null;
     let account: Stripe.V2.Core.Account | null = null;
-    const workspace = await client.from('client_workspaces')
-      .select('name')
-      .eq('id', workspaceId)
-      .maybeSingle<{ name: string }>();
-    if (workspace.error) return Response.json({ message: 'Studio details could not be loaded.' }, { status: 503 });
+    const [workspace, settings] = await Promise.all([
+      client.from('client_workspaces')
+        .select('name')
+        .eq('id', workspaceId)
+        .maybeSingle<{ name: string }>(),
+      client.from('studio_settings')
+        .select('contact_email')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle<{ contact_email: string | null }>(),
+    ]);
+    if (workspace.error || settings.error) return Response.json({ message: 'Studio details could not be loaded.' }, { status: 503 });
     const displayName = workspace.data?.name ?? 'Photography studio';
+    const contactEmail = settings.data?.contact_email?.trim() ?? '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      return Response.json({ message: 'Add a valid contact email under Homepage before connecting Stripe.' }, { status: 422 });
+    }
+    const configuredCountry = process.env.STRIPE_CONNECT_DEFAULT_COUNTRY?.trim().toLowerCase() ?? 'us';
+    const country = /^[a-z]{2}$/.test(configuredCountry) ? configuredCountry : 'us';
     const createAccount = (idempotencyKey: string) => stripe.v2.core.accounts.create(
-      connectAccountCreateParams(workspaceId, displayName),
+      connectAccountCreateParams(workspaceId, displayName, contactEmail, country),
       { idempotencyKey },
     );
     const retrieveAccount = (id: string) => stripe.v2.core.accounts.retrieve(id, {
       include: connectAccountIncludes,
     });
     const replaceAccount = async (oldAccountId: string) => {
-      const replacement = await createAccount(`studio-connect-account:${workspaceId}:replace:${oldAccountId}`);
+      const replacement = await createAccount(`studio-connect-account:v2-identity:${workspaceId}:${country}:replace:${oldAccountId}`);
       const installed = await client.replaceConnectedAccount({
         workspace_id: workspaceId,
         expected_account_id: oldAccountId,
@@ -95,7 +107,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     }
 
     if (!accountId) {
-      account = await createAccount(`studio-connect-account:${workspaceId}:initial`);
+      account = await createAccount(`studio-connect-account:v2-identity:${workspaceId}:${country}:initial`);
       accountId = account.id;
       const saved = await client.from('connected_payment_accounts').insert({
         workspace_id: workspaceId,
