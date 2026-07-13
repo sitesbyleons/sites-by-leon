@@ -217,6 +217,8 @@ describe('site operational status', () => {
     expect(sql).toContain('set "status" = \'ready\'');
     expect(sql).toContain('"last_error" = null');
     expect(sql).toContain("and $2 = 'active'");
+    expect(sql).toContain('"progress" = case when $2 = \'active\' then 100');
+    expect(sql).toContain('"next_step" = case when $2 = \'active\' then null');
   });
 });
 

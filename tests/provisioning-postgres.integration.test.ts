@@ -85,5 +85,10 @@ integrationSuite('PostgreSQL client-site provisioning', () => {
       select status, last_error from site_provisioning_runs where workspace_id = ${workspaceId}
     `;
     expect(run).toEqual({ status: 'ready', last_error: null });
+
+    const [project] = await sql<{ progress: number; next_step: string | null }[]>`
+      select progress, next_step from website_projects where workspace_id = ${workspaceId}
+    `;
+    expect(project).toEqual({ progress: 100, next_step: null });
   });
 });

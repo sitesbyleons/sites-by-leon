@@ -605,7 +605,9 @@ workspace_update as (
 ),
 project_update as (
   update "website_projects" as project
-  set "status" = case when $2 = 'active' then 'live' else 'paused' end
+  set "status" = case when $2 = 'active' then 'live' else 'paused' end,
+      "progress" = case when $2 = 'active' then 100 else project."progress" end,
+      "next_step" = case when $2 = 'active' then null else project."next_step" end
   from locked_site
   where project."workspace_id" = locked_site."workspace_id"
     and $2 in ('active', 'paused')
