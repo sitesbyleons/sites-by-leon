@@ -30,7 +30,7 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
     parsedUrl.searchParams.set('search_path', schemaName);
     const scopedDatabaseUrl = parsedUrl.toString();
     client = createPostgresDataClient(scopedDatabaseUrl, (connectionString, options) => {
-      applicationSql = postgres(connectionString, options);
+      applicationSql = postgres(connectionString, { ...options, max: 8 });
       return {
         unsafe: async (text, values) => [...await applicationSql!.unsafe(text, values as never[])],
       };
@@ -65,6 +65,14 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
         ip_hash text not null,
         status text not null default 'new',
         created_at timestamptz not null default now()
+      );
+      create table inquiry_rate_limits (
+        workspace_id uuid not null references client_workspaces(id) on delete cascade,
+        ip_hash text not null,
+        window_started_at timestamptz not null default now(),
+        request_count smallint not null default 1,
+        updated_at timestamptz not null default now(),
+        primary key (workspace_id, ip_hash)
       );
     `);
   });
@@ -136,5 +144,35 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
     expect(created.error).toBeNull();
     expect(created.data).toHaveLength(1);
     expect(created.data[0]).toMatchObject({ workspace_id: workspaceId, name: 'Jordan Lee' });
+  });
+
+  it('admits at most five concurrent inquiries for one workspace and IP', async () => {
+    const workspaceId = randomUUID();
+    const ipHash = 'b'.repeat(64);
+    await applicationSql!.unsafe('insert into client_workspaces (id) values ($1)', [workspaceId]);
+    await controlSql!.unsafe(
+      "select pg_advisory_lock(hashtextextended($1::uuid::text || ':' || $2, 0))",
+      [workspaceId, ipHash],
+    );
+
+    const pending = Array.from({ length: 6 }, (_, index) => client!.createRateLimitedInquiry({
+      workspace_id: workspaceId,
+      ip_hash: ipHash,
+      name: `Client ${index}`,
+      email: `client-${index}@example.com`,
+      phone: null,
+      desired_date: '2026-12-30',
+      message: 'Please photograph our home game.',
+    }));
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await controlSql!.unsafe(
+      "select pg_advisory_unlock(hashtextextended($1::uuid::text || ':' || $2, 0))",
+      [workspaceId, ipHash],
+    );
+    const results = await Promise.all(pending);
+
+    expect(results.every((result) => result.error === null)).toBe(true);
+    expect(results.filter((result) => result.data.length === 1)).toHaveLength(5);
+    expect(results.filter((result) => result.data.length === 0)).toHaveLength(1);
   });
 });
