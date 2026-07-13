@@ -68,4 +68,11 @@ describe('fully self-hosted production stack', () => {
     expect(billingWebhook).not.toMatch(/supabase/i);
     expect(connectWebhook).not.toMatch(/supabase/i);
   });
+
+  it('runs health checks from whichever release is being deployed', () => {
+    const healthcheck = read('infra/ovh/scripts/healthcheck.sh');
+    expect(healthcheck).toContain('SOURCE_ROOT=${SOURCE_ROOT:-');
+    expect(healthcheck).toContain('cd "${SOURCE_ROOT}/infra/ovh"');
+    expect(healthcheck).not.toContain('/opt/leon-platform/app/infra/ovh');
+  });
 });
