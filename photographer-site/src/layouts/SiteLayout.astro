@@ -12,10 +12,14 @@ interface Props {
 }
 
 const { title, description, image, canonicalPath } = Astro.props;
-const [portfolio, theme] = await Promise.all([siteRepository.getPortfolio(), loadSiteTheme()]);
+const { workspaceId, canonicalOrigin } = Astro.locals.siteContext;
+const [portfolio, theme] = await Promise.all([
+  siteRepository.getPortfolio(workspaceId),
+  loadSiteTheme(workspaceId),
+]);
 const pageTitle = title === portfolio.studioName ? title : `${title} - ${portfolio.studioName}`;
-const canonical = new URL(canonicalPath ?? Astro.url.pathname, Astro.site ?? Astro.url);
-const socialImage = image ? new URL(image, Astro.site ?? Astro.url) : undefined;
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, `${canonicalOrigin}/`);
+const socialImage = image ? new URL(image, `${canonicalOrigin}/`) : undefined;
 ---
 
 <!doctype html>
@@ -29,6 +33,7 @@ const socialImage = image ? new URL(image, Astro.site ?? Astro.url) : undefined;
     <meta property="og:type" content="website" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical.toString()} />
     {socialImage && <meta property="og:image" content={socialImage.toString()} />}
     <link rel="canonical" href={canonical.toString()} />
     <title>{pageTitle}</title>

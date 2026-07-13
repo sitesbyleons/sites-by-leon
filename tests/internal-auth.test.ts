@@ -9,7 +9,7 @@ describe('self-hosted photographer payments', () => {
       fs.readFile(new URL('../photographer-site/src/lib/stripe-connect.ts', import.meta.url), 'utf8'),
     );
     expect(connectSource).toContain('process.env.STRIPE_CONNECT_SECRET_KEY');
-    expect(connectSource).toContain('resolveManagedStudio(auth.userId)');
+    expect(connectSource).toContain('resolveManagedStudio(auth.userId, locals.siteContext.workspaceId)');
     expect(connectSource).toContain("resolveTrustedOrigin(request.headers.get('origin'), url.origin)");
     expect(connectHelper).toContain('refresh_url: `${publicOrigin}/admin/invoices?connect=refresh`');
     expect(connectSource).not.toContain('PUBLIC_CONNECT_FUNCTION_URL');

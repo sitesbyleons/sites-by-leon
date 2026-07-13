@@ -8,6 +8,7 @@ export const GET: APIRoute = () =>
       ok: true,
       service: 'sites-by-leon-dashboard',
       version: packageMetadata.version,
+      release: process.env.RELEASE_SHA ?? 'development',
     },
     {
       headers: { 'cache-control': 'no-store' },

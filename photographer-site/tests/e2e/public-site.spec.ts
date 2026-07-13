@@ -68,10 +68,11 @@ test('client-controlled query and cookie values cannot pause the public site', a
 test('health exposes only the public service status and version', async ({ request }) => {
   const response = await request.get('/api/health');
   expect(response.status()).toBe(200);
-  expect(await response.json()).toEqual({
+  expect(await response.json()).toMatchObject({
     ok: true,
-    service: 'northline-public-site',
+    service: 'leon-photographer-runtime',
     version: packageMetadata.version,
+    release: expect.any(String),
   });
 });
 

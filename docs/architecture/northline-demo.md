@@ -12,7 +12,7 @@ Northline Sports is the production-style photographer-site example owned by Site
 - Clerk authentication for the studio administration routes
 - Stripe Connect and invoice routes running inside the site container
 
-The application is not publicly exposed by an origin port. Cloudflare Tunnel forwards only the configured hostname to the Caddy gateway, and the gateway sends that host to the `northline` container.
+The application is not publicly exposed by an origin port. Cloudflare Tunnel forwards only configured hostnames to the Caddy gateway, and the gateway sends photographer hosts to one shared `photographer` container. That runtime resolves the exact hostname to a workspace and rejects unknown hosts, so adding customers does not create a new privileged container or database pool per site.
 
 ## Control-plane boundary
 

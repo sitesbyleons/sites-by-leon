@@ -3,7 +3,7 @@ import SiteLayout from '../../layouts/SiteLayout.astro';
 import { siteRepository } from '../../lib/content/repository';
 
 const slug = Astro.params.slug ?? '';
-const portfolio = await siteRepository.getPortfolio();
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const gallery = portfolio.galleries.find((item) => item.slug === slug) ?? null;
 
 if (!gallery) {

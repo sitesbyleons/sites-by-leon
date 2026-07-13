@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
 
   const auth = locals.auth();
   if (!auth.userId) return Response.json({ message: 'Sign in again.' }, { status: 401 });
-  const { client, workspaceId } = await resolveManagedStudio(auth.userId);
+  const { client, workspaceId } = await resolveManagedStudio(auth.userId, locals.siteContext.workspaceId);
   if (!client || !workspaceId) return Response.json({ message: 'Studio owner access required.' }, { status: 403 });
 
   const validation = validateStudioTicket(await request.json().catch(() => ({})));

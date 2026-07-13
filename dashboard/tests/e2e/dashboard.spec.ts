@@ -92,11 +92,20 @@ test('splits admin records into sortable pages', async ({ page }) => {
 
   await page.goto('/admin/sites?preview=true&sort=progress_high');
   await expect(page.getByRole('heading', { name: 'Website builds' })).toBeVisible();
+  await page.getByRole('link', { name: 'Add client site' }).click();
+  await expect(page.getByRole('heading', { name: 'Add client site' })).toBeVisible();
+  await page.getByLabel('Owner account').selectOption('user_waiting');
+  await page.getByLabel('Studio name').fill('Vow & Light');
+  await expect(page.getByLabel('Short name')).toHaveValue('vow-light');
+  await expect(page.getByLabel('Public domain')).toHaveValue('vow-light.leonsites.org');
+  await page.getByRole('radio', { name: /Wedding editorial/ }).check();
+  await page.getByRole('button', { name: 'Create customer site' }).click();
+  await expect(page.getByText('Preview complete. Production creates the records together.')).toBeVisible();
 });
 
 test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const path of ['/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true']) {
+  for (const path of ['/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/sites/new?preview=true']) {
     await page.goto(path);
     const dimensions = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
     expect(dimensions.content, path).toBeLessThanOrEqual(dimensions.viewport);
@@ -107,7 +116,7 @@ test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
 });
 
 test('has no serious or critical accessibility violations on the client surfaces', async ({ page }) => {
-  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true']) {
+  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/sites/new?preview=true']) {
     await page.goto(path);
     const results = await new AxeBuilder({ page }).analyze();
     const important = results.violations.filter((violation) =>

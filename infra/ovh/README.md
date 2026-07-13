@@ -8,6 +8,7 @@ This stack hosts the Sites By Leon marketing site, client/admin dashboard, photo
 - `leonsites.org/admin`: private administration area behind Clerk authentication.
 - `test.leonsites.org`: full Sites By Leon marketing test site.
 - `demo.leonsites.org`: Northline sports photographer site and photographer admin.
+- Each additional published photographer hostname: the same tenant-aware photographer runtime, isolated by workspace.
 - `api.leonsites.org/media/*`: uploaded images.
 
 Cloudflare Tunnel is the only public ingress. Caddy listens inside Docker, PostgreSQL stays on the private Docker network, and no database port is published.
@@ -34,9 +35,19 @@ Copy these ignored examples and replace every placeholder:
 6. Copy `infra/ovh/secrets/backup.env.example` to `/opt/leon-platform/secrets/backup.env`.
 7. Generate `/opt/leon-platform/secrets/restic-password` with `openssl rand -base64 48` and keep an offline copy.
 
-Set every secret file to mode `600`. The backup installer also refuses to source `backup.env` or read the Restic password unless each is a regular, root-owned file with no group or world permissions. Use the same internal PostgreSQL password in `postgres.env`, `dashboard.env`, and `northline.env`.
+Set every secret file to mode `600`. The backup installer also refuses to source `backup.env` or read the Restic password unless each is a regular, root-owned file with no group or world permissions. `POSTGRES_PASSWORD` is the migration/backup credential and stays only in `postgres.env`. Put the separate `POSTGRES_RUNTIME_PASSWORD` into the `leon_web` database URLs in `dashboard.env` and `northline.env`; web containers must never use the database administrator login. The `northline.env` filename is retained for deployment compatibility, but it now configures the single shared photographer runtime rather than one Northline-only container.
 Generate `CONTACT_HASH_SALT` independently with `openssl rand -hex 32`; it is required for privacy-preserving inquiry rate limits.
-Each application uses at most four PostgreSQL connections by default. Set `DATABASE_POOL_MAX` to a value from 1 through 20 only when capacity planning shows that a different limit is safe.
+Each application uses at most four PostgreSQL connections by default. Set `DATABASE_POOL_MAX` to a value from 1 through 20 only when capacity planning shows that a different limit is safe. Set `PLATFORM_PROVISIONABLE_STORAGE_BYTES` in the dashboard environment to the amount of the media disk that customer quotas may reserve; provisioning rejects requests that would exceed it. Keep operating-system, database, deployment, backup staging, and free-space headroom outside that number.
+
+## Adding a customer
+
+1. The photographer creates their Clerk account.
+2. Leon opens `/admin/sites/new`, chooses that account, and creates the customer site. Workspace, owner access, project, starter content, quota, and hostname records are committed atomically and start in maintenance.
+3. Publish the requested hostname in Cloudflare Tunnel/DNS. Leon Sites subdomains may use one wildcard route; custom domains require their own DNS onboarding.
+4. Review the public site and private editor at the addresses shown by the admin.
+5. Change the site to Active only after DNS, sign-in, upload, inquiry, and mobile checks pass.
+
+Do not expose the Docker socket, SSH credentials, Cloudflare token, GitHub token, or database administrator password to either web application. Domain and repository automation belongs in a restricted host-side worker, not a browser request.
 
 ## Import existing records
 

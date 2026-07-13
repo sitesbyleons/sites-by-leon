@@ -23,6 +23,7 @@ const sites = data.projects
     return Date.parse(b.updated_at) - Date.parse(a.updated_at);
   });
 const connections = new Map(data.connections.map((connection) => [connection.workspace_id, connection]));
+const provisioningRuns = new Map(data.provisioningRuns.map((run) => [run.workspace_id, run]));
 ---
 
 <AdminFrame active="sites" title="Sites" eyebrow="Client websites" description="Track every photographer site from design through launch." isPreview={isPreview} error={session.error}>
@@ -34,14 +35,15 @@ const connections = new Map(data.connections.map((connection) => [connection.wor
   </form>
 
   <section class="admin-list-section admin-list-section--results">
-    <header><div><span>Production</span><h2>Website builds</h2></div><p>{sites.length} shown</p></header>
+    <header><div><span>Production</span><h2>Website builds</h2></div><div class="admin-section-actions"><p>{sites.length} shown</p><a href={`/admin/sites/new${isPreview ? '?preview=true' : ''}`}>Add client site</a></div></header>
     <div class="site-list">
       {sites.length ? sites.map((project) => (
         <article class="site-control-row">
-          <div><strong>{project.name}</strong><small>{workspaceNames.get(project.workspace_id) ?? 'Client'}</small></div>
+          <div><strong>{project.name}</strong><small>{workspaceNames.get(project.workspace_id) ?? 'Client'}{connections.get(project.workspace_id) ? ` · ${connections.get(project.workspace_id)!.primary_domain}` : ''}</small></div>
           <div class="site-progress" role="progressbar" aria-label={`${project.progress}% complete`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={project.progress}><span style={`width:${project.progress}%`}></span></div>
           <div>
-            <span>{connections.get(project.workspace_id)?.status ?? project.status} · {project.progress}%</span>
+            <span>{connections.get(project.workspace_id)?.status ?? project.status} · {project.progress}%{provisioningRuns.get(project.workspace_id) ? ` · setup ${provisioningRuns.get(project.workspace_id)!.status.replaceAll('_', ' ')}` : ''}</span>
+            {provisioningRuns.get(project.workspace_id)?.last_error && <small class="site-provision-error">{provisioningRuns.get(project.workspace_id)!.last_error}</small>}
             {connections.get(project.workspace_id) && (
               <form class="site-control-actions" data-site-control>
                 <input type="hidden" name="workspace_id" value={project.workspace_id} />
@@ -51,6 +53,7 @@ const connections = new Map(data.connections.map((connection) => [connection.wor
                 <small data-control-status aria-live="polite"></small>
               </form>
             )}
+            {connections.get(project.workspace_id) && <div class="site-open-links"><a href={`https://${connections.get(project.workspace_id)!.primary_domain}`} target="_blank" rel="noreferrer">Public site</a><a href={`https://${connections.get(project.workspace_id)!.admin_domain}/admin`} target="_blank" rel="noreferrer">Editor</a></div>}
           </div>
         </article>
       )) : <p class="simple-empty">No sites match that stage.</p>}

@@ -3,7 +3,7 @@ import ContactSheet from '../components/ContactSheet.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { siteRepository } from '../lib/content/repository';
 
-const portfolio = await siteRepository.getPortfolio();
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const featuredGalleries = portfolio.home.featuredGallerySlugs
   .map((slug) => portfolio.galleries.find((gallery) => gallery.slug === slug))
   .filter((gallery) => gallery !== undefined);

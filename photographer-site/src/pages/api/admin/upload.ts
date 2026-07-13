@@ -5,6 +5,7 @@ import { detectImageExtension, resolveManagedUpload } from '@leon/platform-core/
 import { isTrustedOrigin } from '@leon/platform-core/request-security';
 import type { APIRoute } from 'astro';
 
+import { ImageProcessingError, optimizeUploadedImage } from '../../../lib/image-processing';
 import { resolveManagedStudio } from '../../../lib/studio';
 import { sweepOrphanedUploads } from '../../../lib/upload-cleanup';
 
@@ -33,7 +34,7 @@ const route: APIRoute = async ({ request, locals, url }) => {
 
   const auth = locals.auth();
   if (!auth.userId) return Response.json({ message: 'Sign in again.' }, { status: 401 });
-  const { client, workspaceId } = await resolveManagedStudio(auth.userId);
+  const { client, workspaceId } = await resolveManagedStudio(auth.userId, locals.siteContext.workspaceId);
   if (!client || !workspaceId) return Response.json({ message: 'You do not have access to this studio.' }, { status: 403 });
 
   if (request.method === 'DELETE') {
@@ -66,16 +67,21 @@ const route: APIRoute = async ({ request, locals, url }) => {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const extension = detectImageExtension(bytes);
   if (!extension) return Response.json({ message: 'That file is not a supported image.' }, { status: 422 });
+  const optimized = await optimizeUploadedImage(bytes).catch((error: unknown) =>
+    error instanceof ImageProcessingError ? null : Promise.reject(error));
+  if (!optimized) {
+    return Response.json({ message: 'That image is damaged or its dimensions are too large.' }, { status: 422 });
+  }
 
-  const managedPath = `${workspaceId}/${kind}/${crypto.randomUUID()}.${extension}`;
+  const managedPath = `${workspaceId}/${kind}/${crypto.randomUUID()}.webp`;
   const absolute = resolveManagedUpload(uploadRoot, workspaceId, managedPath);
   if (!absolute) return Response.json({ message: 'Upload path could not be created.' }, { status: 500 });
-  const claimed = await client.claimWorkspaceUpload(workspaceId, managedPath, bytes.byteLength, workspaceQuotaBytes);
+  const claimed = await client.claimWorkspaceUpload(workspaceId, managedPath, optimized.bytes.byteLength, workspaceQuotaBytes);
   if (claimed.error) return Response.json({ message: 'Storage could not be reserved.' }, { status: 503 });
   if (!claimed.data.length) return Response.json({ message: 'This studio has reached its image storage limit. Contact Leon to add storage.' }, { status: 413 });
   try {
     await mkdir(path.dirname(absolute), { recursive: true, mode: 0o750 });
-    await writeFile(absolute, bytes, { flag: 'wx', mode: 0o640 });
+    await writeFile(absolute, optimized.bytes, { flag: 'wx', mode: 0o640 });
   } catch {
     const released = await client.releaseWorkspaceUpload(workspaceId, managedPath);
     return Response.json({
@@ -85,7 +91,7 @@ const route: APIRoute = async ({ request, locals, url }) => {
     }, { status: released.error ? 503 : 507 });
   }
   if (retain) {
-    const originalFilename = file.name.trim().slice(0, 160) || `image.${extension}`;
+    const originalFilename = file.name.trim().slice(0, 160) || 'image.webp';
     const retained = await client.from('workspace_uploads').update({
       original_filename: originalFilename,
       media_kind: kind,
@@ -100,9 +106,9 @@ const route: APIRoute = async ({ request, locals, url }) => {
   return Response.json({
     path: managedPath,
     publicUrl: publicUrl(managedPath),
-    filename: file.name.trim().slice(0, 160) || `image.${extension}`,
+    filename: file.name.trim().slice(0, 160) || 'image.webp',
     kind,
-    size: bytes.byteLength,
+    size: optimized.bytes.byteLength,
   }, { status: 201 });
 };
 

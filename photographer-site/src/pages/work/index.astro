@@ -3,7 +3,7 @@ import GalleryGrid from '../../components/GalleryGrid.astro';
 import SiteLayout from '../../layouts/SiteLayout.astro';
 import { siteRepository } from '../../lib/content/repository';
 
-const portfolio = await siteRepository.getPortfolio();
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const galleries = portfolio.galleries;
 const workHeading = `${portfolio.home.eyebrow?.trim() || 'Photography portfolio'}.`;
 const gallerySummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' })

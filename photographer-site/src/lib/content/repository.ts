@@ -3,11 +3,11 @@ import type { Gallery, JournalPost, Portfolio } from './types';
 import { createStudioDatabase } from '../database';
 
 export interface PortfolioRepository {
-  getPortfolio(): Promise<Portfolio>;
-  listGalleries(): Promise<Gallery[]>;
-  getGallery(slug: string): Promise<Gallery | null>;
-  listPosts(): Promise<JournalPost[]>;
-  getPost(slug: string): Promise<JournalPost | null>;
+  getPortfolio(workspaceId: string): Promise<Portfolio>;
+  listGalleries(workspaceId: string): Promise<Gallery[]>;
+  getGallery(workspaceId: string, slug: string): Promise<Gallery | null>;
+  listPosts(workspaceId: string): Promise<JournalPost[]>;
+  getPost(workspaceId: string, slug: string): Promise<JournalPost | null>;
 }
 
 export class ManagedContentUnavailableError extends Error {
@@ -20,20 +20,20 @@ export class ManagedContentUnavailableError extends Error {
   }
 }
 
-export const demoRepository: PortfolioRepository = {
+export const demoRepository = {
   async getPortfolio() {
     return demoPortfolio;
   },
   async listGalleries() {
     return demoPortfolio.galleries;
   },
-  async getGallery(slug) {
+  async getGallery(slug: string) {
     return demoPortfolio.galleries.find((gallery) => gallery.slug === slug) ?? null;
   },
   async listPosts() {
     return demoPortfolio.posts;
   },
-  async getPost(slug) {
+  async getPost(slug: string) {
     return demoPortfolio.posts.find((post) => post.slug === slug) ?? null;
   },
 };
@@ -63,32 +63,62 @@ type GalleryImageRow = { id: string; gallery_id: string; image_url: string; alt_
 type PostRow = { id: string; slug: string; title: string; excerpt: string; body: string; cover_image_url: string | null; published_at: string | null };
 type ServiceRow = { id: string; name: string; description: string; price_type: 'fixed' | 'from' | 'custom'; price_cents: number | null };
 
-export async function loadSiteTheme(): Promise<SiteTheme> {
+const MANAGED_CACHE_TTL_MS = 3_000;
+const MANAGED_CACHE_MAX_ENTRIES = 500;
+const portfolioCache = new Map<string, { value: Portfolio; expiresAt: number }>();
+const themeCache = new Map<string, { value: SiteTheme; expiresAt: number }>();
+
+const cachedValue = <Value>(cache: Map<string, { value: Value; expiresAt: number }>, key: string) => {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.value;
+};
+
+const cacheValue = <Value>(cache: Map<string, { value: Value; expiresAt: number }>, key: string, value: Value) => {
+  cache.delete(key);
+  while (cache.size >= MANAGED_CACHE_MAX_ENTRIES) {
+    const oldest = cache.keys().next().value as string | undefined;
+    if (!oldest) break;
+    cache.delete(oldest);
+  }
+  cache.set(key, { value, expiresAt: Date.now() + MANAGED_CACHE_TTL_MS });
+  return value;
+};
+
+export function clearManagedContentCache() {
+  portfolioCache.clear();
+  themeCache.clear();
+}
+
+export async function loadSiteTheme(workspaceId: string): Promise<SiteTheme> {
   const fallback: SiteTheme = { paperColor: '#f4f6f8', inkColor: '#090d12', accentColor: '#ff3b30', fontPreset: 'athletic' };
+  const cached = cachedValue(themeCache, workspaceId);
+  if (cached) return cached;
   try {
     const client = createStudioDatabase();
     if (!client) return fallback;
-    const workspace = await client.from('client_workspaces').select<{ id: string }>('id').eq('slug', process.env.SITE_WORKSPACE_SLUG ?? 'northline').maybeSingle();
-    if (!workspace.data) return fallback;
-    const settings = await client.from('studio_settings').select<Pick<SettingsRow, 'paper_color' | 'ink_color' | 'accent_color' | 'font_preset'>>('paper_color,ink_color,accent_color,font_preset').eq('workspace_id', workspace.data.id).maybeSingle();
+    const settings = await client.from('studio_settings').select<Pick<SettingsRow, 'paper_color' | 'ink_color' | 'accent_color' | 'font_preset'>>('paper_color,ink_color,accent_color,font_preset').eq('workspace_id', workspaceId).maybeSingle();
     if (!settings.data) return fallback;
-    return {
+    return cacheValue(themeCache, workspaceId, {
       paperColor: settings.data.paper_color,
       inkColor: settings.data.ink_color,
       accentColor: settings.data.accent_color,
       fontPreset: settings.data.font_preset,
-    } as SiteTheme;
+    } as SiteTheme);
   } catch {
     return fallback;
   }
 }
 
-async function loadManagedPortfolio(): Promise<Portfolio> {
+async function loadManagedPortfolio(workspaceId: string): Promise<Portfolio> {
   try {
-    const slug = process.env.SITE_WORKSPACE_SLUG ?? 'northline';
     const client = createStudioDatabase();
     if (!client) throw new ManagedContentUnavailableError();
-    const workspace = await client.from('client_workspaces').select<WorkspaceRow>('id,name').eq('slug', slug).maybeSingle();
+    const workspace = await client.from('client_workspaces').select<WorkspaceRow>('id,name').eq('id', workspaceId).maybeSingle();
     if (workspace.error || !workspace.data) throw new ManagedContentUnavailableError(workspace.error);
     const id = workspace.data.id;
     const [settings, galleries, galleryImages, posts, services] = await Promise.all([
@@ -152,11 +182,14 @@ const usesDemoContent = () => {
 };
 
 export const siteRepository: PortfolioRepository = {
-  async getPortfolio() {
-    return usesDemoContent() ? demoPortfolio : loadManagedPortfolio();
+  async getPortfolio(workspaceId) {
+    if (usesDemoContent()) return demoPortfolio;
+    const cached = cachedValue(portfolioCache, workspaceId);
+    if (cached) return cached;
+    return cacheValue(portfolioCache, workspaceId, await loadManagedPortfolio(workspaceId));
   },
-  async listGalleries() { return (await this.getPortfolio()).galleries; },
-  async getGallery(slug) { return (await this.listGalleries()).find((gallery) => gallery.slug === slug) ?? null; },
-  async listPosts() { return (await this.getPortfolio()).posts; },
-  async getPost(slug) { return (await this.listPosts()).find((post) => post.slug === slug) ?? null; },
+  async listGalleries(workspaceId) { return (await this.getPortfolio(workspaceId)).galleries; },
+  async getGallery(workspaceId, slug) { return (await this.listGalleries(workspaceId)).find((gallery) => gallery.slug === slug) ?? null; },
+  async listPosts(workspaceId) { return (await this.getPortfolio(workspaceId)).posts; },
+  async getPost(workspaceId, slug) { return (await this.listPosts(workspaceId)).find((post) => post.slug === slug) ?? null; },
 };

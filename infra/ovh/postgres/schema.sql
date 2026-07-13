@@ -10,7 +10,7 @@ $$;
 
 create table if not exists client_workspaces (
   id uuid primary key default gen_random_uuid(),
-  clerk_org_id text not null unique check (char_length(clerk_org_id) between 3 and 128),
+  clerk_org_id text unique check (clerk_org_id is null or char_length(clerk_org_id) between 3 and 128),
   name text not null check (char_length(name) between 2 and 100),
   slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
   status text not null default 'lead' check (status in ('lead', 'approved', 'active', 'paused', 'closed')),
@@ -40,12 +40,56 @@ create table if not exists website_projects (
   name text not null check (char_length(name) between 2 and 120),
   status text not null default 'onboarding' check (status in ('onboarding', 'design', 'review', 'live', 'paused')),
   plan_key text check (plan_key is null or plan_key in ('essential', 'studio', 'signature')),
+  template_key text not null default 'blank' check (template_key in ('blank', 'sports', 'editorial', 'commercial')),
   progress smallint not null default 0 check (progress between 0 and 100),
   next_step text,
   live_url text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table client_workspaces alter column clerk_org_id drop not null;
+alter table website_projects add column if not exists template_key text;
+update website_projects set template_key = 'blank' where template_key is null;
+alter table website_projects alter column template_key set default 'blank';
+alter table website_projects alter column template_key set not null;
+alter table website_projects drop constraint if exists website_projects_template_key_check;
+alter table website_projects add constraint website_projects_template_key_check
+  check (template_key in ('blank', 'sports', 'editorial', 'commercial'));
+
+create table if not exists site_provisioning_runs (
+  id uuid primary key default gen_random_uuid(),
+  idempotency_key uuid not null,
+  request_fingerprint text not null check (char_length(request_fingerprint) = 64),
+  workspace_id uuid not null,
+  requested_by_clerk_user_id text not null check (char_length(requested_by_clerk_user_id) between 3 and 128),
+  owner_clerk_user_id text not null check (char_length(owner_clerk_user_id) between 3 and 128),
+  status text not null default 'database_ready' check (status in ('database_ready', 'configuring', 'ready', 'failed')),
+  last_error text,
+  last_attempt_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint site_provisioning_runs_idempotency_key_key unique (idempotency_key),
+  constraint site_provisioning_runs_workspace_id_key unique (workspace_id),
+  constraint site_provisioning_runs_workspace_id_fkey foreign key (workspace_id)
+    references client_workspaces(id) on delete restrict deferrable initially deferred
+);
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'site_provisioning_runs_workspace_id_fkey'
+      and conrelid = 'site_provisioning_runs'::regclass
+  ) then
+    alter table site_provisioning_runs
+      add constraint site_provisioning_runs_workspace_id_fkey
+      foreign key (workspace_id) references client_workspaces(id)
+      on delete restrict deferrable initially deferred;
+  end if;
+end;
+$$;
 
 create table if not exists subscriptions (
   id uuid primary key default gen_random_uuid(),
@@ -289,6 +333,7 @@ create table if not exists site_connections (
   workspace_id uuid primary key references client_workspaces(id) on delete cascade,
   site_key text not null unique,
   primary_domain text not null,
+  admin_domain text not null,
   deployment_target text,
   github_repository text,
   status text not null default 'active' check (status in ('active', 'paused', 'maintenance', 'error')),
@@ -296,6 +341,16 @@ create table if not exists site_connections (
   last_seen_at timestamptz,
   updated_at timestamptz not null default now()
 );
+
+alter table site_connections add column if not exists admin_domain text;
+update site_connections set admin_domain = primary_domain where admin_domain is null;
+alter table site_connections alter column admin_domain set not null;
+alter table site_connections drop constraint if exists site_connections_primary_domain_check;
+alter table site_connections add constraint site_connections_primary_domain_check
+  check (char_length(primary_domain) between 3 and 253 and primary_domain = lower(primary_domain));
+alter table site_connections drop constraint if exists site_connections_admin_domain_check;
+alter table site_connections add constraint site_connections_admin_domain_check
+  check (char_length(admin_domain) between 3 and 253 and admin_domain = lower(admin_domain));
 
 do $$
 begin
@@ -355,6 +410,9 @@ where
 
 create index if not exists connected_payment_account_history_workspace_idx on connected_payment_account_history (workspace_id, retired_at desc);
 create index if not exists website_projects_workspace_updated_idx on website_projects (workspace_id, updated_at desc);
+create unique index if not exists website_projects_workspace_unique_idx on website_projects (workspace_id);
+create unique index if not exists site_connections_primary_domain_lower_unique_idx on site_connections (lower(primary_domain));
+create unique index if not exists site_connections_admin_domain_lower_unique_idx on site_connections (lower(admin_domain));
 create index if not exists content_requests_workspace_created_idx on content_requests (workspace_id, created_at desc);
 create index if not exists studio_galleries_workspace_sort_idx on studio_galleries (workspace_id, sort_order, created_at);
 create unique index if not exists studio_galleries_workspace_cover_path_unique_idx on studio_galleries (workspace_id, cover_storage_path) where cover_storage_path is not null;
@@ -403,3 +461,21 @@ drop trigger if exists studio_inquiries_updated on studio_inquiries;
 create trigger studio_inquiries_updated before update on studio_inquiries for each row execute function set_updated_at();
 drop trigger if exists site_connections_updated on site_connections;
 create trigger site_connections_updated before update on site_connections for each row execute function set_updated_at();
+drop trigger if exists site_provisioning_runs_updated on site_provisioning_runs;
+create trigger site_provisioning_runs_updated before update on site_provisioning_runs for each row execute function set_updated_at();
+
+-- Applications can use a separate login role granted to this NOLOGIN group.
+-- The login and its password are created out-of-band in a root-readable secret file.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'leon_runtime') then
+    create role leon_runtime nologin nosuperuser nocreatedb nocreaterole noreplication;
+  end if;
+end $$;
+
+revoke create on schema public from public;
+grant usage on schema public to leon_runtime;
+grant select, insert, update, delete on all tables in schema public to leon_runtime;
+grant usage, select on all sequences in schema public to leon_runtime;
+alter default privileges in schema public grant select, insert, update, delete on tables to leon_runtime;
+alter default privileges in schema public grant usage, select on sequences to leon_runtime;

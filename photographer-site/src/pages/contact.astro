@@ -2,9 +2,8 @@
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { siteRepository } from '../lib/content/repository';
 
-const portfolio = await siteRepository.getPortfolio();
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const inquiryEndpoint = '/api/inquiry';
-const workspaceSlug = process.env.SITE_WORKSPACE_SLUG ?? 'northline';
 const minimumDate = new Date().toISOString().slice(0, 10);
 ---
 
@@ -23,7 +22,6 @@ const minimumDate = new Date().toISOString().slice(0, 10);
       class="inquiry-form"
       data-inquiry-form
       data-endpoint={inquiryEndpoint}
-      data-workspace={workspaceSlug}
       data-email={portfolio.email}
       data-studio-name={portfolio.studioName}
       novalidate
@@ -123,7 +121,6 @@ const minimumDate = new Date().toISOString().slice(0, 10);
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          workspaceSlug: form.dataset.workspace,
           name: data.get('name'),
           email,
           phone,

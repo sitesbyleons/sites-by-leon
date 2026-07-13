@@ -1,5 +1,23 @@
 import postgres from 'postgres';
 
+import {
+  provisionClientSite as runClientSiteProvisioning,
+  setSiteOperationalStatus as runSiteOperationalStatusUpdate,
+} from './provisioning';
+
+export type {
+  ProvisionClientSiteInput,
+  ProvisionClientSiteResult,
+  ProvisioningPlanKey,
+  ProvisioningTemplateKey,
+  SiteOperationalStatus,
+  SiteOperationalStatusResult,
+} from './provisioning';
+import type {
+  ProvisionClientSiteInput,
+  SiteOperationalStatus,
+} from './provisioning';
+
 export type QueryExecutor = (text: string, values: unknown[]) => Promise<Record<string, unknown>[]>;
 
 export type DataError = { message: string };
@@ -13,7 +31,8 @@ const schema = {
   connected_payment_accounts: ['id', 'workspace_id', 'stripe_account_id', 'onboarding_status', 'charges_enabled', 'payouts_enabled', 'details_submitted', 'created_at', 'updated_at'],
   contact_inquiries: ['id', 'created_at', 'name', 'email', 'focus', 'message', 'ip_hash'],
   content_requests: ['id', 'workspace_id', 'created_by_clerk_user_id', 'subject', 'details', 'status', 'created_at', 'updated_at'],
-  site_connections: ['workspace_id', 'site_key', 'primary_domain', 'deployment_target', 'github_repository', 'status', 'current_version', 'last_seen_at', 'updated_at'],
+  site_connections: ['workspace_id', 'site_key', 'primary_domain', 'admin_domain', 'deployment_target', 'github_repository', 'status', 'current_version', 'last_seen_at', 'updated_at'],
+  site_provisioning_runs: ['id', 'idempotency_key', 'request_fingerprint', 'workspace_id', 'requested_by_clerk_user_id', 'owner_clerk_user_id', 'status', 'last_error', 'last_attempt_at', 'created_at', 'updated_at'],
   studio_clients: ['id', 'workspace_id', 'service_id', 'stripe_customer_id', 'name', 'email', 'phone', 'notes', 'created_at', 'updated_at'],
   studio_galleries: ['id', 'workspace_id', 'title', 'slug', 'category', 'description', 'cover_image_url', 'cover_storage_path', 'status', 'sort_order', 'created_at', 'updated_at'],
   studio_gallery_images: ['id', 'workspace_id', 'gallery_id', 'image_url', 'alt_text', 'storage_path', 'sort_order', 'created_at', 'updated_at'],
@@ -24,7 +43,7 @@ const schema = {
   studio_settings: ['workspace_id', 'site_title', 'hero_title', 'hero_subtitle', 'contact_email', 'contact_phone', 'paper_color', 'ink_color', 'accent_color', 'font_preset', 'updated_at'],
   stripe_events: ['event_id', 'event_type', 'status', 'attempt_count', 'last_error', 'created_at', 'last_attempt_at', 'processed_at'],
   subscriptions: ['id', 'workspace_id', 'stripe_customer_id', 'stripe_subscription_id', 'stripe_price_id', 'plan_key', 'status', 'current_period_end', 'cancel_at_period_end', 'created_at', 'updated_at'],
-  website_projects: ['id', 'workspace_id', 'name', 'status', 'plan_key', 'progress', 'next_step', 'live_url', 'created_at', 'updated_at'],
+  website_projects: ['id', 'workspace_id', 'name', 'status', 'plan_key', 'template_key', 'progress', 'next_step', 'live_url', 'created_at', 'updated_at'],
   workspace_storage_usage: ['workspace_id', 'used_bytes', 'quota_bytes', 'updated_at'],
   workspace_uploads: ['storage_path', 'workspace_id', 'size_bytes', 'original_filename', 'media_kind', 'is_retained', 'created_at'],
   workspace_members: ['id', 'workspace_id', 'clerk_user_id', 'role', 'created_at'],
@@ -279,6 +298,12 @@ export function createDataClient(executeQuery: QueryExecutor) {
     from(table: string) {
       assertTable(table);
       return new DataQuery(table, executeQuery);
+    },
+    provisionClientSite(input: ProvisionClientSiteInput) {
+      return runClientSiteProvisioning(executeQuery, input);
+    },
+    setSiteOperationalStatus(workspaceId: string, status: SiteOperationalStatus) {
+      return runSiteOperationalStatusUpdate(executeQuery, workspaceId, status);
     },
     async syncSubscription(input: SubscriptionSyncInput): Promise<DataResult<Record<string, unknown>[]>> {
       try {

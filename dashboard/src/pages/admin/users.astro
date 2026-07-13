@@ -47,7 +47,7 @@ const date = (value: number) => new Intl.DateTimeFormat('en-US', { month: 'short
       {users.length ? users.map((user) => (
         <article class="business-table__row" role="row">
           <div role="cell"><strong>{user.name}</strong><small>{user.email}</small></div>
-          <span role="cell">{memberWorkspaces.get(user.id) ?? 'Not connected'}</span>
+          <div role="cell"><span>{memberWorkspaces.get(user.id) ?? 'Not connected'}</span>{!memberWorkspaces.has(user.id) && <a class="user-connect-link" href={`/admin/sites/new?owner=${encodeURIComponent(user.id)}${isPreview ? '&preview=true' : ''}`}>Create site</a>}</div>
           <span role="cell">{date(user.createdAt)}</span>
         </article>
       )) : <p class="simple-empty">No users match those filters.</p>}

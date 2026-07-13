@@ -7,7 +7,6 @@ import { validateInquiry } from '../src/lib/inquiry';
 describe('portfolio inquiry validation', () => {
   it('accepts a normal inquiry with either email or phone', () => {
     const result = validateInquiry({
-      workspaceSlug: 'northline',
       name: 'Jordan Lee',
       email: 'JORDAN@example.com',
       desiredDate: '2026-09-12',
@@ -19,17 +18,17 @@ describe('portfolio inquiry validation', () => {
   });
 
   it('rejects honeypots, missing contact details, and invalid dates', () => {
-    expect(validateInquiry({ workspaceSlug: 'northline', name: 'Jordan', desiredDate: 'bad', message: 'A useful message', company: 'bot' }).ok).toBe(false);
-    expect(validateInquiry({ workspaceSlug: 'northline', name: 'Jordan', desiredDate: 'bad', message: 'A useful message' }).ok).toBe(false);
+    expect(validateInquiry({ name: 'Jordan', desiredDate: 'bad', message: 'A useful message', company: 'bot' }).ok).toBe(false);
+    expect(validateInquiry({ name: 'Jordan', desiredDate: 'bad', message: 'A useful message' }).ok).toBe(false);
   });
 });
 
 describe('inquiry tenant isolation', () => {
-  it('selects the workspace from server configuration rather than browser JSON', () => {
+  it('uses the request-resolved workspace rather than browser JSON or process configuration', () => {
     const route = fs.readFileSync(new URL('../src/pages/api/inquiry.ts', import.meta.url), 'utf8');
-    expect(route).toContain('SITE_WORKSPACE_SLUG');
-    expect(route).toContain(".eq('slug', workspaceSlug)");
-    expect(route).not.toContain(".eq('slug', validation.payload.workspaceSlug)");
+    expect(route).toContain('locals.siteContext.workspaceId');
+    expect(route).not.toContain('SITE_WORKSPACE_SLUG');
+    expect(route).not.toContain('validation.payload.workspaceSlug');
     expect(route).toContain('createRateLimitedInquiry');
   });
 });

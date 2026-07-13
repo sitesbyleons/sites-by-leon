@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   if (!auth.userId) return Response.json({ message: 'Sign in again.' }, { status: 401 });
 
   const stripeKey = process.env.STRIPE_CONNECT_SECRET_KEY ?? process.env.STRIPE_SECRET_KEY;
-  const { client, workspaceId } = await resolveManagedStudio(auth.userId);
+  const { client, workspaceId } = await resolveManagedStudio(auth.userId, locals.siteContext.workspaceId);
   if (!stripeKey) return Response.json({ message: 'Stripe Connect is not configured yet.' }, { status: 503 });
   if (!client || !workspaceId) return Response.json({ message: 'Studio owner access required.' }, { status: 403 });
 

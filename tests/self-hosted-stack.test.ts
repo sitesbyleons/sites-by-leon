@@ -13,12 +13,28 @@ describe('fully self-hosted production stack', () => {
     expect(compose).not.toMatch(/supabase/i);
   });
 
-  it('routes the coming-soon, test site, and image server separately', () => {
+  it('routes marketing, media, and every customer host through the shared fail-closed runtime', () => {
+    const compose = read('infra/ovh/docker-compose.yml');
     const caddy = read('infra/ovh/Caddyfile');
+    const resolver = read('photographer-site/src/lib/site-context.ts');
+    const middleware = read('photographer-site/src/middleware.ts');
+
     expect(caddy).toMatch(/@marketing host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\} \{\$TEST_DOMAIN\}/);
-    expect(caddy).toMatch(/@test_site host \{\$DEMO_DOMAIN\}/);
     expect(caddy).toContain('handle_path /media/*');
     expect(caddy).toContain('root * /srv/uploads');
+    expect(caddy).toContain('reverse_proxy photographer:4321');
+    expect(caddy).not.toMatch(/DEMO_DOMAIN|@test_site|reverse_proxy northline:/);
+    expect(compose).toMatch(/\n  photographer:\n/);
+    expect(compose).not.toMatch(/\n  northline:\n/);
+
+    expect(resolver).toContain(".eq('primary_domain', input.hostname)");
+    expect(resolver).toContain(".eq('admin_domain', input.hostname)");
+    expect(resolver).toContain("return { context: null, error: 'unknown-host' }");
+    expect(resolver).toContain("return { context: null, error: 'unavailable' }");
+    expect(resolver).toContain("nodeEnv === 'development' || nodeEnv === 'test'");
+    expect(middleware).toContain('sequence(tenantResolution, publicControl, authentication)');
+    expect(middleware).toContain("unavailableResponse('Site not found.', 404)");
+    expect(middleware).toContain("unavailableResponse('Site temporarily unavailable. Please try again soon.', 503)");
   });
 
   it('defaults public preview deployment hosts to coming soon', () => {
@@ -71,13 +87,19 @@ describe('fully self-hosted production stack', () => {
     expect(connectWebhook).not.toMatch(/supabase/i);
   });
 
-  it('runs health checks without loading a mutable release Compose file as root', () => {
+  it('health-checks every active customer hostname without loading mutable Compose as root', () => {
     const healthcheck = read('infra/ovh/scripts/healthcheck.sh');
     expect(healthcheck).toContain('com.docker.compose.project=${COMPOSE_PROJECT_NAME}');
     expect(healthcheck).toContain('com.docker.compose.service=database');
     expect(healthcheck).toContain('docker exec "${database_container}"');
     expect(healthcheck).toContain('--connect-timeout "${CURL_CONNECT_TIMEOUT_SECONDS}"');
     expect(healthcheck).toContain('--max-time "${CURL_MAX_TIME_SECONDS}"');
+    expect(healthcheck).toContain('select distinct lower(primary_domain) from site_connections where status =');
+    expect(healthcheck).toContain('order by 1;');
+    expect(healthcheck).toContain('for domain in "${active_site_domains[@]}"');
+    expect(healthcheck).toContain('"https://${domain}/api/health"');
+    expect(healthcheck).toContain('Database contains an invalid active site domain.');
+    expect(healthcheck).not.toContain('DEMO_URL');
     expect(healthcheck).not.toContain('docker compose');
   });
 

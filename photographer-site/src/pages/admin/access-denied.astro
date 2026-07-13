@@ -8,6 +8,7 @@ const auth = Astro.locals.auth();
 const session = await loadStudioSession({
   isPreview: false,
   userId: auth?.userId ?? null,
+  workspaceId: Astro.locals.siteContext.workspaceId,
   getToken: async () => auth ? (await auth.getToken()) ?? null : null,
 });
 if (!session.authenticated) return Astro.redirect('/sign-in?redirect_url=%2Fadmin');

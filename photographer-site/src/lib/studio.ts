@@ -187,7 +187,7 @@ export function previewStudioData(): StudioAdminData {
 
 export async function loadStudioAdminData(
   client: DataClient | null,
-  workspaceSlug = process.env.SITE_WORKSPACE_SLUG ?? 'northline',
+  workspaceId: string,
 ): Promise<StudioAdminData> {
   const empty: StudioAdminData = {
     workspace: null, settings: null, galleries: [], images: [], posts: [], services: [],
@@ -198,7 +198,7 @@ export async function loadStudioAdminData(
   const workspaceResult = await client
     .from('client_workspaces')
     .select('id,name,slug,status')
-    .eq('slug', workspaceSlug)
+    .eq('id', workspaceId)
     .maybeSingle<StudioWorkspace>();
   if (workspaceResult.error || !workspaceResult.data) {
     return { ...empty, error: 'This studio is not connected to your account.' };
@@ -262,13 +262,13 @@ export async function loadStudioAdminData(
   };
 }
 
-export async function resolveManagedStudio(clerkUserId: string) {
+export async function resolveManagedStudio(clerkUserId: string, workspaceId: string) {
   const client = createStudioDatabase();
   if (!client) return { client: null, workspaceId: null };
   const workspace = await client
     .from('client_workspaces')
     .select('id')
-    .eq('slug', process.env.SITE_WORKSPACE_SLUG ?? 'northline')
+    .eq('id', workspaceId)
     .maybeSingle<{ id: string }>();
   if (!workspace.data || !(await userCanManageWorkspace(client, clerkUserId, workspace.data.id))) {
     return { client: null, workspaceId: null };
@@ -279,15 +279,16 @@ export async function resolveManagedStudio(clerkUserId: string) {
 export async function loadStudioSession(input: {
   isPreview: boolean;
   userId: string | null;
+  workspaceId: string;
   getToken: () => Promise<string | null>;
 }) {
   if (input.isPreview) return { authenticated: true, authorized: true, data: previewStudioData() };
   if (!input.userId) return { authenticated: false, authorized: false, data: null };
-  const { client } = await resolveManagedStudio(input.userId);
+  const { client } = await resolveManagedStudio(input.userId, input.workspaceId);
   if (!client) {
     return { authenticated: true, authorized: false, data: null };
   }
-  return { authenticated: true, authorized: true, data: await loadStudioAdminData(client) };
+  return { authenticated: true, authorized: true, data: await loadStudioAdminData(client, input.workspaceId) };
 }
 
 export function decideStudioAdminAccess(

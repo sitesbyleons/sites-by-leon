@@ -41,9 +41,24 @@ describe('OVH infrastructure reliability', () => {
     expect(backup).toContain('rsync -a --delete "${UPLOAD_ROOT}/" "${staged_uploads}/"');
     expect(backup).toContain('stop_attempted=1');
     expect(backup).toContain('com.docker.compose.project=${COMPOSE_PROJECT_NAME}');
-    expect(backup).toContain('docker stop "${dashboard_container}" "${northline_container}"');
-    expect(backup).toContain('docker start "${dashboard_container}" "${northline_container}"');
+    expect(backup).toContain('photographer_container=$(service_container photographer)');
+    expect(backup).toContain('docker stop "${dashboard_container}" "${photographer_container}"');
+    expect(backup).toContain('docker start "${dashboard_container}" "${photographer_container}"');
+    expect(backup).not.toContain('northline_container');
     expect(backup).toContain('backup_paths=("${dump}" "${staged_uploads}")');
+  });
+
+  it('recovers the shared runtime only after every active customer site is healthy', () => {
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+    const healthcheck = read('infra/ovh/scripts/healthcheck.sh');
+
+    expect(backup).toContain('wait_for_application_health');
+    expect(backup).toContain('SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${BACKUP_HEALTHCHECK_SCRIPT}"');
+    expect(healthcheck).toContain('mapfile -t active_site_domains');
+    expect(healthcheck).toContain('from site_connections where status =');
+    expect(healthcheck).toContain('for domain in "${active_site_domains[@]}"');
+    expect(healthcheck).toContain('Expected at least one active customer site.');
+    expect(healthcheck).toContain('${#active_site_domains[@]} active customer site(s)');
   });
 
   it('waits for the recovered applications to pass health checks before backing them up', () => {
@@ -258,6 +273,44 @@ describe('OVH infrastructure reliability', () => {
     expect(migration).toContain('< "${SOURCE_ROOT}/infra/ovh/postgres/schema.sql"');
   });
 
+  it('configures a least-privilege runtime database login during every deployment', () => {
+    const schema = read('infra/ovh/postgres/schema.sql');
+    const configureRole = read('infra/ovh/scripts/configure-runtime-role.sh');
+    const deploy = read('infra/ovh/scripts/deploy.sh');
+    const dashboardEnv = read('infra/ovh/secrets/dashboard.env.example');
+    const photographerEnv = read('infra/ovh/secrets/northline.env.example');
+    const postgresEnv = read('infra/ovh/secrets/postgres.env.example');
+
+    expect(schema).toContain('create role leon_runtime nologin nosuperuser nocreatedb nocreaterole noreplication');
+    expect(schema).toContain('revoke create on schema public from public');
+    expect(schema).toContain('grant select, insert, update, delete on all tables in schema public to leon_runtime');
+    expect(configureRole).toContain('POSTGRES_RUNTIME_PASSWORD must contain at least 32 characters.');
+    expect(configureRole).toContain('create role leon_web login nosuperuser nocreatedb nocreaterole noreplication');
+    expect(configureRole).toContain('grant leon_runtime to leon_web');
+    expect(deploy).toContain('configure-runtime-role.sh');
+    expect(dashboardEnv).toMatch(/^DATABASE_URL=postgresql:\/\/leon_web:/m);
+    expect(photographerEnv).toMatch(/^DATABASE_URL=postgresql:\/\/leon_web:/m);
+    expect(dashboardEnv).not.toMatch(/^POSTGRES_PASSWORD=/m);
+    expect(photographerEnv).not.toMatch(/^POSTGRES_PASSWORD=/m);
+    expect(postgresEnv).toMatch(/^POSTGRES_PASSWORD=/m);
+    expect(postgresEnv).toMatch(/^POSTGRES_RUNTIME_PASSWORD=/m);
+  });
+
+  it('reserves aggregate media capacity atomically before provisioning a customer', () => {
+    const provisioning = read('platform-core/src/provisioning.ts');
+    const dashboardEnv = read('infra/ovh/secrets/dashboard.env.example');
+    const readme = read('infra/ovh/README.md');
+
+    expect(provisioning).toContain('capacity_limit_bytes?: number');
+    expect(provisioning).toContain('pg_advisory_xact_lock');
+    expect(provisioning).toContain('coalesce(sum("quota_bytes"), 0)::bigint as reserved_bytes');
+    expect(provisioning).toContain('capacity.reserved_bytes + $13::bigint <= $14::bigint');
+    expect(provisioning).toContain('Omitting the platform ceiling fails closed');
+    expect(dashboardEnv).toMatch(/^PLATFORM_PROVISIONABLE_STORAGE_BYTES=\d+$/m);
+    expect(readme).toContain('PLATFORM_PROVISIONABLE_STORAGE_BYTES');
+    expect(readme).toContain('provisioning rejects requests that would exceed it');
+  });
+
   it('serializes deployments, migrations, and consistent backups with one host lock', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
     const deploy = read('infra/ovh/scripts/deploy.sh');
@@ -270,14 +323,21 @@ describe('OVH infrastructure reliability', () => {
     expect(deploy).toContain('MAINTENANCE_LOCK_HELD=1');
   });
 
-  it('documents the pool override and active release paths for operators', () => {
+  it('documents pool, capacity, runtime-role, and offsite-backup boundaries for operators', () => {
     const readme = read('infra/ovh/README.md');
     const dashboardEnv = read('infra/ovh/secrets/dashboard.env.example');
-    const northlineEnv = read('infra/ovh/secrets/northline.env.example');
+    const photographerEnv = read('infra/ovh/secrets/northline.env.example');
+    const backupEnv = read('infra/ovh/secrets/backup.env.example');
 
     expect(readme).toContain('/opt/leon-platform/current');
     expect(readme).toContain('DATABASE_POOL_MAX');
     expect(dashboardEnv).toContain('DATABASE_POOL_MAX=4');
-    expect(northlineEnv).toContain('DATABASE_POOL_MAX=4');
+    expect(photographerEnv).toContain('DATABASE_POOL_MAX=4');
+    expect(dashboardEnv).toContain('PLATFORM_PROVISIONABLE_STORAGE_BYTES=');
+    expect(readme).toContain('single shared photographer runtime');
+    expect(readme).toContain('web containers must never use the database administrator login');
+    expect(readme).toContain('It is not an independent backup because it shares the VPS disk.');
+    expect(readme).toContain('before storing production client media');
+    expect(backupEnv).toMatch(/^RESTIC_REPOSITORY=s3:/m);
   });
 });

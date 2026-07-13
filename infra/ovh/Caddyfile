@@ -44,11 +44,6 @@
 		file_server
 	}
 
-	@test_site host {$DEMO_DOMAIN}
-	handle @test_site {
-		reverse_proxy northline:4321
-	}
-
 	@media host {$MEDIA_DOMAIN}
 	handle @media {
 		handle_path /media/* {
@@ -61,7 +56,9 @@
 		}
 	}
 
+	# Cloudflare publishes the allowed customer hostnames. The shared photographer
+	# runtime performs a second exact-host database lookup and rejects unknown hosts.
 	handle {
-		respond "Not found" 404
+		reverse_proxy photographer:4321
 	}
 }

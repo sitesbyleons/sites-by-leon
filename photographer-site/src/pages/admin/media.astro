@@ -5,7 +5,7 @@ import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
-const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), getToken: async () => auth ? (await auth.getToken()) ?? null : null });
+const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), workspaceId: Astro.locals.siteContext.workspaceId, getToken: async () => auth ? (await auth.getToken()) ?? null : null });
 const access = decideStudioAdminAccess(session, '/admin/media');
 if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;

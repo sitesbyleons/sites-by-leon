@@ -46,6 +46,7 @@ export type AdminConnection = {
   workspace_id: string;
   site_key: string;
   primary_domain: string;
+  admin_domain: string;
   deployment_target: string | null;
   github_repository: string | null;
   status: string;
@@ -60,6 +61,13 @@ export type AdminUser = {
   createdAt: number;
 };
 
+export type AdminProvisioningRun = {
+  workspace_id: string;
+  status: string;
+  last_error: string | null;
+  updated_at: string;
+};
+
 export type AdminData = {
   workspaces: AdminWorkspace[];
   projects: AdminProject[];
@@ -67,6 +75,7 @@ export type AdminData = {
   requests: AdminRequest[];
   members: AdminMember[];
   connections: AdminConnection[];
+  provisioningRuns: AdminProvisioningRun[];
   error: string | null;
 };
 
@@ -111,7 +120,10 @@ export function getPreviewAdminData(): AdminData {
       { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
     ],
     connections: [
-      { workspace_id: 'ws_northline', site_key: 'northline-demo', primary_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-northline', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null },
+      { workspace_id: 'ws_northline', site_key: 'northline-demo', primary_domain: 'demo.leonsites.org', admin_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null },
+    ],
+    provisioningRuns: [
+      { workspace_id: 'ws_northline', status: 'ready', last_error: null, updated_at: '2026-07-10T17:00:00.000Z' },
     ],
     error: null,
   };
@@ -214,10 +226,10 @@ export async function checkAppAdmin(database: DataClient | null, clerkUserId: st
 }
 
 export async function loadAdminData(database: DataClient | null): Promise<AdminData> {
-  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [] };
+  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [], provisioningRuns: [] };
   if (!database) return { ...empty, error: 'The secure database connection is not configured.' };
 
-  const [workspaces, projects, subscriptions, requests, members, connections] = await Promise.all([
+  const [workspaces, projects, subscriptions, requests, members, connections, provisioningRuns] = await Promise.all([
     database.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
     database
       .from('website_projects')
@@ -234,10 +246,11 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
       .order('created_at', { ascending: false })
       .limit(100),
     database.from('workspace_members').select('workspace_id,clerk_user_id,role'),
-    database.from('site_connections').select('workspace_id,site_key,primary_domain,deployment_target,github_repository,status,current_version,last_seen_at'),
+    database.from('site_connections').select('workspace_id,site_key,primary_domain,admin_domain,deployment_target,github_repository,status,current_version,last_seen_at'),
+    database.from('site_provisioning_runs').select('workspace_id,status,last_error,updated_at').order('updated_at', { ascending: false }),
   ]);
 
-  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error;
+  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error || provisioningRuns.error;
 
   return {
     workspaces: (workspaces.data ?? []) as AdminWorkspace[],
@@ -246,6 +259,7 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
     requests: (requests.data ?? []) as AdminRequest[],
     members: (members.data ?? []) as AdminMember[],
     connections: (connections.data ?? []) as AdminConnection[],
+    provisioningRuns: (provisioningRuns.data ?? []) as AdminProvisioningRun[],
     error: hasError ? 'Some studio data is temporarily unavailable.' : null,
   };
 }

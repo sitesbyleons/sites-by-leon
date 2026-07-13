@@ -8,7 +8,7 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
   timeZone: 'UTC',
 });
-const portfolio = await siteRepository.getPortfolio();
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const posts = portfolio.posts.map((post) => ({
   post,
   publishedAt: dateFormatter.format(new Date(post.publishedAt)),

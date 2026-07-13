@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   if (!uuidPattern.test(invoiceId)) return Response.json({ message: 'Choose a valid draft invoice.' }, { status: 400 });
 
   const stripeKey = process.env.STRIPE_CONNECT_SECRET_KEY ?? process.env.STRIPE_SECRET_KEY;
-  const { client: database, workspaceId } = await resolveManagedStudio(auth.userId);
+  const { client: database, workspaceId } = await resolveManagedStudio(auth.userId, locals.siteContext.workspaceId);
   if (!stripeKey) return Response.json({ message: 'Invoice payments are not configured yet.' }, { status: 503 });
   if (!database || !workspaceId) return Response.json({ message: 'Studio owner access required.' }, { status: 403 });
 

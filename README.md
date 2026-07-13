@@ -61,6 +61,8 @@ The browser suite covers mobile and desktop overflow, accessibility, the coming-
 
 Follow [`infra/ovh/README.md`](./infra/ovh/README.md). Production secrets stay only in root-readable files on the VPS. GitHub Actions verifies the source, but GitHub does not host the live application.
 
+The repeatable customer workflow, two-site acceptance test, capacity gates, and rollback steps are in [`docs/operations/client-provisioning.md`](./docs/operations/client-provisioning.md).
+
 ## Design sources
 
 - [Penpot website system](https://design.penpot.app/#/workspace?team-id=f2b396a6-c4f1-8031-8008-4dd0fec860ae&file-id=42558d4e-b644-80d6-8008-4dd862ca6b8a&page-id=42558d4e-b644-80d6-8008-4dd862ca6b8b)

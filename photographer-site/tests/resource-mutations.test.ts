@@ -31,10 +31,14 @@ describe('studio resource mutations', () => {
 
   it('reserves per-workspace storage before writing an uploaded image', () => {
     const upload = read('src/pages/api/admin/upload.ts');
+    expect(upload).toContain('optimizeUploadedImage');
     expect(upload).toContain('claimWorkspaceUpload');
     expect(upload).toContain('releaseWorkspaceUpload');
     expect(upload).toContain('WORKSPACE_UPLOAD_QUOTA_BYTES');
     expect(upload).toContain('sweepOrphanedUploads');
+    expect(upload).toContain('}.webp`');
+    expect(upload).toContain('claimWorkspaceUpload(workspaceId, managedPath, optimized.bytes.byteLength');
+    expect(upload).toContain('writeFile(absolute, optimized.bytes');
   });
 
   it('does not remove an upload after it has been attached to studio content', () => {

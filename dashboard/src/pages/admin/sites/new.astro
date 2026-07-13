@@ -1,0 +1,143 @@
+---
+import { clerkClient } from '@clerk/astro/server';
+
+import AdminFrame from '../../../components/AdminFrame.astro';
+import { decideAdminAccess } from '../../../lib/access';
+import { loadAdminSession } from '../../../lib/admin';
+import { planOptions, siteTemplateOptions } from '../../../lib/site-provisioning';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadAdminSession({
+  isPreview,
+  userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
+  getToken: async () => (auth ? (await auth.getToken()) ?? null : null),
+  includeUsers: true,
+  userClient: isPreview ? undefined : clerkClient(Astro),
+});
+const access = decideAdminAccess({ userId: isPreview ? 'preview_admin' : (auth?.userId ?? null), isAdmin: session.isAdmin });
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+
+const connectedUserIds = new Set(session.data!.members.map((member) => member.clerk_user_id));
+const requestedOwner = Astro.url.searchParams.get('owner') ?? '';
+const selectedOwnerId = session.users.some((user) => user.id === requestedOwner && !connectedUserIds.has(user.id)) ? requestedOwner : '';
+const idempotencyKey = crypto.randomUUID();
+---
+
+<AdminFrame active="sites" title="Add client site" eyebrow="Provisioning" description="Create the customer, owner access, starter site, and storage limit together." isPreview={isPreview} error={session.error}>
+  <div class="provision-back"><a href={`/admin/sites${isPreview ? '?preview=true' : ''}`}>← Back to sites</a></div>
+
+  <form class="provision-form" data-provision-site data-preview={isPreview ? 'true' : 'false'}>
+    <input type="hidden" name="idempotency_key" value={idempotencyKey} />
+
+    <section class="provision-section" aria-labelledby="customer-heading">
+      <header><span>01</span><div><h2 id="customer-heading">Customer</h2><p>Choose the account that will own this site.</p></div></header>
+      <div class="provision-fields provision-fields--two">
+        <label><span>Owner account</span><select name="owner_user_id" required><option value="">Choose a user</option>{session.users.map((user) => <option value={user.id} selected={user.id === selectedOwnerId} disabled={connectedUserIds.has(user.id)}>{user.name} · {user.email}{connectedUserIds.has(user.id) ? ' · connected' : ''}</option>)}</select><small data-field-error="owner_user_id"></small></label>
+        <label><span>Studio name</span><input name="studio_name" required minlength="2" maxlength="80" autocomplete="organization" placeholder="Vow & Light" /><small data-field-error="studio_name"></small></label>
+      </div>
+    </section>
+
+    <section class="provision-section" aria-labelledby="address-heading">
+      <header><span>02</span><div><h2 id="address-heading">Site addresses</h2><p>The private editor stays on Leon Sites even when the public site uses a custom domain.</p></div></header>
+      <div class="provision-fields provision-fields--two">
+        <label><span>Short name</span><input name="slug" required minlength="3" maxlength="48" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="vow-and-light" /><small data-field-error="slug"></small></label>
+        <label><span>Public domain</span><input name="primary_domain" required inputmode="url" placeholder="vow-and-light.leonsites.org" /><small data-field-error="primary_domain"></small></label>
+        <label><span>Private editor domain</span><input name="admin_domain" required inputmode="url" placeholder="vow-and-light.leonsites.org" /><small data-field-error="admin_domain"></small></label>
+        <label><span>Private GitHub repository <em>optional</em></span><input name="github_repository" placeholder="sitesbyleons/vow-and-light" /><small data-field-error="github_repository"></small></label>
+      </div>
+    </section>
+
+    <section class="provision-section" aria-labelledby="starter-heading">
+      <header><span>03</span><div><h2 id="starter-heading">Starter setup</h2><p>These choices seed editable homepage text, services, galleries, and a post.</p></div></header>
+      <fieldset class="template-options">
+        <legend>Starter design</legend>
+        {siteTemplateOptions.map((option, index) => (
+          <label><input type="radio" name="template_key" value={option.key} checked={index === 0} /><span><strong>{option.label}</strong><small>{option.description}</small></span></label>
+        ))}
+        <small data-field-error="template_key"></small>
+      </fieldset>
+      <div class="provision-fields provision-fields--two">
+        <label><span>Monthly plan</span><select name="plan_key" required>{planOptions.map((option) => <option value={option.key} selected={option.key === 'studio'}>{option.label} · ${option.monthlyUsd}/month</option>)}</select><small data-field-error="plan_key"></small></label>
+        <label><span>Media storage limit (GB)</span><input type="number" name="quota_gb" required min="1" max="100" step="1" value="2" /><small data-field-error="quota_gb"></small></label>
+      </div>
+    </section>
+
+    <footer class="provision-submit">
+      <div><strong>Starts in maintenance</strong><small>Review the site before making it public.</small></div>
+      <button type="submit">Create customer site</button>
+    </footer>
+    <div class="provision-result" data-provision-result aria-live="polite"></div>
+  </form>
+
+  <script>
+    const form = document.querySelector<HTMLFormElement>('[data-provision-site]');
+    if (form) {
+      const studio = form.elements.namedItem('studio_name') as HTMLInputElement;
+      const slug = form.elements.namedItem('slug') as HTMLInputElement;
+      const primaryDomain = form.elements.namedItem('primary_domain') as HTMLInputElement;
+      const adminDomain = form.elements.namedItem('admin_domain') as HTMLInputElement;
+      const result = form.querySelector<HTMLElement>('[data-provision-result]')!;
+      let addressWasEdited = false;
+
+      const toSlug = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+      const syncAddress = () => {
+        if (addressWasEdited) return;
+        slug.value = toSlug(studio.value);
+        primaryDomain.value = slug.value ? `${slug.value}.leonsites.org` : '';
+        adminDomain.value = primaryDomain.value;
+      };
+      studio.addEventListener('input', syncAddress);
+      slug.addEventListener('input', () => {
+        addressWasEdited = true;
+        primaryDomain.value = slug.value ? `${toSlug(slug.value)}.leonsites.org` : '';
+        adminDomain.value = primaryDomain.value;
+      });
+      primaryDomain.addEventListener('input', () => { addressWasEdited = true; });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        result.className = 'provision-result';
+        result.textContent = '';
+        form.querySelectorAll<HTMLElement>('[data-field-error]').forEach((element) => { element.textContent = ''; });
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+        button.disabled = true;
+        button.textContent = 'Creating…';
+
+        if (form.dataset.preview === 'true') {
+          result.classList.add('is-success');
+          result.textContent = 'Preview complete. Production creates the records together.';
+          button.disabled = false;
+          button.textContent = 'Create customer site';
+          return;
+        }
+
+        const body = Object.fromEntries(new FormData(form).entries());
+        try {
+          const response = await fetch('/api/admin/provision', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            Object.entries(payload.errors ?? {}).forEach(([field, message]) => {
+              const target = form.querySelector<HTMLElement>(`[data-field-error="${CSS.escape(field)}"]`);
+              if (target) target.textContent = String(message);
+            });
+            throw new Error(payload.message ?? 'The customer site was not created.');
+          }
+
+          result.classList.add('is-success');
+          result.innerHTML = `<strong>${payload.studioName} is ready for review.</strong><span><a href="https://${payload.primaryDomain}" target="_blank" rel="noreferrer">Open site</a><a href="https://${payload.adminDomain}/admin" target="_blank" rel="noreferrer">Open editor</a><a href="/admin/sites">View all sites</a></span>`;
+          form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('input, select, button').forEach((control) => { control.disabled = true; });
+        } catch (error) {
+          result.classList.add('is-error');
+          result.textContent = error instanceof Error ? error.message : 'The customer site was not created.';
+          button.disabled = false;
+          button.textContent = 'Create customer site';
+        }
+      });
+    }
+  </script>
+</AdminFrame>

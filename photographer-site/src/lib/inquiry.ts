@@ -7,7 +7,6 @@ const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
 export function validateInquiry(input: unknown) {
   const source = input && typeof input === 'object' ? input as Record<string, unknown> : {};
   const payload = {
-    workspaceSlug: text(source.workspaceSlug),
     name: text(source.name),
     email: text(source.email).toLowerCase(),
     phone: text(source.phone),
@@ -28,8 +27,6 @@ export function validateInquiry(input: unknown) {
   const date = new Date(`${payload.desiredDate}T12:00:00Z`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.desiredDate) || Number.isNaN(date.valueOf())) errors.desiredDate = 'Choose a date.';
   if (payload.message.length < 10 || payload.message.length > 3000) errors.message = 'Enter a message between 10 and 3,000 characters.';
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.workspaceSlug)) errors.message = 'This contact form is not configured.';
-
   return Object.keys(errors).length
     ? { ok: false as const, errors }
     : { ok: true as const, payload };

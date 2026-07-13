@@ -7,12 +7,17 @@ COPY platform-core/package.json platform-core/package.json
 COPY photographer-site/package.json photographer-site/package.json
 RUN pnpm install --frozen-lockfile
 COPY . .
+RUN mkdir -p photographer-site/public/images/cinematic \
+  && cp -R public/images/cinematic/. photographer-site/public/images/cinematic/
 ARG PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG RELEASE_SHA=development
 ENV PUBLIC_CLERK_PUBLISHABLE_KEY=$PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV RELEASE_SHA=$RELEASE_SHA
 RUN pnpm --filter northline-photographer-site build
 
 FROM node:24-bookworm-slim
-ENV HOST=0.0.0.0 PORT=4321 NODE_ENV=production
+ARG RELEASE_SHA=development
+ENV HOST=0.0.0.0 PORT=4321 NODE_ENV=production RELEASE_SHA=$RELEASE_SHA
 WORKDIR /workspace
 COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
 COPY --from=build --chown=node:node /workspace/photographer-site/node_modules ./photographer-site/node_modules

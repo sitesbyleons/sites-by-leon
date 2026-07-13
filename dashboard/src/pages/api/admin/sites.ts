@@ -22,8 +22,8 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   if (!workspaceId || !allowedStatuses.has(status)) {
     return Response.json({ message: 'Choose a valid site status.' }, { status: 400 });
   }
-  const { error } = await database.from('site_connections').update({ status }).eq('workspace_id', workspaceId);
-  return error
+  const result = await database.setSiteOperationalStatus(workspaceId, status as 'active' | 'maintenance' | 'paused');
+  return result.error || !result.data
     ? Response.json({ message: 'Site status was not updated.' }, { status: 500 })
-    : Response.json({ ok: true });
+    : Response.json({ ok: true, status: result.data.site_status });
 };

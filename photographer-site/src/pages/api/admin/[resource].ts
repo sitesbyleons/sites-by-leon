@@ -64,7 +64,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
 
   const auth = locals.auth();
   if (!auth.userId) return Response.json({ message: 'Sign in again.' }, { status: 401 });
-  const managedStudio = await resolveManagedStudio(auth.userId);
+  const managedStudio = await resolveManagedStudio(auth.userId, locals.siteContext.workspaceId);
   if (!managedStudio.client || !managedStudio.workspaceId) return Response.json({ message: 'You do not have access to this studio.' }, { status: 403 });
   const client = managedStudio.client;
 

@@ -12,7 +12,6 @@ export default defineConfig({
     // write routes enforce the shared proxy-aware origin check themselves.
     checkOrigin: false,
   },
-  site: 'https://demo.leonsites.org',
   vite: {
     server: {
       fs: { allow: [fileURLToPath(new URL('..', import.meta.url))] },

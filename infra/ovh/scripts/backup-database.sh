@@ -102,7 +102,7 @@ service_container() {
 }
 
 dashboard_container=$(service_container dashboard)
-northline_container=$(service_container northline)
+photographer_container=$(service_container photographer)
 database_container=$(service_container database)
 
 if [[ $(docker inspect --format '{{.State.Running}}' "${database_container}") != true ]]; then
@@ -125,7 +125,7 @@ wait_for_application_health() {
 }
 
 restart_application_containers() {
-  docker start "${dashboard_container}" "${northline_container}" >/dev/null
+  docker start "${dashboard_container}" "${photographer_container}" >/dev/null
   wait_for_application_health
 }
 
@@ -204,7 +204,7 @@ trap cleanup EXIT
 mkdir -p "${staged_uploads}"
 rsync -a --delete "${UPLOAD_ROOT}/" "${staged_uploads}/"
 stop_attempted=1
-docker stop "${dashboard_container}" "${northline_container}" >/dev/null
+docker stop "${dashboard_container}" "${photographer_container}" >/dev/null
 rsync -a --delete "${UPLOAD_ROOT}/" "${staged_uploads}/"
 docker exec "${database_container}" sh -c \
   'pg_dump --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --format custom --no-owner --no-acl' > "${dump}"
