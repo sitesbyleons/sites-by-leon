@@ -1,11 +1,12 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
-import { loadStudioSession } from '../../lib/studio';
+import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
 const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), getToken: async () => auth ? (await auth.getToken()) ?? null : null });
-if (!session.authenticated) return Astro.redirect('/sign-in?redirect_url=%2Fadmin');
+const access = decideStudioAdminAccess(session, '/admin');
+if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const studioName = data.workspace?.name ?? 'Studio';
 ---

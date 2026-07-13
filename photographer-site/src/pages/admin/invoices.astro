@@ -1,10 +1,11 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
-import { dollars, loadStudioSession } from '../../lib/studio';
+import { decideStudioAdminAccess, dollars, loadStudioSession } from '../../lib/studio';
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
 const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), getToken: async () => auth ? (await auth.getToken()) ?? null : null });
-if (!session.authenticated) return Astro.redirect('/sign-in?redirect_url=%2Fadmin%2Finvoices');
+const access = decideStudioAdminAccess(session, '/admin/invoices');
+if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const clientNames = new Map(data.clients.map((client) => [client.id, client.name]));
 const paymentsReady = Boolean(data.connect?.charges_enabled && data.connect?.payouts_enabled);

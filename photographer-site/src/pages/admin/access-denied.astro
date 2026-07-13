@@ -1,0 +1,39 @@
+---
+import { SignOutButton, UserButton } from '@clerk/astro/components';
+
+import { loadStudioSession } from '../../lib/studio';
+import '../../styles/studio-admin.css';
+
+const auth = Astro.locals.auth();
+const session = await loadStudioSession({
+  isPreview: false,
+  userId: auth?.userId ?? null,
+  getToken: async () => auth ? (await auth.getToken()) ?? null : null,
+});
+if (!session.authenticated) return Astro.redirect('/sign-in?redirect_url=%2Fadmin');
+if (session.authorized) return Astro.redirect('/admin');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Studio access</title>
+  </head>
+  <body>
+    <main class="studio-access-screen">
+      <section class="studio-access-card" role="alert" aria-labelledby="studio-access-title">
+        <div class="studio-access-card__account"><UserButton /></div>
+        <small>Studio access</small>
+        <h1 id="studio-access-title">This account is not a studio owner.</h1>
+        <p>You are signed in, but this account cannot view or edit this photographer website.</p>
+        <div>
+          <a href="/">View website</a>
+          <SignOutButton><button type="button">Sign out</button></SignOutButton>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+---
+import { SignOutButton, UserButton } from '@clerk/astro/components';
+
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { checkAppAdmin } from '../../lib/admin';
+import { createPlatformDatabase } from '../../lib/database';
+
+const auth = Astro.locals.auth();
+if (!auth?.userId) return Astro.redirect('/sign-in?redirect_url=%2Fadmin');
+if ((await checkAppAdmin(createPlatformDatabase(), auth.userId)).isAdmin) return Astro.redirect('/admin');
+---
+
+<DashboardLayout title="Admin access" shell>
+  <main class="access-screen">
+    <section class="access-card" role="alert" aria-labelledby="access-title">
+      <div class="access-card__account"><UserButton /></div>
+      <span class="simple-label">Admin access</span>
+      <h1 id="access-title">This account is not an admin.</h1>
+      <p>You are signed in, but this account does not have permission to open the Sites By Leon admin area.</p>
+      <div class="access-card__actions">
+        <a class="simple-button" href="/dashboard">Open client dashboard</a>
+        <SignOutButton><button class="simple-button simple-button--quiet" type="button">Sign out</button></SignOutButton>
+      </div>
+    </section>
+  </main>
+</DashboardLayout>
