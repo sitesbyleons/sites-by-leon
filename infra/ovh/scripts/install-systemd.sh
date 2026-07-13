@@ -7,6 +7,8 @@ if [[ ${EUID} -ne 0 ]]; then
 fi
 
 SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}
+SOURCE_ROOT=$(readlink -f "${SOURCE_ROOT}")
+LIBEXEC_ROOT=/usr/local/libexec/leon-platform
 BACKUP_ENV=/opt/leon-platform/secrets/backup.env
 
 require_root_secret() {
@@ -37,8 +39,16 @@ if [[ -z ${RESTIC_PASSWORD_FILE:-} ]]; then
   exit 1
 fi
 require_root_secret "${RESTIC_PASSWORD_FILE}"
-install -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.service" /etc/systemd/system/leon-backup.service
-install -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.timer" /etc/systemd/system/leon-backup.timer
+
+install -o root -g root -m 0755 -d "${LIBEXEC_ROOT}"
+install -o root -g root -m 0755 \
+  "${SOURCE_ROOT}/infra/ovh/scripts/backup-database.sh" \
+  "${LIBEXEC_ROOT}/backup-database.sh"
+install -o root -g root -m 0755 \
+  "${SOURCE_ROOT}/infra/ovh/scripts/healthcheck.sh" \
+  "${LIBEXEC_ROOT}/healthcheck.sh"
+install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.service" /etc/systemd/system/leon-backup.service
+install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.timer" /etc/systemd/system/leon-backup.timer
 systemctl daemon-reload
 systemctl enable --now leon-backup.timer
 systemctl list-timers 'leon-*'

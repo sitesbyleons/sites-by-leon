@@ -6,7 +6,8 @@ After=docker.service network-online.target
 [Service]
 Type=oneshot
 EnvironmentFile=/opt/leon-platform/secrets/backup.env
-ExecStart=/usr/bin/bash /opt/leon-platform/current/infra/ovh/scripts/backup-database.sh
+ExecStart=/usr/bin/bash /usr/local/libexec/leon-platform/backup-database.sh
+UMask=0077
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

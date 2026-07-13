@@ -14,15 +14,18 @@ afterEach(() => {
 });
 
 describe('OVH infrastructure reliability', () => {
-  it('runs backups from the active release instead of the retired app path', () => {
+  it('installs immutable backup helpers while reading data from the active release', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
     const installer = read('infra/ovh/scripts/install-systemd.sh');
     const service = read('infra/ovh/systemd/leon-backup.service');
 
     expect(backup).toContain('SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}');
-    expect(backup).toContain('cd "${SOURCE_ROOT}/infra/ovh"');
     expect(installer).toContain('SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}');
-    expect(service).toContain('/opt/leon-platform/current/infra/ovh/scripts/backup-database.sh');
+    expect(installer).toContain('LIBEXEC_ROOT=/usr/local/libexec/leon-platform');
+    expect(installer).toContain('install -o root -g root -m 0755');
+    expect(service).toContain('/usr/local/libexec/leon-platform/backup-database.sh');
+    expect(service).toContain('UMask=0077');
+    expect(service).not.toContain('/opt/leon-platform/current/infra/ovh/scripts');
     expect(`${backup}\n${installer}\n${service}`).not.toContain('/opt/leon-platform/app');
   });
 
@@ -37,9 +40,38 @@ describe('OVH infrastructure reliability', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
     expect(backup).toContain('rsync -a --delete "${UPLOAD_ROOT}/" "${staged_uploads}/"');
     expect(backup).toContain('stop_attempted=1');
-    expect(backup).toContain('docker compose stop dashboard northline');
-    expect(backup).toContain('docker compose up -d dashboard northline');
+    expect(backup).toContain('com.docker.compose.project=${COMPOSE_PROJECT_NAME}');
+    expect(backup).toContain('docker stop "${dashboard_container}" "${northline_container}"');
+    expect(backup).toContain('docker start "${dashboard_container}" "${northline_container}"');
     expect(backup).toContain('backup_paths=("${dump}" "${staged_uploads}")');
+  });
+
+  it('waits for the recovered applications to pass health checks before backing them up', () => {
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+
+    expect(backup).toContain('BACKUP_HEALTHCHECK_SCRIPT');
+    expect(backup).toContain('wait_for_application_health');
+    expect(backup).toContain('SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${BACKUP_HEALTHCHECK_SCRIPT}"');
+    expect(backup).toContain('Application health checks did not recover after backup restart.');
+    expect(backup).toContain('BACKUP_HEALTHCHECK_SCRIPT must be root-owned and not group- or world-writable.');
+  });
+
+  it('recovers application containers before deleting temporary backup files', () => {
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+    const cleanup = backup.slice(backup.indexOf('cleanup() {'), backup.indexOf('trap cleanup EXIT'));
+
+    expect(cleanup.indexOf('restart_application_containers')).toBeGreaterThan(-1);
+    expect(cleanup.indexOf('rm -f "${dump}"')).toBeGreaterThan(cleanup.indexOf('restart_application_containers'));
+    expect(cleanup.indexOf('rm -rf -- "${staging}"')).toBeGreaterThan(cleanup.indexOf('restart_application_containers'));
+    expect(cleanup).toContain('if ! rm -f "${dump}"');
+    expect(cleanup).toContain('if ! rm -rf -- "${staging}"');
+  });
+
+  it('excludes the configured Restic password file from every encrypted snapshot', () => {
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+
+    expect(backup).toContain('restic backup --exclude "${RESTIC_PASSWORD_FILE}"');
+    expect(backup).not.toContain('restic backup --exclude /opt/leon-platform/secrets/restic-password');
   });
 
   it('refuses to stage uploads when the backup filesystem lacks safe headroom', () => {
