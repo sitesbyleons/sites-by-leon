@@ -32,7 +32,7 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
     client = createPostgresDataClient(scopedDatabaseUrl, (connectionString, options) => {
       applicationSql = postgres(connectionString, options);
       return {
-        unsafe: async (text, values) => [...await applicationSql!.unsafe(text, values)],
+        unsafe: async (text, values) => [...await applicationSql!.unsafe(text, values as never[])],
       };
     });
 
