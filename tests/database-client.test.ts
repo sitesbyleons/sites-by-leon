@@ -280,9 +280,13 @@ describe('Leon PostgreSQL data client', () => {
       desired_date: '2026-09-12', message: 'Game coverage',
     });
 
-    expect(recorder.calls[0].text).toContain('pg_advisory_xact_lock');
+    expect(recorder.calls[0].text).toContain('insert into "inquiry_rate_limits"');
+    expect(recorder.calls[0].text).toContain('on conflict ("workspace_id", "ip_hash") do update set');
+    expect(recorder.calls[0].text).toContain('unnest("inquiry_rate_limits"."request_times")');
+    expect(recorder.calls[0].text).toContain('array_append');
+    expect(recorder.calls[0].text).toContain(') < 5');
+    expect(recorder.calls[0].text).toContain('$1::uuid');
     expect(recorder.calls[0].text).toContain("interval '10 minutes'");
-    expect(recorder.calls[0].text).toContain('having count(*) < 5');
   });
 
   it('finds durable unreferenced upload records for eventual cleanup', async () => {
