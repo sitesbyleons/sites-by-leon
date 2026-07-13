@@ -29,6 +29,19 @@ test('support and billing are real dashboard pages', async ({ page }) => {
   await page.goto('/dashboard/billing?preview=true');
   await expect(page.getByRole('heading', { name: 'Billing' })).toBeVisible();
   await expect(page.getByText('Studio', { exact: true })).toBeVisible();
+  await page.goto('/dashboard/billing?preview=true&subscription=none');
+  expect(await page.locator('form[action="/api/billing/checkout"] input[name="plan"]').evaluateAll((inputs) =>
+    inputs.map((input) => (input as HTMLInputElement).value),
+  )).toEqual(['essential', 'studio', 'signature']);
+});
+
+test('dashboard writes accept the HTTPS browser origin behind the private HTTP proxy', async ({ request }) => {
+  const response = await request.post('/api/content-requests', {
+    headers: { origin: 'https://127.0.0.1:4332' },
+    data: { subject: 'Proxy test', details: 'The request must pass origin validation before authentication.' },
+  });
+
+  expect(response.status()).not.toBe(403);
 });
 
 test('shows Leon the studio-wide admin overview', async ({ page }) => {

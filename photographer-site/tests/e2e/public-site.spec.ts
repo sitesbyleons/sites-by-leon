@@ -286,6 +286,22 @@ test('contact requires either email or phone before an inquiry can be sent', asy
   await expectNoSeriousOrCriticalAccessibilityViolations(page);
 });
 
+test('public writes accept the HTTPS browser origin behind the private HTTP proxy', async ({ request }) => {
+  const response = await request.post('/api/inquiry', {
+    headers: { origin: 'https://127.0.0.1:4344' },
+    data: {
+      workspaceSlug: 'northline',
+      name: 'Proxy Test',
+      email: 'proxy@example.com',
+      phone: '',
+      desiredDate: '2026-09-12',
+      message: 'Testing the trusted HTTPS origin through the internal HTTP service.',
+    },
+  });
+
+  expect(response.status()).not.toBe(403);
+});
+
 test('field notes use the sports fixtures and stay brief', async ({ page }) => {
   await navigate(page, '/journal');
   for (const post of demoPortfolio.posts) {

@@ -159,6 +159,7 @@ const periodEnd = dashboardData.subscription?.current_period_end
                 <div class="simple-plan-list">
                   {plans.map((plan) => (
                     <form method="POST" action="/api/billing/checkout">
+                      <input type="hidden" name="plan" value={plan.key} />
                       <span><strong>{plan.name}</strong><small>${plan.monthlyUsd}/month</small></span>
                       <button type="submit" disabled={!checkoutReady}>{checkoutReady ? 'Choose' : 'Not ready'}</button>
                     </form>

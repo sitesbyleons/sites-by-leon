@@ -8,13 +8,14 @@ import { createPlatformDatabase } from '../../lib/database';
 import { loadDashboardData } from '../../lib/load-dashboard';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const previewSubscription = Astro.url.searchParams.get('subscription') === 'none' ? null : { plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z', cancel_at_period_end: false };
 const auth = isPreview ? null : Astro.locals.auth();
 const access = isPreview
   ? ({ kind: 'account', userId: 'preview_user', orgId: null } as const)
   : decideDashboardAccess({ userId: auth?.userId ?? null, orgId: auth?.orgId ?? null });
 if (access.kind === 'redirect') return Astro.redirect('/sign-in?redirect_url=%2Fdashboard%2Fbilling');
 const data = isPreview
-  ? { workspace: { id: 'preview', name: 'Northline Sports', status: 'active' }, subscription: { plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z', cancel_at_period_end: false }, project: null, error: null }
+  ? { workspace: { id: 'preview', name: 'Northline Sports', status: 'active' }, subscription: previewSubscription, project: null, error: null }
   : await loadDashboardData(createPlatformDatabase(), { userId: access.userId, orgId: access.orgId });
 const selectedPlan = plans.find((plan) => plan.key === data.subscription?.plan_key);
 ---
@@ -45,7 +46,7 @@ const selectedPlan = plans.find((plan) => plan.key === data.subscription?.plan_k
             <span class="simple-label">Hosting plans</span>
             <h2>Choose a plan</h2>
             <div class="simple-plan-list">
-              {plans.map((plan) => <form method="POST" action="/api/billing/checkout"><span><strong>{plan.name}</strong><small>${plan.monthlyUsd}/month</small></span><button type="submit" disabled={isPreview || !data.workspace}>{isPreview ? 'Preview' : data.workspace ? 'Choose' : 'Contact Leon'}</button></form>)}
+              {plans.map((plan) => <form method="POST" action="/api/billing/checkout"><input type="hidden" name="plan" value={plan.key} /><span><strong>{plan.name}</strong><small>${plan.monthlyUsd}/month</small></span><button type="submit" disabled={isPreview || !data.workspace}>{isPreview ? 'Preview' : data.workspace ? 'Choose' : 'Contact Leon'}</button></form>)}
             </div>
           </>
         )}
