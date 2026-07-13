@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 MAINTENANCE_LOCK=${MAINTENANCE_LOCK:-/run/lock/leon-platform-maintenance.lock}
 exec 9>"${MAINTENANCE_LOCK}"
@@ -17,12 +18,32 @@ fi
 
 SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}
 SOURCE_ROOT=$(readlink -f "${SOURCE_ROOT}")
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-leon-platform}
 UPLOAD_ROOT=${UPLOAD_ROOT:-/opt/leon-platform/uploads}
 BACKUP_ROOT=${BACKUP_ROOT:-/opt/leon-platform/backups}
 BACKUP_STAGING_ROOT=${BACKUP_STAGING_ROOT:-/opt/leon-platform-backup-staging/staging-current}
 BACKUP_MIN_FREE_BYTES=${BACKUP_MIN_FREE_BYTES:-10737418240}
+BACKUP_HEALTHCHECK_SCRIPT=${BACKUP_HEALTHCHECK_SCRIPT:-/usr/local/libexec/leon-platform/healthcheck.sh}
+BACKUP_HEALTHCHECK_ATTEMPTS=${BACKUP_HEALTHCHECK_ATTEMPTS:-12}
+BACKUP_HEALTHCHECK_INTERVAL_SECONDS=${BACKUP_HEALTHCHECK_INTERVAL_SECONDS:-5}
 if [[ ! ${BACKUP_MIN_FREE_BYTES} =~ ^[0-9]+$ ]]; then
   echo "BACKUP_MIN_FREE_BYTES must be a whole number of bytes." >&2
+  exit 1
+fi
+for positive_number in BACKUP_HEALTHCHECK_ATTEMPTS BACKUP_HEALTHCHECK_INTERVAL_SECONDS; do
+  if [[ ! ${!positive_number} =~ ^[1-9][0-9]*$ ]]; then
+    echo "${positive_number} must be a positive whole number." >&2
+    exit 1
+  fi
+done
+if [[ ! -f ${BACKUP_HEALTHCHECK_SCRIPT} || -L ${BACKUP_HEALTHCHECK_SCRIPT} ]]; then
+  echo "BACKUP_HEALTHCHECK_SCRIPT must be a regular, non-symlink file." >&2
+  exit 1
+fi
+healthcheck_owner=$(stat -c '%u' "${BACKUP_HEALTHCHECK_SCRIPT}")
+healthcheck_mode=$(stat -c '%a' "${BACKUP_HEALTHCHECK_SCRIPT}")
+if [[ ${healthcheck_owner} != 0 || $((8#${healthcheck_mode} & 022)) -ne 0 ]]; then
+  echo "BACKUP_HEALTHCHECK_SCRIPT must be root-owned and not group- or world-writable." >&2
   exit 1
 fi
 UPLOAD_ROOT=$(readlink -m "${UPLOAD_ROOT}")
@@ -63,6 +84,50 @@ mkdir -p "${BACKUP_ROOT}" "${UPLOAD_ROOT}" "$(dirname "${staging}")"
 dump="${BACKUP_ROOT}/postgres-$(date -u +%Y%m%dT%H%M%SZ).dump"
 staged_uploads="${staging}/uploads"
 stop_attempted=0
+
+service_container() {
+  local service=$1
+  local -a containers
+  mapfile -t containers < <(
+    docker ps --all \
+      --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" \
+      --filter "label=com.docker.compose.service=${service}" \
+      --format '{{.ID}}'
+  )
+  if [[ ${#containers[@]} -ne 1 ]]; then
+    echo "Expected one ${COMPOSE_PROJECT_NAME} ${service} container; found ${#containers[@]}." >&2
+    return 1
+  fi
+  printf '%s\n' "${containers[0]}"
+}
+
+dashboard_container=$(service_container dashboard)
+northline_container=$(service_container northline)
+database_container=$(service_container database)
+
+if [[ $(docker inspect --format '{{.State.Running}}' "${database_container}") != true ]]; then
+  echo "The PostgreSQL container must be running before a backup starts." >&2
+  exit 1
+fi
+
+wait_for_application_health() {
+  local attempt
+  for ((attempt = 1; attempt <= BACKUP_HEALTHCHECK_ATTEMPTS; attempt += 1)); do
+    if SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${BACKUP_HEALTHCHECK_SCRIPT}" >/dev/null 2>&1; then
+      return 0
+    fi
+    if (( attempt < BACKUP_HEALTHCHECK_ATTEMPTS )); then
+      sleep "${BACKUP_HEALTHCHECK_INTERVAL_SECONDS}"
+    fi
+  done
+  echo "Application health checks did not recover after backup restart." >&2
+  return 1
+}
+
+restart_application_containers() {
+  docker start "${dashboard_container}" "${northline_container}" >/dev/null
+  wait_for_application_health
+}
 
 existing_parent() {
   local path=$1
@@ -121,25 +186,28 @@ cleanup() {
   rm -f "${dump}"
   rm -rf -- "${staging}"
   if [[ ${stop_attempted} -eq 1 ]]; then
-    docker compose up -d dashboard northline >/dev/null || true
+    if ! restart_application_containers; then
+      echo "The backup failed and application recovery did not pass health checks." >&2
+      status=1
+    fi
   fi
   exit "${status}"
 }
 trap cleanup EXIT
 
-cd "${SOURCE_ROOT}/infra/ovh"
 mkdir -p "${staged_uploads}"
 rsync -a --delete "${UPLOAD_ROOT}/" "${staged_uploads}/"
 stop_attempted=1
-docker compose stop dashboard northline
+docker stop "${dashboard_container}" "${northline_container}" >/dev/null
 rsync -a --delete "${UPLOAD_ROOT}/" "${staged_uploads}/"
-docker compose exec -T database sh -c 'pg_dump --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --format custom --no-owner --no-acl' > "${dump}"
-docker compose up -d dashboard northline >/dev/null
+docker exec "${database_container}" sh -c \
+  'pg_dump --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --format custom --no-owner --no-acl' > "${dump}"
+restart_application_containers
 stop_attempted=0
 restic snapshots >/dev/null 2>&1 || restic init
 backup_paths=("${dump}" "${staged_uploads}")
 [[ -d "${SOURCE_ROOT}" ]] && backup_paths+=("${SOURCE_ROOT}")
 [[ -d /opt/leon-platform/secrets ]] && backup_paths+=(/opt/leon-platform/secrets)
-restic backup --exclude /opt/leon-platform/secrets/restic-password "${backup_paths[@]}"
+restic backup --exclude "${RESTIC_PASSWORD_FILE}" "${backup_paths[@]}"
 restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
 echo "Encrypted database and application backup completed."

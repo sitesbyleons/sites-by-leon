@@ -69,11 +69,12 @@ describe('fully self-hosted production stack', () => {
     expect(connectWebhook).not.toMatch(/supabase/i);
   });
 
-  it('runs health checks from whichever release is being deployed', () => {
+  it('runs health checks without loading a mutable release Compose file as root', () => {
     const healthcheck = read('infra/ovh/scripts/healthcheck.sh');
-    expect(healthcheck).toContain('SOURCE_ROOT=${SOURCE_ROOT:-');
-    expect(healthcheck).toContain('cd "${SOURCE_ROOT}/infra/ovh"');
-    expect(healthcheck).not.toContain('/opt/leon-platform/app/infra/ovh');
+    expect(healthcheck).toContain('com.docker.compose.project=${COMPOSE_PROJECT_NAME}');
+    expect(healthcheck).toContain('com.docker.compose.service=database');
+    expect(healthcheck).toContain('docker exec "${database_container}"');
+    expect(healthcheck).not.toContain('docker compose');
   });
 
   it('uses the application origin guard instead of Astro proxy-unaware form checks', () => {
