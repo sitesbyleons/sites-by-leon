@@ -54,6 +54,18 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
         size_bytes bigint not null check (size_bytes > 0 and size_bytes <= 15728640),
         created_at timestamptz not null default now()
       );
+      create table studio_inquiries (
+        id uuid primary key default gen_random_uuid(),
+        workspace_id uuid not null references client_workspaces(id) on delete cascade,
+        name text not null,
+        email text,
+        phone text,
+        desired_date date not null,
+        message text not null,
+        ip_hash text not null,
+        status text not null default 'new',
+        created_at timestamptz not null default now()
+      );
     `);
   });
 
@@ -105,5 +117,24 @@ postgresDescribe('PostgreSQL upload quota integration', () => {
     );
     expect(usageAfterRelease[0]?.used_bytes).toBe('0');
     expect(uploadsAfterRelease[0]?.count).toBe(0);
+  });
+
+  it('creates a rate-limited inquiry through postgres.js on PostgreSQL 17', async () => {
+    const workspaceId = randomUUID();
+    await applicationSql!.unsafe('insert into client_workspaces (id) values ($1)', [workspaceId]);
+
+    const created = await client!.createRateLimitedInquiry({
+      workspace_id: workspaceId,
+      ip_hash: 'a'.repeat(64),
+      name: 'Jordan Lee',
+      email: 'jordan@example.com',
+      phone: null,
+      desired_date: '2026-12-30',
+      message: 'Please photograph our home game.',
+    });
+
+    expect(created.error).toBeNull();
+    expect(created.data).toHaveLength(1);
+    expect(created.data[0]).toMatchObject({ workspace_id: workspaceId, name: 'Jordan Lee' });
   });
 });

@@ -281,6 +281,8 @@ describe('Leon PostgreSQL data client', () => {
     });
 
     expect(recorder.calls[0].text).toContain('pg_advisory_xact_lock');
+    expect(recorder.calls[0].text).toContain('$1::uuid::text');
+    expect(recorder.calls[0].text).toContain('"workspace_id" = $1::uuid');
     expect(recorder.calls[0].text).toContain("interval '10 minutes'");
     expect(recorder.calls[0].text).toContain('having count(*) < 5');
   });
