@@ -300,6 +300,15 @@ test('public writes accept the HTTPS browser origin behind the private HTTP prox
   });
 
   expect(response.status()).not.toBe(403);
+
+  const uploadResponse = await request.post('/api/admin/upload', {
+    headers: { origin: 'https://127.0.0.1:4344' },
+    multipart: {
+      kind: 'covers',
+      file: { name: 'proxy-test.png', mimeType: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47]) },
+    },
+  });
+  expect(uploadResponse.status()).not.toBe(403);
 });
 
 test('field notes use the sports fixtures and stay brief', async ({ page }) => {

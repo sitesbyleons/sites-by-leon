@@ -75,4 +75,11 @@ describe('fully self-hosted production stack', () => {
     expect(healthcheck).toContain('cd "${SOURCE_ROOT}/infra/ovh"');
     expect(healthcheck).not.toContain('/opt/leon-platform/app/infra/ovh');
   });
+
+  it('uses the application origin guard instead of Astro proxy-unaware form checks', () => {
+    for (const config of ['dashboard/astro.config.mjs', 'photographer-site/astro.config.mjs']) {
+      expect(read(config)).toContain('checkOrigin: false');
+    }
+    expect(read('platform-core/src/request-security.ts')).toContain("supplied.protocol === 'https:' && internal.protocol === 'http:'");
+  });
 });

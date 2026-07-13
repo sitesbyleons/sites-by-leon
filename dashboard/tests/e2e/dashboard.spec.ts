@@ -42,6 +42,12 @@ test('dashboard writes accept the HTTPS browser origin behind the private HTTP p
   });
 
   expect(response.status()).not.toBe(403);
+
+  const formResponse = await request.post('/api/billing/checkout', {
+    headers: { origin: 'https://127.0.0.1:4332' },
+    form: { plan: 'studio' },
+  });
+  expect(formResponse.status()).not.toBe(403);
 });
 
 test('shows Leon the studio-wide admin overview', async ({ page }) => {
