@@ -61,7 +61,10 @@ SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/con
 docker compose --env-file .env up -d --no-build --remove-orphans
 docker compose ps
 for attempt in $(seq 1 "${DEPLOY_HEALTHCHECK_ATTEMPTS:-24}"); do
-  if SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/healthcheck.sh"; then
+  if COMPOSE_PROFILES="${compose_profiles}" \
+    CUSTOM_DOMAIN_AUTOMATION_ENABLED="${domain_api_enabled}" \
+    SOURCE_ROOT="${SOURCE_ROOT}" \
+    /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/healthcheck.sh"; then
     break
   fi
   if [[ ${attempt} -eq ${DEPLOY_HEALTHCHECK_ATTEMPTS:-24} ]]; then

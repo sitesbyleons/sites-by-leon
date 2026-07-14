@@ -121,11 +121,43 @@ EOF
 
 run_deploy() {
   DOCKER_CALL_LOG="${FIXTURE}/docker-calls" \
+    HEALTHCHECK_ENV_LOG="${FIXTURE}/healthcheck-env" \
     MAINTENANCE_LOCK="${FIXTURE}/maintenance.lock" \
     SOURCE_ROOT="${FIXTURE}" \
     PLATFORM_ROOT="${FIXTURE}/platform" \
+    DEPLOY_HEALTHCHECK_ATTEMPTS=1 \
+    DEPLOY_HEALTHCHECK_INTERVAL_SECONDS=0 \
     PATH="${FIXTURE}/bin:${PATH}" \
     bash "${FIXTURE}/infra/ovh/scripts/deploy.sh"
+}
+
+prepare_complete_deploy_fixture() {
+  mkdir -p "${FIXTURE}/bin"
+  cp "${DEPLOY_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/deploy.sh"
+  cp "${PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-domain-worker.sh"
+  cat > "${FIXTURE}/bin/docker" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${DOCKER_CALL_LOG}"
+EOF
+  cat > "${FIXTURE}/infra/ovh/scripts/migrate-database.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+  cat > "${FIXTURE}/infra/ovh/scripts/configure-runtime-role.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+  cat > "${FIXTURE}/infra/ovh/scripts/healthcheck.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n%s\n' \
+  "${COMPOSE_PROFILES:-<unset>}" \
+  "${CUSTOM_DOMAIN_AUTOMATION_ENABLED:-<unset>}" \
+  > "${HEALTHCHECK_ENV_LOG}"
+[[ ${COMPOSE_PROFILES:-} == tunnel,domains ]]
+[[ ${CUSTOM_DOMAIN_AUTOMATION_ENABLED:-} == true ]]
+EOF
+  chmod +x "${FIXTURE}/bin/docker" "${FIXTURE}/infra/ovh/scripts/"*.sh
 }
 
 new_fixture
@@ -237,5 +269,20 @@ set -e
 [[ ${deploy_status} -ne 0 ]] || fail_test 'fake Docker deployment unexpectedly passed'
 [[ -s ${FIXTURE}/docker-calls ]] || fail_test 'tunnel-only deployment did not continue without worker secrets'
 pass 'tunnel-only deployment does not require domain-worker secrets'
+
+new_fixture
+prepare_complete_deploy_fixture
+cat > "${FIXTURE}/infra/ovh/.env" <<'EOF'
+CUSTOM_DOMAIN_AUTOMATION_ENABLED=true
+COMPOSE_PROFILES=tunnel,domains
+EOF
+if ! (unset COMPOSE_PROFILES CUSTOM_DOMAIN_AUTOMATION_ENABLED; run_deploy) >/dev/null 2>&1; then
+  fail_test 'deployment did not pass .env domain settings to its healthcheck'
+fi
+expected_healthcheck_env=$'tunnel,domains\ntrue'
+actual_healthcheck_env=$(cat "${FIXTURE}/healthcheck-env")
+[[ ${actual_healthcheck_env} == "${expected_healthcheck_env}" ]] || \
+  fail_test 'healthcheck did not receive the resolved deploy domain settings'
+pass 'deployment passes resolved .env domain settings to its healthcheck'
 
 echo "1..${PASS_COUNT}"

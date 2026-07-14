@@ -238,6 +238,35 @@ test('desktop gallery frames stay centered with a restrained editorial stagger',
   }
 });
 
+test('publishes a favicon and tenant-aware search-engine discovery files', async ({ page, request }) => {
+  await navigate(page, '/');
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/favicon.svg');
+  await expect(page.locator('link[rel="sitemap"]')).toHaveAttribute('href', '/sitemap.xml');
+
+  const favicon = await request.get('/favicon.svg');
+  expect(favicon.status()).toBe(200);
+  expect(favicon.headers()['content-type']).toContain('image/svg+xml');
+
+  const sitemap = await request.get('/sitemap.xml');
+  expect(sitemap.status()).toBe(200);
+  expect(sitemap.headers()['content-type']).toContain('application/xml');
+  const xml = await sitemap.text();
+  expect(xml).toContain('<loc>http://127.0.0.1:4344/</loc>');
+  expect(xml).toContain('<loc>http://127.0.0.1:4344/work/friday-night</loc>');
+  expect(xml).toContain('<loc>http://127.0.0.1:4344/journal/working-the-sideline</loc>');
+  expect(xml).not.toMatch(/\/admin|\/invoice/);
+
+  const robots = await request.get('/robots.txt');
+  expect(robots.status()).toBe(200);
+  expect(robots.headers()['content-type']).toContain('text/plain');
+  expect(await robots.text()).toBe([
+    'User-agent: *',
+    'Allow: /',
+    'Sitemap: http://127.0.0.1:4344/sitemap.xml',
+    '',
+  ].join('\n'));
+});
+
 test('work archive presents football, basketball, and track without filler', async ({ page }) => {
   await navigate(page, '/work');
   await expect(page.getByRole('heading', { name: 'Sports photography.' })).toBeVisible();

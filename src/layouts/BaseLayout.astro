@@ -8,20 +8,22 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   description?: string;
-  hostSwitch?: boolean;
+  canonicalUrl?: string | URL;
 }
 
 const {
   title = 'sites.by.leon — Websites and hosting for photographers',
   description = 'Bold, photographer-focused websites with domains, payments, hosting, and monthly plans from $25 to $40.',
-  hostSwitch = false,
+  canonicalUrl,
 } = Astro.props;
 
-const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
+const canonical = canonicalUrl
+  ? new URL(canonicalUrl)
+  : new URL(Astro.url.pathname, Astro.site ?? Astro.url);
 ---
 
 <!doctype html>
-<html lang="en" class="no-js" data-site-mode={hostSwitch ? 'coming' : undefined}>
+<html lang="en" class="no-js">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -38,18 +40,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url);
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <script is:inline>document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js');</script>
-    {hostSwitch && (
-      <script is:inline>
-        (() => {
-          const host = window.location.hostname.toLowerCase();
-          const previewHosts = new Set(['test.leonsites.org', 'localhost', '127.0.0.1', '[::1]']);
-          const modeOverride = new URLSearchParams(window.location.search).get('mode');
-          const preview = modeOverride === 'preview' || (modeOverride !== 'coming' && previewHosts.has(host));
-          document.documentElement.dataset.siteMode = preview ? 'preview' : 'coming';
-          if (preview) document.title = 'Sites By Leon — Website design and hosting';
-        })();
-      </script>
-    )}
   </head>
   <body id="top">
     <a class="skip-link" href="#main">Skip to content</a>

@@ -24,6 +24,11 @@ export interface DomainReconciliation extends SiteDomainAlias {
   leaseStartedAt: Date;
 }
 
+export interface AliasProviderObservation {
+  cloudflareCustomHostnameId: string;
+  state: AliasProviderState;
+}
+
 export interface DomainReconciliationStore {
   completeAliasReconciliation(
     target: DomainReconciliation,
@@ -31,7 +36,11 @@ export interface DomainReconciliationStore {
     state: AliasProviderState,
   ): Promise<boolean>;
   markAliasReconciliationMissing(target: DomainReconciliation, message: string): Promise<boolean>;
-  recordAliasReconciliationFailure(target: DomainReconciliation, message: string): Promise<boolean>;
+  recordAliasReconciliationFailure(
+    target: DomainReconciliation,
+    message: string,
+    observation?: AliasProviderObservation,
+  ): Promise<boolean>;
 }
 
 export interface DomainJobStore extends DomainReconciliationStore {
@@ -424,10 +433,35 @@ export class PostgresDomainJobStore implements DomainJobStore {
   async recordAliasReconciliationFailure(
     target: DomainReconciliation,
     message: string,
+    observation?: AliasProviderObservation,
   ): Promise<boolean> {
+    const hasObservation = Boolean(observation);
+    const observedState = observation?.state;
     const aliases = await this.sql<IdRow[]>`
       update site_domain_aliases as alias
-      set last_error = ${message}, last_checked_at = now()
+      set
+        status = case
+          when ${hasObservation} then ${observedState?.aliasStatus ?? target.status}
+          else alias.status
+        end,
+        is_canonical = case
+          when ${hasObservation} and ${observedState?.aliasStatus ?? target.status} <> 'active' then false
+          else alias.is_canonical
+        end,
+        cloudflare_custom_hostname_id = case
+          when ${hasObservation} then ${observation?.cloudflareCustomHostnameId ?? null}
+          else alias.cloudflare_custom_hostname_id
+        end,
+        cloudflare_hostname_status = case
+          when ${hasObservation} then ${observedState?.cloudflareHostnameStatus ?? null}
+          else alias.cloudflare_hostname_status
+        end,
+        cloudflare_ssl_status = case
+          when ${hasObservation} then ${observedState?.cloudflareSslStatus ?? null}
+          else alias.cloudflare_ssl_status
+        end,
+        last_error = ${message},
+        last_checked_at = now()
       where alias.id = ${target.id}
         and alias.last_checked_at = ${target.leaseStartedAt}
         and alias.status not in ('removing', 'removed')

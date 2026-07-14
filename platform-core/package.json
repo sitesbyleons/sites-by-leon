@@ -13,6 +13,6 @@
     "./site-lifecycle": "./src/site-lifecycle.ts"
   },
   "dependencies": {
-    "postgres": "3.4.7"
+    "postgres": "3.4.9"
   }
 }

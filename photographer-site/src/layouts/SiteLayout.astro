@@ -36,6 +36,8 @@ const socialImage = image ? new URL(image, `${canonicalOrigin}/`) : undefined;
     <meta property="og:url" content={canonical.toString()} />
     {socialImage && <meta property="og:image" content={socialImage.toString()} />}
     <link rel="canonical" href={canonical.toString()} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <title>{pageTitle}</title>
   </head>
   <body

@@ -45,9 +45,16 @@ mapfile -t domain_worker_containers < <(
     --filter "label=com.docker.compose.service=domain-worker" \
     --format '{{.ID}}'
 )
-if [[ ${#domain_worker_containers[@]} -gt 0 ]]; then
+domain_worker_required=false
+case ",${COMPOSE_PROFILES:-}," in
+  *,domains,*) domain_worker_required=true ;;
+esac
+if [[ ${CUSTOM_DOMAIN_AUTOMATION_ENABLED:-false} == true ]]; then
+  domain_worker_required=true
+fi
+if [[ ${domain_worker_required} == true || ${#domain_worker_containers[@]} -gt 0 ]]; then
   if [[ ${#domain_worker_containers[@]} -ne 1 ]]; then
-    echo "Expected at most one domain worker container; found ${#domain_worker_containers[@]}." >&2
+    echo "Expected one running domain worker container; found ${#domain_worker_containers[@]}." >&2
     exit 1
   fi
   domain_worker_state=$(docker inspect --format '{{.State.Status}}:{{if .State.Health}}{{.State.Health.Status}}{{else}}missing-healthcheck{{end}}' "${domain_worker_containers[0]}")

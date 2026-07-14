@@ -14,6 +14,29 @@ afterEach(() => {
 });
 
 describe('OVH infrastructure reliability', () => {
+  it('keeps the custom-domain worker and deployment safety checks in GitHub CI', () => {
+    const workflow = read('.github/workflows/quality.yml');
+
+    expect(workflow).toContain('fetch-depth: 0');
+    expect(workflow).toContain('PROVISIONING_DATABASE_URL: postgresql://leon_test:leon_test@127.0.0.1:5432/leon_platform_test');
+    expect(workflow).toContain('pnpm --dir domain-worker check');
+    expect(workflow).toContain('pnpm --dir domain-worker test');
+    expect(workflow).toContain('pnpm --dir domain-worker build');
+    expect(workflow).toContain('bash infra/ovh/tests/preflight-domain-worker.test.sh');
+    expect(workflow).toContain('bash infra/ovh/tests/healthcheck-domain-worker.test.sh');
+    expect(workflow).toContain('infra/ovh/scripts/validate-migration.sh');
+  });
+
+  it('validates migrations from the PR base or previous pushed commit', () => {
+    const workflow = read('.github/workflows/quality.yml');
+
+    expect(workflow).toContain(
+      "BASE_SCHEMA_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}",
+    );
+    expect(workflow).toContain('if [[ "${BASE_SCHEMA_REF}" =~ ^0{40}$ ]]; then');
+    expect(workflow).not.toContain('github.event.pull_request.base.sha || github.sha');
+  });
+
   it('installs immutable backup helpers while reading data from the active release', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
     const installer = read('infra/ovh/scripts/install-systemd.sh');
@@ -280,6 +303,14 @@ describe('OVH infrastructure reliability', () => {
     expect(migration).toContain('psql --set ON_ERROR_STOP=1');
     expect(migration).toContain('--single-transaction');
     expect(migration).toContain('< "${SOURCE_ROOT}/infra/ovh/postgres/schema.sql"');
+  });
+
+  it('passes resolved custom-domain settings into the deployment health gate', () => {
+    const deploy = read('infra/ovh/scripts/deploy.sh');
+
+    expect(deploy).toContain('COMPOSE_PROFILES="${compose_profiles}"');
+    expect(deploy).toContain('CUSTOM_DOMAIN_AUTOMATION_ENABLED="${domain_api_enabled}"');
+    expect(deploy).toContain('infra/ovh/scripts/healthcheck.sh');
   });
 
   it('configures a least-privilege runtime database login during every deployment', () => {

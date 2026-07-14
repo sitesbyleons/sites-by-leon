@@ -1,6 +1,6 @@
 import { CloudflareApiError, type CloudflareCustomHostname, type CustomHostnameProvider } from './cloudflare.js';
 import type { DomainReconciliation, DomainReconciliationStore } from './database.js';
-import { deriveAliasProviderState } from './domain-state.js';
+import { deriveAliasProviderState, isCloudflareHostnameActive } from './domain-state.js';
 import { normalizeHostname } from './hostname.js';
 import { errorMessage } from './retry.js';
 
@@ -52,13 +52,36 @@ export function createAliasReconciler(options: AliasReconcilerOptions) {
     }
 
     try {
-      const providerHostname = await findProviderHostname(options.provider, target, hostname);
+      let providerHostname = await findProviderHostname(options.provider, target, hostname);
       if (!providerHostname) {
         const updated = await options.store.markAliasReconciliationMissing(
           target,
           `Cloudflare custom hostname ${hostname} does not exist.`,
         );
         return { status: updated ? 'missing' : 'superseded' };
+      }
+
+      // Cloudflare documents that HTTP DCV hostnames created before the
+      // customer points DNS at the fallback origin may need a PATCH after the
+      // CNAME exists. Reconciliation is what makes that retry automatic.
+      if (!isCloudflareHostnameActive(providerHostname)) {
+        const observation = {
+          cloudflareCustomHostnameId: providerHostname.id,
+          state: deriveAliasProviderState(providerHostname),
+        };
+        try {
+          providerHostname = await options.provider.refreshCustomHostname(providerHostname.id);
+          if (!hasExpectedHostname(providerHostname, hostname)) {
+            throw new CloudflareApiError('Cloudflare refreshed an unexpected custom hostname.', 502);
+          }
+        } catch (error) {
+          const updated = await options.store.recordAliasReconciliationFailure(
+            target,
+            errorMessage(error),
+            observation,
+          );
+          return { status: updated ? 'failed' : 'superseded' };
+        }
       }
 
       const updated = await options.store.completeAliasReconciliation(

@@ -33,6 +33,7 @@ When the requested-job queue is empty, the worker leases one due `active`, `dns_
 
 - Pending hostnames become active automatically after DNS and certificate validation complete.
 - An active hostname that degrades immediately loses canonical routing in Postgres.
+- If Cloudflare reports a degraded hostname but its refresh request fails, the observed degraded state still removes canonical routing and the refresh failure is recorded.
 - Missing provider records move the alias to `error`, clear the stale provider ID, and remove canonical routing.
 - A stale provider ID is repaired by looking up the exact hostname.
 - Reconciliation leases are fenced by `last_checked_at`; queued, live, or newer manual jobs always supersede a background result.

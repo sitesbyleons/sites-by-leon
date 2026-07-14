@@ -128,4 +128,141 @@ integrationSuite('PostgreSQL domain job crash recovery', () => {
     if (!claimedDelete) throw new Error('Delete job was not claimed.');
     await store.completeDeleteJob(claimedDelete);
   });
+
+  it('demotes an active canonical alias from an observed pending state when refresh fails', async () => {
+    const alias = requireRow(await sql<{ id: string }[]>`
+      insert into site_domain_aliases (
+        workspace_id,
+        hostname,
+        status,
+        is_canonical,
+        cloudflare_custom_hostname_id,
+        cloudflare_hostname_status,
+        cloudflare_ssl_status,
+        last_checked_at
+      ) values (
+        ${workspaceId},
+        ${`degraded-${suffix}.example.test`},
+        'active',
+        true,
+        ${`cf_degraded_${suffix}`},
+        'active',
+        'active',
+        now() - interval '1 hour'
+      )
+      returning id
+    `, 'Degraded alias');
+    const store = new PostgresDomainJobStore(sql);
+    const leased = await store.claimNextReconciliation(60_000, 60_000);
+    expect(leased).toMatchObject({ id: alias.id, status: 'active', isCanonical: true });
+    if (!leased) throw new Error('Reconciliation was not claimed.');
+
+    await expect(store.recordAliasReconciliationFailure(
+      leased,
+      'Cloudflare request failed with status 429.',
+      {
+        cloudflareCustomHostnameId: `cf_degraded_${suffix}`,
+        state: {
+          aliasStatus: 'dns_pending',
+          cloudflareHostnameStatus: 'pending',
+          cloudflareSslStatus: 'pending_validation',
+          lastError: null,
+        },
+      },
+    )).resolves.toBe(true);
+
+    const degraded = requireRow(await sql<{
+      status: string;
+      is_canonical: boolean;
+      cloudflare_custom_hostname_id: string | null;
+      cloudflare_hostname_status: string | null;
+      cloudflare_ssl_status: string | null;
+      last_error: string | null;
+    }[]>`
+      select
+        status,
+        is_canonical,
+        cloudflare_custom_hostname_id,
+        cloudflare_hostname_status,
+        cloudflare_ssl_status,
+        last_error
+      from site_domain_aliases
+      where id = ${alias.id}
+    `, 'Degraded alias state');
+    expect(degraded).toEqual({
+      status: 'dns_pending',
+      is_canonical: false,
+      cloudflare_custom_hostname_id: `cf_degraded_${suffix}`,
+      cloudflare_hostname_status: 'pending',
+      cloudflare_ssl_status: 'pending_validation',
+      last_error: 'Cloudflare request failed with status 429.',
+    });
+  });
+
+  it('does not demote an alias when the reconciliation lease is superseded', async () => {
+    const alias = requireRow(await sql<{ id: string }[]>`
+      insert into site_domain_aliases (
+        workspace_id,
+        hostname,
+        status,
+        is_canonical,
+        cloudflare_custom_hostname_id,
+        cloudflare_hostname_status,
+        cloudflare_ssl_status,
+        last_checked_at
+      ) values (
+        ${workspaceId},
+        ${`superseded-${suffix}.example.test`},
+        'active',
+        true,
+        ${`cf_superseded_${suffix}`},
+        'active',
+        'active',
+        now() - interval '1 hour'
+      )
+      returning id
+    `, 'Superseded alias');
+    const store = new PostgresDomainJobStore(sql);
+    const leased = await store.claimNextReconciliation(60_000, 60_000);
+    expect(leased).toMatchObject({ id: alias.id, status: 'active', isCanonical: true });
+    if (!leased) throw new Error('Reconciliation was not claimed.');
+    await sql`
+      update site_domain_aliases
+      set last_checked_at = ${new Date(leased.leaseStartedAt.getTime() + 1_000)}
+      where id = ${alias.id}
+    `;
+
+    await expect(store.recordAliasReconciliationFailure(
+      leased,
+      'Cloudflare request failed with status 503.',
+      {
+        cloudflareCustomHostnameId: `cf_superseded_${suffix}`,
+        state: {
+          aliasStatus: 'dns_pending',
+          cloudflareHostnameStatus: 'pending',
+          cloudflareSslStatus: 'pending_validation',
+          lastError: null,
+        },
+      },
+    )).resolves.toBe(false);
+
+    const preserved = requireRow(await sql<{
+      status: string;
+      is_canonical: boolean;
+      cloudflare_hostname_status: string | null;
+      cloudflare_ssl_status: string | null;
+      last_error: string | null;
+    }[]>`
+      select status, is_canonical, cloudflare_hostname_status, cloudflare_ssl_status, last_error
+      from site_domain_aliases
+      where id = ${alias.id}
+    `, 'Superseded alias state');
+    expect(preserved).toEqual({
+      status: 'active',
+      is_canonical: true,
+      cloudflare_hostname_status: 'active',
+      cloudflare_ssl_status: 'active',
+      last_error: null,
+    });
+  });
 });
