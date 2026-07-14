@@ -34,6 +34,13 @@ mkdir -p \
   "${FIXTURE}/infra/ovh/secrets" \
   "${FIXTURE}/uploads"
 cp "${REPOSITORY_ROOT}/infra/ovh/docker-compose.yml" "${FIXTURE}/infra/ovh/docker-compose.yml"
+cat > "${FIXTURE}/infra/ovh/docker-compose.ci.yml" <<'EOF'
+services:
+  database:
+    cpus: 1
+    mem_limit: 1g
+EOF
+export COMPOSE_FILE="${FIXTURE}/infra/ovh/docker-compose.yml:${FIXTURE}/infra/ovh/docker-compose.ci.yml"
 git -C "${REPOSITORY_ROOT}" show "${BASE_SCHEMA_REF}:${SCHEMA_PATH}" \
   > "${FIXTURE}/infra/ovh/postgres/schema.sql"
 

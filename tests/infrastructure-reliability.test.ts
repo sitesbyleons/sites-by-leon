@@ -37,6 +37,15 @@ describe('OVH infrastructure reliability', () => {
     expect(workflow).not.toContain('github.event.pull_request.base.sha || github.sha');
   });
 
+  it('keeps the disposable migration database within hosted runner limits', () => {
+    const validation = read('infra/ovh/tests/validate-migration-ci.sh');
+
+    expect(validation).toContain('docker-compose.ci.yml');
+    expect(validation).toContain('cpus: 1');
+    expect(validation).toContain('mem_limit: 1g');
+    expect(validation).toContain('export COMPOSE_FILE=');
+  });
+
   it('installs immutable backup helpers while reading data from the active release', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
     const installer = read('infra/ovh/scripts/install-systemd.sh');
