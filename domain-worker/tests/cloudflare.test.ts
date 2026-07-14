@@ -38,6 +38,42 @@ const existingHostname: CloudflareCustomHostname = {
 };
 
 describe('CloudflareClient', () => {
+  it('validates the configured fallback origin is active', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(apiResponse({
+      origin: 'Customers.LeonSites.org.',
+      status: 'active',
+      errors: [],
+    }));
+    const client = clientWith(fetchMock);
+
+    await expect(client.assertFallbackOrigin('customers.leonsites.org')).resolves.toMatchObject({
+      origin: 'Customers.LeonSites.org.',
+      status: 'active',
+    });
+
+    const [input, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(new URL(input).pathname).toBe('/client/v4/zones/zone%2Fid/custom_hostnames/fallback_origin');
+    expect(init.method).toBeUndefined();
+  });
+
+  it('fails readiness when the fallback origin is wrong or not active', async () => {
+    const mismatchClient = clientWith(vi.fn().mockResolvedValueOnce(apiResponse({
+      origin: 'wrong.example.com',
+      status: 'active',
+      errors: [],
+    })));
+    await expect(mismatchClient.assertFallbackOrigin('customers.leonsites.org'))
+      .rejects.toThrow('expected customers.leonsites.org');
+
+    const pendingClient = clientWith(vi.fn().mockResolvedValueOnce(apiResponse({
+      origin: 'customers.leonsites.org',
+      status: 'pending_deployment',
+      errors: ['DNS record is not proxied'],
+    })));
+    await expect(pendingClient.assertFallbackOrigin('customers.leonsites.org'))
+      .rejects.toThrow('pending_deployment');
+  });
+
   it('returns an existing exact hostname without creating a duplicate', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(apiResponse([existingHostname]));
     const client = clientWith(fetchMock);

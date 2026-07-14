@@ -31,4 +31,21 @@ describe('domain job lifecycle fencing', () => {
     expect(source).toContain("when alias.status = 'removing' then false");
     expect(source).toContain("alias.status <> 'removed'");
   });
+
+  it('leases due active and pending aliases without racing requested jobs', () => {
+    expect(source).toContain("alias.status in ('dns_pending', 'active', 'error')");
+    expect(source).toContain("alias.last_checked_at <= now() - (${reconcileIntervalMs} * interval '1 millisecond')");
+    expect(source).toContain("job.status = 'queued'");
+    expect(source).toContain("coalesce(job.locked_at, job.updated_at) > now() - (${lockTimeoutMs} * interval '1 millisecond')");
+    expect(source).toContain('for update of alias skip locked');
+  });
+
+  it('fences reconciliation completion and removes canonical routing for broken aliases', () => {
+    expect(source).toContain('alias.last_checked_at = ${target.leaseStartedAt}');
+    expect(source).toContain("status = 'error'");
+    expect(source).toContain('is_canonical = false');
+    expect(source).toContain("alias.status not in ('removing', 'removed')");
+    expect(source).toContain("job.status = 'queued'");
+    expect(source).toContain("coalesce(job.locked_at, job.updated_at) >= ${target.leaseStartedAt}");
+  });
 });

@@ -10,6 +10,8 @@ Claiming a create or delete job also moves its alias to `configuring` or `removi
 
 Copy `.env.example` into the service environment and provide `DATABASE_URL`, `CLOUDFLARE_API_TOKEN`, and `CLOUDFLARE_ZONE_ID`. The database role needs read/update access to `domain_jobs` and `site_domain_aliases`.
 
+Startup fails closed unless the Cloudflare for SaaS fallback origin matches `CLOUDFLARE_EXPECTED_FALLBACK_ORIGIN` (default `customers.leonsites.org`) and Cloudflare reports it as `active`.
+
 ```sh
 pnpm build
 pnpm start
@@ -24,3 +26,13 @@ pnpm start
 - `delete` treats an already-absent Cloudflare hostname as success.
 - An alias becomes `active` only when both Cloudflare hostname and SSL statuses are `active`; otherwise a successful create/refresh leaves it `dns_pending`.
 - Retryable failures use capped exponential backoff. Exhausted or permanent failures move the job to `failed` and the alias to `error`.
+
+## Automatic reconciliation
+
+When the requested-job queue is empty, the worker leases one due `active`, `dns_pending`, or recoverable `error` alias and reads its current Cloudflare state. The interval is controlled by `DOMAIN_WORKER_RECONCILE_INTERVAL_MS` (default five minutes).
+
+- Pending hostnames become active automatically after DNS and certificate validation complete.
+- An active hostname that degrades immediately loses canonical routing in Postgres.
+- Missing provider records move the alias to `error`, clear the stale provider ID, and remove canonical routing.
+- A stale provider ID is repaired by looking up the exact hostname.
+- Reconciliation leases are fenced by `last_checked_at`; queued, live, or newer manual jobs always supersede a background result.

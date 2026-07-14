@@ -20,6 +20,12 @@ export interface CloudflareCustomHostname {
   };
 }
 
+export interface CloudflareFallbackOrigin {
+  origin: string;
+  status: string;
+  errors?: string[];
+}
+
 interface CloudflareEnvelope<T> {
   success: boolean;
   result?: T;
@@ -102,6 +108,17 @@ function assertCustomHostname(value: unknown): CloudflareCustomHostname {
   return value as unknown as CloudflareCustomHostname;
 }
 
+function assertFallbackOriginResponse(value: unknown): CloudflareFallbackOrigin {
+  if (!isRecord(value) || typeof value.origin !== 'string' || typeof value.status !== 'string') {
+    throw new CloudflareApiError('Cloudflare returned an invalid fallback origin response.', 502);
+  }
+  if (value.errors !== undefined && (!Array.isArray(value.errors)
+    || value.errors.some((error) => typeof error !== 'string'))) {
+    throw new CloudflareApiError('Cloudflare returned invalid fallback origin errors.', 502);
+  }
+  return value as unknown as CloudflareFallbackOrigin;
+}
+
 export class CloudflareClient implements CustomHostnameProvider {
   private readonly apiToken: string;
   private readonly zoneId: string;
@@ -118,6 +135,39 @@ export class CloudflareClient implements CustomHostnameProvider {
     this.fetchImpl = options.fetch ?? globalThis.fetch;
     this.baseUrl = (options.baseUrl ?? DEFAULT_API_BASE_URL).replace(/\/+$/u, '');
     this.requestTimeoutMs = options.requestTimeoutMs ?? 15_000;
+  }
+
+  async getFallbackOrigin(): Promise<CloudflareFallbackOrigin> {
+    const result = await this.request<unknown>(this.endpoint('/custom_hostnames/fallback_origin'));
+    return assertFallbackOriginResponse(result);
+  }
+
+  async assertFallbackOrigin(expectedOrigin: string): Promise<CloudflareFallbackOrigin> {
+    const expected = normalizeHostname(expectedOrigin);
+    const fallback = await this.getFallbackOrigin();
+    let actual: string;
+    try {
+      actual = normalizeHostname(fallback.origin);
+    } catch (error) {
+      throw new CloudflareApiError('Cloudflare returned an invalid fallback origin hostname.', 502, [], {
+        cause: error,
+      });
+    }
+
+    if (actual !== expected) {
+      throw new CloudflareApiError(
+        `Cloudflare fallback origin is ${actual}; expected ${expected}.`,
+        503,
+      );
+    }
+    if (fallback.status !== 'active') {
+      const details = fallback.errors?.length ? ` (${fallback.errors.join('; ')})` : '';
+      throw new CloudflareApiError(
+        `Cloudflare fallback origin ${expected} is ${fallback.status}, not active${details}.`,
+        503,
+      );
+    }
+    return fallback;
   }
 
   async listCustomHostnames(hostname: string): Promise<CloudflareCustomHostname[]> {

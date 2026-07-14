@@ -2,6 +2,7 @@ import { CloudflareClient } from './cloudflare.js';
 import { readWorkerConfig } from './config.js';
 import { connectPostgres, PostgresDomainJobStore } from './database.js';
 import { createJobProcessor } from './processor.js';
+import { createAliasReconciler } from './reconciler.js';
 import { consoleLogger, runWorker } from './worker.js';
 
 async function main(): Promise<void> {
@@ -14,6 +15,7 @@ async function main(): Promise<void> {
     requestTimeoutMs: config.cloudflareRequestTimeoutMs,
   });
   await store.assertReady();
+  await provider.assertFallbackOrigin(config.cloudflareExpectedFallbackOrigin);
   await provider.listCustomHostnames('domain-worker-readiness.invalid');
   await writeFile('/tmp/domain-worker-ready', new Date().toISOString(), { mode: 0o600 });
   const processJob = createJobProcessor({
@@ -23,6 +25,7 @@ async function main(): Promise<void> {
     retryBaseMs: config.retryBaseMs,
     retryMaxMs: config.retryMaxMs,
   });
+  const reconcileAlias = createAliasReconciler({ store, provider });
 
   const shutdown = new AbortController();
   const stop = (signal: NodeJS.Signals) => {
@@ -38,7 +41,9 @@ async function main(): Promise<void> {
     await runWorker({
       store,
       processJob,
+      reconcileAlias,
       pollIntervalMs: config.pollIntervalMs,
+      reconcileIntervalMs: config.reconcileIntervalMs,
       lockTimeoutMs: config.lockTimeoutMs,
       signal: shutdown.signal,
       onHealthy: () => writeFile('/tmp/domain-worker-ready', new Date().toISOString(), { mode: 0o600 }),

@@ -15,6 +15,19 @@ describe('readWorkerConfig', () => {
     expect(config.maxAttempts).toBe(8);
     expect(config.retryBaseMs).toBe(5_000);
     expect(config.retryMaxMs).toBe(3_600_000);
+    expect(config.reconcileIntervalMs).toBe(300_000);
+    expect(config.cloudflareExpectedFallbackOrigin).toBe('customers.leonsites.org');
+  });
+
+  it('normalizes an explicitly configured fallback origin', () => {
+    const config = readWorkerConfig({
+      ...requiredEnv,
+      CLOUDFLARE_EXPECTED_FALLBACK_ORIGIN: 'Customers.Example.COM.',
+      DOMAIN_WORKER_RECONCILE_INTERVAL_MS: '60000',
+    });
+
+    expect(config.cloudflareExpectedFallbackOrigin).toBe('customers.example.com');
+    expect(config.reconcileIntervalMs).toBe(60_000);
   });
 
   it('fails closed when credentials or numeric settings are invalid', () => {
@@ -30,5 +43,13 @@ describe('readWorkerConfig', () => {
       CLOUDFLARE_REQUEST_TIMEOUT_MS: '60000',
       DOMAIN_WORKER_LOCK_TIMEOUT_MS: '60000',
     })).toThrow('must exceed');
+    expect(() => readWorkerConfig({
+      ...requiredEnv,
+      DOMAIN_WORKER_RECONCILE_INTERVAL_MS: '29999',
+    })).toThrow('between 30000 and 86400000');
+    expect(() => readWorkerConfig({
+      ...requiredEnv,
+      CLOUDFLARE_EXPECTED_FALLBACK_ORIGIN: 'https://customers.example.com',
+    })).toThrow('without a URL, port, or wildcard');
   });
 });

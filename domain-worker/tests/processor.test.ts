@@ -23,11 +23,15 @@ const alias: SiteDomainAlias = {
 function dependencies() {
   const store: DomainJobStore = {
     claimNextJob: vi.fn(),
+    claimNextReconciliation: vi.fn(),
     getAlias: vi.fn().mockResolvedValue(alias),
     completeProviderJob: vi.fn(),
     completeDeleteJob: vi.fn(),
     retryJob: vi.fn(),
     failJob: vi.fn(),
+    completeAliasReconciliation: vi.fn(),
+    markAliasReconciliationMissing: vi.fn(),
+    recordAliasReconciliationFailure: vi.fn(),
   };
   const provider: CustomHostnameProvider = {
     ensureCustomHostname: vi.fn().mockResolvedValue({

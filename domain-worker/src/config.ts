@@ -1,10 +1,14 @@
+import { normalizeHostname } from './hostname.js';
+
 export interface WorkerConfig {
   databaseUrl: string;
   databasePoolMax: number;
   cloudflareApiToken: string;
   cloudflareZoneId: string;
+  cloudflareExpectedFallbackOrigin: string;
   cloudflareRequestTimeoutMs: number;
   pollIntervalMs: number;
+  reconcileIntervalMs: number;
   maxAttempts: number;
   retryBaseMs: number;
   retryMaxMs: number;
@@ -51,8 +55,18 @@ export function readWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerCo
     databasePoolMax: readInteger('DATABASE_POOL_MAX', env.DATABASE_POOL_MAX, 4, 1, 20),
     cloudflareApiToken: requireValue('CLOUDFLARE_API_TOKEN', env.CLOUDFLARE_API_TOKEN),
     cloudflareZoneId: requireValue('CLOUDFLARE_ZONE_ID', env.CLOUDFLARE_ZONE_ID),
+    cloudflareExpectedFallbackOrigin: normalizeHostname(
+      env.CLOUDFLARE_EXPECTED_FALLBACK_ORIGIN ?? 'customers.leonsites.org',
+    ),
     cloudflareRequestTimeoutMs,
     pollIntervalMs: readInteger('DOMAIN_WORKER_POLL_INTERVAL_MS', env.DOMAIN_WORKER_POLL_INTERVAL_MS, 2_000, 100, 60_000),
+    reconcileIntervalMs: readInteger(
+      'DOMAIN_WORKER_RECONCILE_INTERVAL_MS',
+      env.DOMAIN_WORKER_RECONCILE_INTERVAL_MS,
+      300_000,
+      30_000,
+      86_400_000,
+    ),
     maxAttempts: readInteger('DOMAIN_WORKER_MAX_ATTEMPTS', env.DOMAIN_WORKER_MAX_ATTEMPTS, 8, 1, 20),
     retryBaseMs,
     retryMaxMs,

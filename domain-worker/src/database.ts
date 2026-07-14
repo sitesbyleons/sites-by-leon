@@ -20,8 +20,23 @@ export interface SiteDomainAlias {
   cloudflareCustomHostnameId: string | null;
 }
 
-export interface DomainJobStore {
+export interface DomainReconciliation extends SiteDomainAlias {
+  leaseStartedAt: Date;
+}
+
+export interface DomainReconciliationStore {
+  completeAliasReconciliation(
+    target: DomainReconciliation,
+    cloudflareCustomHostnameId: string,
+    state: AliasProviderState,
+  ): Promise<boolean>;
+  markAliasReconciliationMissing(target: DomainReconciliation, message: string): Promise<boolean>;
+  recordAliasReconciliationFailure(target: DomainReconciliation, message: string): Promise<boolean>;
+}
+
+export interface DomainJobStore extends DomainReconciliationStore {
   claimNextJob(lockTimeoutMs: number): Promise<DomainJob | null>;
+  claimNextReconciliation(reconcileIntervalMs: number, lockTimeoutMs: number): Promise<DomainReconciliation | null>;
   getAlias(domainId: string): Promise<SiteDomainAlias | null>;
   completeProviderJob(
     job: DomainJob,
@@ -47,6 +62,10 @@ interface AliasRow {
   status: string;
   is_canonical: boolean;
   cloudflare_custom_hostname_id: string | null;
+}
+
+interface ReconciliationRow extends AliasRow {
+  lease_started_at: Date;
 }
 
 interface IdRow {
@@ -172,6 +191,64 @@ export class PostgresDomainJobStore implements DomainJobStore {
     } : null;
   }
 
+  async claimNextReconciliation(
+    reconcileIntervalMs: number,
+    lockTimeoutMs: number,
+  ): Promise<DomainReconciliation | null> {
+    const rows = await this.sql<ReconciliationRow[]>`
+      with reconcilable_alias as (
+        select alias.id
+        from site_domain_aliases as alias
+        where alias.status in ('dns_pending', 'active', 'error')
+          and (
+            alias.last_checked_at is null
+            or alias.last_checked_at <= now() - (${reconcileIntervalMs} * interval '1 millisecond')
+          )
+          and not exists (
+            select 1
+            from domain_jobs as job
+            where job.domain_id = alias.id
+              and (
+                job.status = 'queued'
+                or (
+                  job.status = 'processing'
+                  and coalesce(job.locked_at, job.updated_at) > now() - (${lockTimeoutMs} * interval '1 millisecond')
+                )
+              )
+          )
+        order by alias.last_checked_at asc nulls first, alias.created_at asc, alias.id asc
+        for update of alias skip locked
+        limit 1
+      )
+      , leased_alias as (
+        update site_domain_aliases as alias
+        set last_checked_at = date_trunc('milliseconds', clock_timestamp())
+        from reconcilable_alias
+        where alias.id = reconcilable_alias.id
+        returning
+          alias.id,
+          alias.workspace_id,
+          alias.hostname,
+          alias.status,
+          alias.is_canonical,
+          alias.cloudflare_custom_hostname_id,
+          alias.last_checked_at as lease_started_at
+      )
+      select * from leased_alias
+    `;
+
+    const row = first(rows);
+    return row ? {
+      id: row.id,
+      workspaceId: row.workspace_id,
+      hostname: row.hostname,
+      status: row.status,
+      isCanonical: row.is_canonical,
+      cloudflareCustomHostnameId: row.cloudflare_custom_hostname_id,
+      leaseStartedAt: row.lease_started_at,
+    } : null;
+  }
+
   async getAlias(domainId: string): Promise<SiteDomainAlias | null> {
     const rows = await this.sql<AliasRow[]>`
       select
@@ -253,6 +330,121 @@ export class PostgresDomainJobStore implements DomainJobStore {
 
       if (aliases.length === 0) return;
     });
+  }
+
+  async completeAliasReconciliation(
+    target: DomainReconciliation,
+    cloudflareCustomHostnameId: string,
+    state: AliasProviderState,
+  ): Promise<boolean> {
+    return this.sql.begin(async (sql) => {
+      if (state.aliasStatus === 'active') {
+        await sql`
+          select pg_advisory_xact_lock(hashtextextended(alias.workspace_id::text, 0))
+          from site_domain_aliases as alias
+          where alias.id = ${target.id}
+        `;
+      }
+
+      const aliases = await sql<IdRow[]>`
+        update site_domain_aliases as alias
+        set
+          status = ${state.aliasStatus},
+          is_canonical = case
+            when ${state.aliasStatus} <> 'active' then false
+            when alias.is_canonical then true
+            when not exists (
+              select 1
+              from site_domain_aliases as canonical
+              where canonical.workspace_id = alias.workspace_id
+                and canonical.id <> alias.id
+                and canonical.is_canonical = true
+                and canonical.status = 'active'
+            ) then true
+            else false
+          end,
+          cloudflare_custom_hostname_id = ${cloudflareCustomHostnameId},
+          cloudflare_hostname_status = ${state.cloudflareHostnameStatus},
+          cloudflare_ssl_status = ${state.cloudflareSslStatus},
+          last_error = ${state.lastError},
+          last_checked_at = now()
+        where alias.id = ${target.id}
+          and alias.last_checked_at = ${target.leaseStartedAt}
+          and alias.status not in ('removing', 'removed')
+          and not exists (
+            select 1 from domain_jobs as job
+            where job.domain_id = alias.id
+              and (
+                job.status = 'queued'
+                or (
+                  job.status = 'processing'
+                  and coalesce(job.locked_at, job.updated_at) >= ${target.leaseStartedAt}
+                )
+              )
+          )
+        returning alias.id
+      `;
+      return aliases.length > 0;
+    });
+  }
+
+  async markAliasReconciliationMissing(
+    target: DomainReconciliation,
+    message: string,
+  ): Promise<boolean> {
+    const aliases = await this.sql<IdRow[]>`
+      update site_domain_aliases as alias
+      set
+        status = 'error',
+        is_canonical = false,
+        cloudflare_custom_hostname_id = null,
+        cloudflare_hostname_status = 'missing',
+        cloudflare_ssl_status = 'missing',
+        last_error = ${message},
+        last_checked_at = now()
+      where alias.id = ${target.id}
+        and alias.last_checked_at = ${target.leaseStartedAt}
+        and alias.status not in ('removing', 'removed')
+        and not exists (
+          select 1 from domain_jobs as job
+          where job.domain_id = alias.id
+            and (
+              job.status = 'queued'
+              or (
+                job.status = 'processing'
+                and coalesce(job.locked_at, job.updated_at) >= ${target.leaseStartedAt}
+              )
+            )
+        )
+      returning alias.id
+    `;
+    return aliases.length > 0;
+  }
+
+  async recordAliasReconciliationFailure(
+    target: DomainReconciliation,
+    message: string,
+  ): Promise<boolean> {
+    const aliases = await this.sql<IdRow[]>`
+      update site_domain_aliases as alias
+      set last_error = ${message}, last_checked_at = now()
+      where alias.id = ${target.id}
+        and alias.last_checked_at = ${target.leaseStartedAt}
+        and alias.status not in ('removing', 'removed')
+        and not exists (
+          select 1 from domain_jobs as job
+          where job.domain_id = alias.id
+            and (
+              job.status = 'queued'
+              or (
+                job.status = 'processing'
+                and coalesce(job.locked_at, job.updated_at) >= ${target.leaseStartedAt}
+              )
+            )
+        )
+      returning alias.id
+    `;
+    return aliases.length > 0;
   }
 
   async completeDeleteJob(job: DomainJob): Promise<void> {

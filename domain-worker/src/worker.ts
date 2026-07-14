@@ -1,5 +1,6 @@
 import type { DomainJobStore } from './database.js';
 import type { JobProcessor } from './processor.js';
+import type { AliasReconciler } from './reconciler.js';
 
 export interface WorkerLogger {
   info(message: string, details?: Record<string, unknown>): void;
@@ -9,7 +10,9 @@ export interface WorkerLogger {
 export interface RunWorkerOptions {
   store: DomainJobStore;
   processJob: JobProcessor;
+  reconcileAlias: AliasReconciler;
   pollIntervalMs: number;
+  reconcileIntervalMs: number;
   lockTimeoutMs: number;
   signal: AbortSignal;
   logger?: WorkerLogger;
@@ -48,7 +51,21 @@ export async function runWorker(options: RunWorkerOptions): Promise<void> {
       const job = await options.store.claimNextJob(options.lockTimeoutMs);
       await options.onHealthy?.();
       if (!job) {
-        await waitFor(options.pollIntervalMs, options.signal);
+        const reconciliation = await options.store.claimNextReconciliation(
+          options.reconcileIntervalMs,
+          options.lockTimeoutMs,
+        );
+        if (!reconciliation) {
+          await waitFor(options.pollIntervalMs, options.signal);
+          continue;
+        }
+
+        const outcome = await options.reconcileAlias(reconciliation);
+        logger.info('Domain alias reconciled.', {
+          domainId: reconciliation.id,
+          hostname: reconciliation.hostname,
+          outcome: outcome.status,
+        });
         continue;
       }
 
