@@ -1,0 +1,21 @@
+FROM node:24-bookworm-slim AS build
+WORKDIR /workspace
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY dashboard/package.json dashboard/package.json
+COPY domain-worker/package.json domain-worker/package.json
+COPY platform-core/package.json platform-core/package.json
+COPY photographer-site/package.json photographer-site/package.json
+RUN pnpm install --frozen-lockfile
+COPY domain-worker ./domain-worker
+RUN pnpm --filter @leon/domain-worker build
+
+FROM node:24-bookworm-slim
+ENV NODE_ENV=production
+WORKDIR /workspace
+COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
+COPY --from=build --chown=node:node /workspace/domain-worker/node_modules ./domain-worker/node_modules
+COPY --from=build --chown=node:node /workspace/domain-worker/dist ./domain-worker/dist
+COPY --from=build --chown=node:node /workspace/domain-worker/package.json ./domain-worker/package.json
+USER node
+CMD ["node", "--enable-source-maps", "./domain-worker/dist/index.js"]

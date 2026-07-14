@@ -267,10 +267,15 @@ textarea:focus-visible {
 
 .portfolio-grid,
 .work-grid,
-.journal-list,
-.gallery-sequence {
+.journal-list {
   margin: 0;
   padding: 0;
+  list-style: none;
+}
+
+.gallery-sequence {
+  margin-block: 0;
+  padding-block: 0;
   list-style: none;
 }
 
@@ -477,19 +482,25 @@ textarea:focus-visible {
   padding-bottom: clamp(5rem, 9vw, 9rem);
 }
 
-.gallery-frame--lead {
-  width: min(84%, 76rem);
+.gallery-frame {
+  position: relative;
+  left: 0;
+  width: min(72%, 60rem);
   align-self: center;
 }
 
-.gallery-frame:nth-child(2) {
-  width: min(62%, 54rem);
-  align-self: flex-start;
+.gallery-frame--lead {
+  width: min(84%, 76rem);
 }
 
-.gallery-frame:nth-child(3) {
+.gallery-frame:nth-child(3n + 2) {
+  left: clamp(-3.5rem, -4vw, -1.5rem);
+  width: min(62%, 54rem);
+}
+
+.gallery-frame:nth-child(3n) {
+  left: clamp(1.5rem, 4vw, 3.5rem);
   width: min(68%, 58rem);
-  align-self: flex-end;
 }
 
 .gallery-frame figure {
@@ -872,8 +883,8 @@ textarea:focus-visible {
     margin-bottom: 0;
   }
 
-  .gallery-frame:nth-child(2),
-  .gallery-frame:nth-child(3) {
+  .gallery-frame:nth-child(n) {
+    left: 0;
     width: 100%;
     align-self: stretch;
   }

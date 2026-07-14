@@ -215,7 +215,7 @@ test('gallery titles and descriptions never overlap', async ({ page }) => {
   }
 });
 
-test('desktop gallery frames alternate across the page instead of stacking left', async ({ page }) => {
+test('desktop gallery frames stay centered with a restrained editorial stagger', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await navigate(page, '/work/friday-night');
   const frames = await page.locator('.gallery-frame').evaluateAll((items) =>
@@ -227,8 +227,15 @@ test('desktop gallery frames alternate across the page instead of stacking left'
 
   expect(frames).toHaveLength(3);
   expect(Math.abs(frames[0].center - 720)).toBeLessThan(40);
-  expect(frames[1].center).toBeLessThan(620);
-  expect(frames[2].center).toBeGreaterThan(820);
+  expect(frames[1].center).toBeLessThan(720);
+  expect(frames[2].center).toBeGreaterThan(720);
+  expect(Math.abs(frames[1].center - 720)).toBeLessThan(100);
+  expect(Math.abs(frames[2].center - 720)).toBeLessThan(100);
+
+  for (const frame of frames) {
+    expect(frame.left).toBeGreaterThan(80);
+    expect(frame.right).toBeLessThan(1360);
+  }
 });
 
 test('work archive presents football, basketball, and track without filler', async ({ page }) => {
@@ -259,7 +266,18 @@ for (const gallery of demoPortfolio.galleries) {
     const heights = await images.evaluateAll((items) =>
       items.map((item) => item.getBoundingClientRect().height),
     );
+    const frames = await page.locator('.gallery-frame').evaluateAll((items) =>
+      items.map((item) => {
+        const box = item.getBoundingClientRect();
+        return { left: box.left, right: box.right, center: box.left + box.width / 2 };
+      }),
+    );
     expect(Math.max(...heights)).toBeLessThanOrEqual(260);
+    for (const frame of frames) {
+      expect(Math.abs(frame.center - 195)).toBeLessThan(1);
+      expect(frame.left).toBeGreaterThanOrEqual(16);
+      expect(frame.right).toBeLessThanOrEqual(374);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 }

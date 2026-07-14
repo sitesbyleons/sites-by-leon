@@ -1,5 +1,6 @@
 packages:
   - dashboard
+  - domain-worker
   - platform-core
   - photographer-site
 

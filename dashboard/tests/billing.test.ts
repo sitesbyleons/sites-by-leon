@@ -87,7 +87,8 @@ describe('subscription webhook isolation', () => {
     const webhook = read('src/pages/api/webhooks/stripe.ts');
     expect(webhook).toContain('ignored: true');
     expect(webhook).toContain("from('client_workspaces')");
-    expect(webhook.indexOf("from('client_workspaces')")).toBeLessThan(webhook.indexOf('database.syncSubscription'));
+    expect(webhook.indexOf("from('client_workspaces')")).toBeLessThan(webhook.indexOf('applyHostingSubscriptionSnapshot(hostingExecutor'));
+    expect(webhook).not.toContain('database.syncSubscription');
   });
 
   it('only clears the checkout reservation completed by the matching Stripe Session', () => {

@@ -1,0 +1,180 @@
+---
+import AdminFrame from '../../../components/AdminFrame.astro';
+import { decideAdminAccess } from '../../../lib/access';
+import { loadAdminSession } from '../../../lib/admin';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadAdminSession({
+  isPreview,
+  userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
+  getToken: async () => (auth ? (await auth.getToken()) ?? null : null),
+});
+const access = decideAdminAccess({ userId: isPreview ? 'preview_admin' : (auth?.userId ?? null), isAdmin: session.isAdmin });
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+
+const workspaceId = Astro.params.workspaceId ?? '';
+const data = session.data!;
+const workspace = data.workspaces.find((item) => item.id === workspaceId);
+const project = data.projects.find((item) => item.workspace_id === workspaceId);
+const connection = data.connections.find((item) => item.workspace_id === workspaceId);
+const subscription = data.subscriptions.find((item) => item.workspace_id === workspaceId);
+const aliases = data.domainAliases.filter((item) => item.workspace_id === workspaceId && item.status !== 'removed');
+if (!workspace || !project || !connection) return new Response('Site not found', { status: 404 });
+
+const preview = isPreview ? '?preview=true' : '';
+const domainAutomationEnabled = isPreview || process.env.CUSTOM_DOMAIN_AUTOMATION_ENABLED === 'true';
+const isArchived = connection.status === 'archived';
+const billingLabel = connection.billing_mode === 'automatic'
+  ? connection.billing_state.replaceAll('_', ' ')
+  : 'manual';
+---
+
+<AdminFrame active="sites" title={workspace.name} eyebrow="Website settings" description="Domains, hosting, and site access in one place." isPreview={isPreview} error={session.error}>
+  <div class="provision-back"><a href={`/admin/sites${preview}`}>← Back to sites</a></div>
+
+  <section class="site-detail-summary">
+    <div><small>Website</small><strong>{connection.status}</strong><span>{project.progress}% complete</span></div>
+    <div><small>Hosting</small><strong>{billingLabel}</strong><span>{subscription ? `${subscription.plan_key} · ${subscription.status}` : 'No subscription linked'}</span></div>
+    <div><small>Custom domain</small><strong>{aliases.find((item) => item.status === 'active')?.hostname ?? 'Not connected'}</strong><span>{aliases.length ? `${aliases.length} domain request${aliases.length === 1 ? '' : 's'}` : 'Add one below'}</span></div>
+  </section>
+
+  {isArchived && (
+    <section class="site-detail-section site-restore-panel">
+      <header><div><span>Site offline</span><h2>Restore site</h2></div></header>
+      <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-lifecycle" data-preview={isPreview ? 'true' : 'false'}>
+        <input type="hidden" name="workspace_id" value={workspaceId} /><input type="hidden" name="action" value="restore" />
+        <p>The photos, posts, billing history, and domains are preserved.</p>
+        <button type="submit">Restore to maintenance</button><small data-result aria-live="polite"></small>
+      </form>
+    </section>
+  )}
+
+  <section class="site-detail-section" hidden={isArchived}>
+    <header><div><span>Addresses</span><h2>Open the site</h2></div></header>
+    <div class="site-address-list">
+      <a href={`https://${connection.primary_domain}`} target="_blank" rel="noreferrer"><span>Public fallback</span><strong>{connection.primary_domain}</strong></a>
+      <a href={`https://${connection.admin_domain}/admin`} target="_blank" rel="noreferrer"><span>Private editor</span><strong>{connection.admin_domain}/admin</strong></a>
+    </div>
+  </section>
+
+  <section class="site-detail-section" hidden={isArchived}>
+    <header><div><span>Namecheap setup</span><h2>Custom domain</h2></div><p>Add a CNAME and one redirect. Email records stay untouched.</p></header>
+    {!domainAutomationEnabled && (
+      <p class="admin-notice">The setup screen is finished. Cloudflare for SaaS still needs to be enabled on the Leon Sites account before custom domains can be connected.</p>
+    )}
+    <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-domains" data-preview={isPreview ? 'true' : 'false'}>
+      <input type="hidden" name="action" value="create" />
+      <input type="hidden" name="workspace_id" value={workspaceId} />
+      <label><span>Website address</span><input name="hostname" required inputmode="url" autocomplete="off" placeholder="www.clientdomain.com" disabled={!domainAutomationEnabled} /></label>
+      <button type="submit" disabled={!domainAutomationEnabled}>Add custom domain</button>
+      <small data-result aria-live="polite"></small>
+    </form>
+
+    {aliases.length ? (
+      <div class="domain-list">
+        {aliases.map((alias) => {
+          const hostPart = alias.hostname.split('.')[0] || 'www';
+          return (
+            <article>
+              <div class="domain-list__heading"><div><strong>{alias.hostname}</strong><span class={`status-pill status-pill--${alias.status}`}>{alias.status.replaceAll('_', ' ')}</span></div><small>{alias.last_error ?? (alias.status === 'active' ? 'SSL is active.' : 'Waiting for DNS and SSL.')}</small></div>
+              <dl class="dns-record"><div><dt>Type</dt><dd>CNAME</dd></div><div><dt>Host</dt><dd>{hostPart}</dd></div><div><dt>Value</dt><dd>{alias.dns_target}</dd></div><div><dt>TTL</dt><dd>Automatic</dd></div></dl>
+              <p class="domain-note">Then redirect <strong>@</strong> to <strong>https://{alias.hostname}</strong> using an unmasked permanent redirect.</p>
+              <div class="domain-copy-actions"><button type="button" data-copy={hostPart}>Copy CNAME host</button><button type="button" data-copy={alias.dns_target}>Copy CNAME value</button><button type="button" data-copy={`https://${alias.hostname}`}>Copy redirect</button></div>
+              <div class="domain-actions">
+                <form data-api-form data-endpoint="/api/admin/site-domains" data-preview={isPreview ? 'true' : 'false'}><input type="hidden" name="action" value="refresh" /><input type="hidden" name="workspace_id" value={workspaceId} /><input type="hidden" name="domain_id" value={alias.id} /><button type="submit" disabled={!domainAutomationEnabled}>Check connection</button><small data-result aria-live="polite"></small></form>
+                <form data-api-form data-endpoint="/api/admin/site-domains" data-preview={isPreview ? 'true' : 'false'} data-confirm={`Remove ${alias.hostname}? The Leon Sites address will keep working.`}><input type="hidden" name="action" value="remove" /><input type="hidden" name="workspace_id" value={workspaceId} /><input type="hidden" name="domain_id" value={alias.id} /><button class="quiet-danger" type="submit" disabled={!domainAutomationEnabled}>Remove</button><small data-result aria-live="polite"></small></form>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    ) : <p class="simple-empty">No custom domain has been requested.</p>}
+  </section>
+
+  <section class="site-detail-section" hidden={isArchived}>
+    <header><div><span>Monthly hosting</span><h2>Subscription control</h2></div><p>Automatic mode follows Stripe payment status.</p></header>
+    <div class="billing-control-card">
+      <div><small>Current setup</small><strong>{connection.billing_mode === 'automatic' ? 'Automatic' : 'Manual'}</strong><span>{subscription ? `${subscription.plan_key} · ${subscription.status}` : 'The client has not started a hosting subscription.'}</span><span>Paid or trialing: live · Past due: maintenance · Unpaid or canceled: paused</span></div>
+      <div class="billing-control-actions">
+        {subscription && <a class="simple-button simple-button--quiet" href={`https://dashboard.stripe.com/subscriptions/${subscription.stripe_subscription_id}`} target="_blank" rel="noreferrer">Open in Stripe</a>}
+        {subscription && <form data-api-form data-endpoint="/api/admin/site-billing" data-preview={isPreview ? 'true' : 'false'}><input type="hidden" name="workspace_id" value={workspaceId} /><input type="hidden" name="action" value="automatic" /><button type="submit">Use subscription</button><small data-result aria-live="polite"></small></form>}
+        <form data-api-form data-endpoint="/api/admin/site-billing" data-preview={isPreview ? 'true' : 'false'}><input type="hidden" name="workspace_id" value={workspaceId} /><input type="hidden" name="action" value="manual" /><button type="submit">Use manual control</button><small data-result aria-live="polite"></small></form>
+      </div>
+    </div>
+    <div class="site-status-grid">
+      {(['active', 'maintenance', 'paused'] as const).map((status) => (
+        <form data-api-form data-endpoint="/api/admin/sites" data-preview={isPreview ? 'true' : 'false'}>
+          <input type="hidden" name="workspace_id" value={workspaceId} />
+          <input type="hidden" name="status" value={status} />
+          <button type="submit" aria-pressed={connection.desired_status === status}>{status === 'active' ? 'Keep live' : status === 'maintenance' ? 'Maintenance page' : 'Pause site'}</button>
+          <small data-result aria-live="polite"></small>
+        </form>
+      ))}
+    </div>
+  </section>
+
+  <section class="site-detail-section site-delete-panel" hidden={isArchived}>
+    <header><div><span>Recovery included</span><h2>Delete site</h2></div></header>
+    <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-lifecycle" data-preview={isPreview ? 'true' : 'false'}>
+      <input type="hidden" name="workspace_id" value={workspaceId} /><input type="hidden" name="action" value="archive" />
+      <label><span>Type “{workspace.name}” to confirm</span><input name="confirmation" required autocomplete="off" /></label>
+      <label><span>Reason <em>optional</em></span><input name="reason" maxlength="240" placeholder="Client canceled service" /></label>
+      <p>This takes the site offline without erasing client photos. You can restore it later. Any active Stripe subscription must be canceled separately.</p>
+      <button class="danger-button" type="submit">Delete site</button><small data-result aria-live="polite"></small>
+    </form>
+  </section>
+
+  <script>
+    document.querySelectorAll<HTMLFormElement>('[data-api-form]').forEach((form) => {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (form.dataset.confirm && !window.confirm(form.dataset.confirm)) return;
+        const result = form.querySelector<HTMLElement>('[data-result]');
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (!result || !button) return;
+        result.textContent = 'Updating…';
+        button.disabled = true;
+        if (form.dataset.preview === 'true') {
+          result.textContent = 'Preview updated.';
+          button.disabled = false;
+          return;
+        }
+        try {
+          const response = await fetch(form.dataset.endpoint ?? '', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(Object.fromEntries(new FormData(form).entries())),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.message ?? 'This change was not saved.');
+          result.textContent = payload.message ?? 'Saved.';
+          const action = new FormData(form).get('action');
+          if (form.dataset.endpoint === '/api/admin/site-domains' && action === 'refresh') {
+            result.textContent = 'Connection check queued. Refresh this page in a few seconds.';
+            button.disabled = false;
+          } else {
+            window.setTimeout(() => location.reload(), 450);
+          }
+        } catch (error) {
+          result.textContent = error instanceof Error ? error.message : 'This change was not saved.';
+          button.disabled = false;
+        }
+      });
+    });
+
+    document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const value = button.dataset.copy ?? '';
+        try {
+          await navigator.clipboard.writeText(value);
+          const original = button.textContent;
+          button.textContent = 'Copied';
+          window.setTimeout(() => { button.textContent = original; }, 1200);
+        } catch {
+          window.prompt('Copy this value:', value);
+        }
+      });
+    });
+  </script>
+</AdminFrame>

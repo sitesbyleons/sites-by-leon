@@ -21,7 +21,9 @@ export type AdminProject = {
 };
 
 export type AdminSubscription = {
+  id: string;
   workspace_id: string;
+  stripe_subscription_id: string;
   plan_key: string;
   status: string;
   current_period_end: string | null;
@@ -52,6 +54,26 @@ export type AdminConnection = {
   status: string;
   current_version: string | null;
   last_seen_at: string | null;
+  hosting_subscription_id: string | null;
+  billing_mode: string;
+  desired_status: string;
+  billing_state: string;
+  billing_updated_at: string | null;
+  archived_at: string | null;
+  archive_reason: string | null;
+};
+
+export type AdminDomainAlias = {
+  id: string;
+  workspace_id: string;
+  hostname: string;
+  status: string;
+  is_canonical: boolean;
+  cloudflare_hostname_status: string | null;
+  cloudflare_ssl_status: string | null;
+  dns_target: string;
+  last_error: string | null;
+  last_checked_at: string | null;
 };
 
 export type AdminUser = {
@@ -75,6 +97,7 @@ export type AdminData = {
   requests: AdminRequest[];
   members: AdminMember[];
   connections: AdminConnection[];
+  domainAliases: AdminDomainAlias[];
   provisioningRuns: AdminProvisioningRun[];
   error: string | null;
 };
@@ -108,7 +131,7 @@ export function getPreviewAdminData(): AdminData {
       { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, updated_at: '2026-07-09T15:00:00.000Z' },
     ],
     subscriptions: [
-      { workspace_id: 'ws_northline', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
+      { id: 'sub_local', workspace_id: 'ws_northline', stripe_subscription_id: 'sub_preview', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
     ],
     requests: [
       { id: 'req_1', workspace_id: 'ws_northline', subject: 'Replace the featured gallery', details: 'Use the new championship gallery as the first featured collection.', status: 'new', created_at: '2026-07-10T16:00:00.000Z' },
@@ -120,7 +143,10 @@ export function getPreviewAdminData(): AdminData {
       { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
     ],
     connections: [
-      { workspace_id: 'ws_northline', site_key: 'northline-demo', primary_domain: 'demo.leonsites.org', admin_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null },
+      { workspace_id: 'ws_northline', site_key: 'northline-demo', primary_domain: 'demo.leonsites.org', admin_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+    ],
+    domainAliases: [
+      { id: 'domain_preview', workspace_id: 'ws_northline', hostname: 'www.northlinesports.com', status: 'dns_pending', is_canonical: false, cloudflare_hostname_status: 'pending', cloudflare_ssl_status: 'pending_validation', dns_target: 'customers.leonsites.org', last_error: null, last_checked_at: null },
     ],
     provisioningRuns: [
       { workspace_id: 'ws_northline', status: 'ready', last_error: null, updated_at: '2026-07-10T17:00:00.000Z' },
@@ -226,10 +252,10 @@ export async function checkAppAdmin(database: DataClient | null, clerkUserId: st
 }
 
 export async function loadAdminData(database: DataClient | null): Promise<AdminData> {
-  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [], provisioningRuns: [] };
+  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [], domainAliases: [], provisioningRuns: [] };
   if (!database) return { ...empty, error: 'The secure database connection is not configured.' };
 
-  const [workspaces, projects, subscriptions, requests, members, connections, provisioningRuns] = await Promise.all([
+  const [workspaces, projects, subscriptions, requests, members, connections, domainAliases, provisioningRuns] = await Promise.all([
     database.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
     database
       .from('website_projects')
@@ -237,7 +263,7 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
       .order('updated_at', { ascending: false }),
     database
       .from('subscriptions')
-      .select('workspace_id,plan_key,status,current_period_end')
+      .select('id,workspace_id,stripe_subscription_id,plan_key,status,current_period_end')
       .order('updated_at', { ascending: false }),
     database
       .from('content_requests')
@@ -246,11 +272,12 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
       .order('created_at', { ascending: false })
       .limit(100),
     database.from('workspace_members').select('workspace_id,clerk_user_id,role'),
-    database.from('site_connections').select('workspace_id,site_key,primary_domain,admin_domain,deployment_target,github_repository,status,current_version,last_seen_at'),
+    database.from('site_connections').select('workspace_id,site_key,primary_domain,admin_domain,deployment_target,github_repository,status,current_version,last_seen_at,hosting_subscription_id,billing_mode,desired_status,billing_state,billing_updated_at,archived_at,archive_reason'),
+    database.from('site_domain_aliases').select('id,workspace_id,hostname,status,is_canonical,cloudflare_hostname_status,cloudflare_ssl_status,dns_target,last_error,last_checked_at').order('created_at', { ascending: false }),
     database.from('site_provisioning_runs').select('workspace_id,status,last_error,updated_at').order('updated_at', { ascending: false }),
   ]);
 
-  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error || provisioningRuns.error;
+  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error || domainAliases.error || provisioningRuns.error;
 
   return {
     workspaces: (workspaces.data ?? []) as AdminWorkspace[],
@@ -259,6 +286,7 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
     requests: (requests.data ?? []) as AdminRequest[],
     members: (members.data ?? []) as AdminMember[],
     connections: (connections.data ?? []) as AdminConnection[],
+    domainAliases: (domainAliases.data ?? []) as AdminDomainAlias[],
     provisioningRuns: (provisioningRuns.data ?? []) as AdminProvisioningRun[],
     error: hasError ? 'Some studio data is temporarily unavailable.' : null,
   };
