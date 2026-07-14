@@ -11,7 +11,6 @@ flock -w "${MAINTENANCE_LOCK_TIMEOUT:-900}" 9 || {
 SOURCE_ROOT=${SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}
 PLATFORM_ROOT=${PLATFORM_ROOT:-/opt/leon-platform}
 export RELEASE_SHA=${RELEASE_SHA:-$(basename "$(readlink -f "${SOURCE_ROOT}")")}
-docker network inspect leon-edge >/dev/null 2>&1 || docker network create leon-edge >/dev/null
 
 cd "${SOURCE_ROOT}/infra/ovh"
 
@@ -39,6 +38,12 @@ if [[ ${domain_api_enabled} != ${domain_profile_enabled} ]]; then
   echo "Custom-domain API and worker profile must be enabled or disabled together." >&2
   exit 1
 fi
+if [[ ${domain_profile_enabled} == true ]]; then
+  SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/preflight-domain-worker.sh"
+fi
+
+docker network inspect leon-edge >/dev/null 2>&1 || docker network create leon-edge >/dev/null
+
 if [[ ${domain_profile_enabled} != true ]]; then
   docker compose --env-file .env --profile domains rm --stop --force domain-worker >/dev/null 2>&1 || true
 fi

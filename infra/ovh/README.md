@@ -58,9 +58,10 @@ The normal deployment keeps custom-domain automation off. To activate it safely:
 
 1. Enable Cloudflare for SaaS for `leonsites.org` and confirm `customers.leonsites.org` is the Active fallback origin.
 2. Create a zone-scoped Cloudflare API token for `leonsites.org` with **SSL and Certificates: Edit**.
-3. Copy `secrets/domain-worker.env.example` to `secrets/domain-worker.env`. Put the token and zone ID there. Generate a separate 32+ character database password, use it in that file's `DATABASE_URL`, and put the same password in `POSTGRES_DOMAIN_WORKER_PASSWORD` inside `secrets/postgres.env`.
+3. Copy `secrets/domain-worker.env.example` to `secrets/domain-worker.env`. Put the token and zone ID there. Generate a separate URL-safe database password with `openssl rand -hex 32`, use it in that file's `DATABASE_URL`, and put the exact same password in `POSTGRES_DOMAIN_WORKER_PASSWORD` inside `secrets/postgres.env`.
 4. Set `CUSTOM_DOMAIN_AUTOMATION_ENABLED=true` and add `domains` to `COMPOSE_PROFILES` in `.env` (for example `COMPOSE_PROFILES=tunnel,domains`). These settings must change together; deployment refuses a mismatched state.
-5. Deploy, confirm the domain worker is healthy, then connect one test hostname from `/admin/sites` before onboarding a client domain.
+5. Set both secret files to mode `600`. Deployment runs `scripts/preflight-domain-worker.sh` before it creates or changes Docker resources and refuses missing, duplicate, placeholder, malformed, insecure, short, or mismatched worker credentials.
+6. Deploy, confirm the domain worker is healthy, then connect one test hostname from `/admin/sites` before onboarding a client domain.
 
 For Namecheap, add the client's `www` CNAME to `customers.leonsites.org`, then add an unmasked permanent redirect from `@` to the `https://www...` address. Do not remove or replace MX/TXT email records.
 
@@ -81,6 +82,12 @@ docker compose exec -T database psql -U leon_app -d leon_platform < migration-ar
 The current managed project has no stored image objects, so there are no image bytes to copy. New uploads are written directly to `/opt/leon-platform/uploads`.
 
 ## Deploy
+
+Run the non-mutating custom-domain deployment regression tests on a Linux host:
+
+```bash
+bash infra/ovh/tests/preflight-domain-worker.test.sh
+```
 
 Validate an upcoming schema against a disposable copy of the current production database:
 
