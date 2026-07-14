@@ -135,6 +135,8 @@ services:
     image: cloudflare/cloudflared:2026.7.1
     profiles: ["tunnel"]
     restart: unless-stopped
+    # Runtime secrets are owner-readable only and releases are owned by the deploy user (UID 1000).
+    user: "1000:1000"
     command: tunnel --no-autoupdate run --token-file /run/secrets/cloudflare_tunnel_token
     secrets:
       - cloudflare_tunnel_token
