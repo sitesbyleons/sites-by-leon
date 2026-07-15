@@ -1,6 +1,7 @@
 ---
 import ContactSheet from '../components/ContactSheet.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
+import { selectHomeHeroImages } from '../lib/content/home';
 import { loadSiteTheme, siteRepository } from '../lib/content/repository';
 
 const [portfolio, theme] = await Promise.all([
@@ -10,8 +11,7 @@ const [portfolio, theme] = await Promise.all([
 const featuredGalleries = portfolio.home.featuredGallerySlugs
   .map((slug) => portfolio.galleries.find((gallery) => gallery.slug === slug))
   .filter((gallery) => gallery !== undefined);
-const leadLandscape = featuredGalleries[0]?.images[1] ?? featuredGalleries[0]?.cover;
-const leadPortrait = featuredGalleries[1]?.images[2] ?? featuredGalleries[1]?.cover;
+const { leadLandscape, leadPortrait, imageCount: heroImageCount } = selectHomeHeroImages(featuredGalleries);
 const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' })
   .format(portfolio.packages.map((service) => service.name));
 ---
@@ -28,7 +28,7 @@ const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conj
       <p>{portfolio.home.introduction}</p>
     </div>
 
-    <div class="editorial-hero-images">
+    <div class="editorial-hero-images" data-image-count={heroImageCount}>
       {
         leadLandscape && (
           <figure class="editorial-hero-image editorial-hero-image--landscape" data-image-drift="slow">

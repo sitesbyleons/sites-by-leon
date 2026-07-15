@@ -15,7 +15,9 @@ describe('SelectedWorkReel', () => {
     expect(html).toContain('data-frame-count="3"');
     expect(html.match(/class="work-project__frame/g)).toHaveLength(3);
     expect(html).toContain('data-tone="editorial"');
+    expect(html).toContain('data-motion-libraries="skiper-ui react-spring motion"');
     expect(html).toContain(`href="/work/${gallery.slug}"`);
     expect(html).toContain('1 project');
+    expect(html).toContain('3 photographs');
   });
 });
