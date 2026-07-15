@@ -1,0 +1,224 @@
+import { animated, to, useSpring as useReactSpring } from '@react-spring/web';
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useSpring as useMotionSpring,
+  useTransform,
+} from 'motion/react';
+import { useRef, type PointerEvent, type ReactNode } from 'react';
+
+import type { Gallery, GalleryImage } from '../lib/content/types';
+import './selected-work-reel.css';
+
+type Props = {
+  galleries: Gallery[];
+  tone: 'editorial' | 'athletic' | 'modern';
+};
+
+type SkiperLinkProps = {
+  children: ReactNode;
+  href: string;
+  label: string;
+};
+
+const uniqueFrames = (gallery: Gallery) => {
+  const frames = [gallery.cover, ...gallery.images];
+  return frames
+    .filter((frame, index) => frames.findIndex((candidate) => candidate.src === frame.src) === index)
+    .slice(0, 3);
+};
+
+/**
+ * Adapted for Astro from Skiper UI's free Skiper 40 animated-link pattern.
+ * Original: https://skiper-ui.com/docs/quick-start (Skiper 40 by gxuri).
+ */
+function SkiperLink({ children, href, label }: SkiperLinkProps) {
+  return (
+    <a className="skiper-link" href={href} aria-label={label}>
+      <span>{children}</span>
+      <svg viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M1.5 10.5 10.5 1.5m0 0v8m0-8h-8" />
+      </svg>
+    </a>
+  );
+}
+
+function ReelFrame({
+  frame,
+  index,
+  projectProgress,
+  reducedMotion,
+}: {
+  frame: GalleryImage;
+  index: number;
+  projectProgress: ReturnType<typeof useScroll>['scrollYProgress'];
+  reducedMotion: boolean;
+}) {
+  const distances = index === 0 ? [42, -42] : index === 1 ? [-28, 28] : [22, -22];
+  const y = useTransform(
+    projectProgress,
+    [0, 1],
+    reducedMotion ? [0, 0] : distances,
+  );
+
+  return (
+    <motion.figure
+      className={`work-project__frame work-project__frame--${index + 1}`}
+      initial={false}
+      whileInView={reducedMotion
+        ? { opacity: [0.88, 1] }
+        : { clipPath: ['inset(9% 7% 9% 7%)', 'inset(0% 0% 0% 0%)'], opacity: [0.72, 1] }}
+      viewport={{ amount: 0.28, once: false }}
+      transition={{ duration: reducedMotion ? 0.25 : 0.82, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <motion.img
+        src={frame.src}
+        alt={frame.alt}
+        width={frame.width}
+        height={frame.height}
+        loading={index === 0 ? 'eager' : 'lazy'}
+        decoding="async"
+        style={{ y }}
+      />
+    </motion.figure>
+  );
+}
+
+function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
+  const projectRef = useRef<HTMLElement>(null);
+  const reducedMotion = useReducedMotion() ?? false;
+  const frames = uniqueFrames(gallery);
+  const { scrollYProgress } = useScroll({
+    target: projectRef,
+    offset: ['start end', 'end start'],
+  });
+  const watermarkY = useTransform(
+    scrollYProgress,
+    [0, 1],
+    reducedMotion ? ['0%', '0%'] : ['18%', '-18%'],
+  );
+  const [tilt, tiltApi] = useReactSpring(() => ({
+    rotateX: 0,
+    rotateY: 0,
+    scale: 1,
+    config: { mass: 0.7, tension: 235, friction: 24 },
+  }));
+
+  const resetTilt = () => tiltApi.start({ rotateX: 0, rotateY: 0, scale: 1 });
+  const moveTilt = (event: PointerEvent<HTMLAnchorElement>) => {
+    if (reducedMotion || event.pointerType === 'touch') return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    tiltApi.start({ rotateX: y * -1.8, rotateY: x * 2.4, scale: 1.006 });
+  };
+
+  const number = String(index + 1).padStart(2, '0');
+  const href = `/work/${gallery.slug}`;
+
+  return (
+    <motion.article
+      ref={projectRef}
+      className="work-project"
+      data-portfolio-item
+      initial={false}
+      whileInView={reducedMotion
+        ? { opacity: [0.9, 1] }
+        : { opacity: [0.78, 1], y: [36, 0] }}
+      viewport={{ amount: 0.08, once: false }}
+      transition={{ duration: reducedMotion ? 0.25 : 0.72, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <motion.span className="work-project__watermark" style={{ y: watermarkY }} aria-hidden="true">
+        {number}
+      </motion.span>
+
+      <header className="work-project__heading">
+        <span className="work-project__number">{number}</span>
+        <div>
+          <h3>{gallery.title}</h3>
+          <p>{gallery.category}</p>
+        </div>
+        <SkiperLink href={href} label={`View ${gallery.title} gallery`}>
+          View gallery
+        </SkiperLink>
+      </header>
+
+      <animated.a
+        className="work-project__media"
+        data-frame-count={frames.length}
+        href={href}
+        aria-label={`Open ${gallery.title} gallery`}
+        onPointerMove={moveTilt}
+        onPointerLeave={resetTilt}
+        onFocus={() => tiltApi.start({ scale: 1.006 })}
+        onBlur={resetTilt}
+        style={{
+          transform: to(
+            [tilt.rotateX, tilt.rotateY, tilt.scale],
+            (rotateX, rotateY, scale) =>
+              `perspective(1400px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale})`,
+          ),
+        }}
+      >
+        {frames.map((frame, frameIndex) => (
+          <ReelFrame
+            key={`${gallery.id}-${frame.id}-${frameIndex}`}
+            frame={frame}
+            index={frameIndex}
+            projectProgress={scrollYProgress}
+            reducedMotion={reducedMotion}
+          />
+        ))}
+      </animated.a>
+    </motion.article>
+  );
+}
+
+export default function SelectedWorkReel({ galleries, tone }: Props) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const reducedMotion = useReducedMotion() ?? false;
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start end', 'end start'],
+  });
+  const smoothProgress = useMotionSpring(scrollYProgress, {
+    stiffness: 105,
+    damping: 28,
+    restDelta: 0.001,
+  });
+  const headingX = useTransform(
+    smoothProgress,
+    [0, 1],
+    reducedMotion ? ['0%', '0%'] : ['4%', '-4%'],
+  );
+
+  if (galleries.length === 0) return null;
+
+  return (
+    <section
+      ref={sectionRef}
+      className="work-reel"
+      data-tone={tone}
+      aria-labelledby="selected-work-title"
+    >
+      <div className="work-reel__topline">
+        <span>01</span>
+        <span>Portfolio</span>
+        <span>{String(galleries.length).padStart(2, '0')} project{galleries.length === 1 ? '' : 's'}</span>
+      </div>
+
+      <div className="work-reel__title-wrap">
+        <motion.h2 id="selected-work-title" style={{ x: headingX }}>
+          Selected work
+        </motion.h2>
+      </div>
+
+      <div className="work-reel__projects">
+        {galleries.map((gallery, index) => (
+          <WorkProject key={gallery.id} gallery={gallery} index={index} />
+        ))}
+      </div>
+    </section>
+  );
+}

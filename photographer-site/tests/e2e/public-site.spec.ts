@@ -116,7 +116,8 @@ test('home is an image-first editorial sports portfolio', async ({ page }) => {
     'Game Coverage, Season Coverage, and Athlete Session.',
   );
   await expect(page.locator('[data-portfolio-item]')).toHaveCount(3);
-  await expect(page.locator('[data-portfolio-item] img')).toHaveCount(3);
+  await expect(page.locator('[data-portfolio-item] img')).toHaveCount(9);
+  await expect(page.getByRole('link', { name: /view .* gallery/i })).toHaveCount(3);
   await expect(page.locator('.scorebug,.highlight-index,.work-card-number')).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link')).toHaveText([
     'Work',
@@ -125,7 +126,7 @@ test('home is an image-first editorial sports portfolio', async ({ page }) => {
   ]);
 
   const mainWordCount = await page.locator('main').evaluate((main) =>
-    main.textContent!.trim().split(/\s+/).length,
+    (main as HTMLElement).innerText.trim().split(/\s+/).length,
   );
   expect(mainWordCount).toBeLessThanOrEqual(95);
   await expect(page.locator('.journal-feature,.studio-position,.featured-work,.package-teaser')).toHaveCount(0);
@@ -172,6 +173,27 @@ test('mobile home keeps the editorial image rhythm without overflow', async ({ p
   expect(cards).toHaveLength(3);
   expect(cards[1].top).toBeGreaterThan(cards[0].bottom);
   expect(cards[2].top).toBeGreaterThan(cards[1].bottom);
+});
+
+test('selected work has scroll-linked motion and remains usable before hydration', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await navigate(page, '/');
+
+  const firstProject = page.locator('[data-portfolio-item]').first();
+  await expect(firstProject).toBeVisible();
+  await firstProject.scrollIntoViewIfNeeded();
+  await expect(page.locator('astro-island')).toHaveAttribute('client-render-time', /\d/);
+  await page.waitForTimeout(700);
+
+  const image = firstProject.locator('img').first();
+  const before = await image.evaluate((element) => getComputedStyle(element).transform);
+  await page.mouse.wheel(0, 300);
+  await page.waitForTimeout(450);
+  const after = await image.evaluate((element) => getComputedStyle(element).transform);
+  expect(after).not.toBe(before);
+
+  await expect(firstProject.getByRole('link', { name: 'Open Football gallery' })).toBeVisible();
+  await expect(firstProject.getByRole('link', { name: 'View Football gallery' })).toBeVisible();
 });
 
 test('public pages contain no prototype language and contact collects event details', async ({ page }) => {
