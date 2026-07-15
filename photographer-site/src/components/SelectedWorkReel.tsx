@@ -99,25 +99,34 @@ function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
     target: projectRef,
     offset: ['start end', 'end start'],
   });
-  const watermarkY = useTransform(
-    scrollYProgress,
-    [0, 1],
-    reducedMotion ? ['0%', '0%'] : ['18%', '-18%'],
-  );
   const [tilt, tiltApi] = useReactSpring(() => ({
     rotateX: 0,
     rotateY: 0,
     scale: 1,
+    lightX: 50,
+    lightY: 50,
     config: { mass: 0.7, tension: 235, friction: 24 },
   }));
 
-  const resetTilt = () => tiltApi.start({ rotateX: 0, rotateY: 0, scale: 1 });
+  const resetTilt = () => tiltApi.start({
+    rotateX: 0,
+    rotateY: 0,
+    scale: 1,
+    lightX: 50,
+    lightY: 50,
+  });
   const moveTilt = (event: PointerEvent<HTMLAnchorElement>) => {
     if (reducedMotion || event.pointerType === 'touch') return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width - 0.5;
     const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-    tiltApi.start({ rotateX: y * -1.8, rotateY: x * 2.4, scale: 1.006 });
+    tiltApi.start({
+      rotateX: y * -1.8,
+      rotateY: x * 2.4,
+      scale: 1.006,
+      lightX: (x + 0.5) * 100,
+      lightY: (y + 0.5) * 100,
+    });
   };
 
   const number = String(index + 1).padStart(2, '0');
@@ -135,19 +144,18 @@ function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
       viewport={{ amount: 0.08, once: false }}
       transition={{ duration: reducedMotion ? 0.25 : 0.72, ease: [0.16, 1, 0.3, 1] }}
     >
-      <motion.span className="work-project__watermark" style={{ y: watermarkY }} aria-hidden="true">
-        {number}
-      </motion.span>
-
       <header className="work-project__heading">
-        <span className="work-project__number">{number}</span>
-        <div>
+        <div className="work-project__title">
+          <span className="work-project__number">{number}</span>
           <h3>{gallery.title}</h3>
           <p>{gallery.category}</p>
         </div>
-        <SkiperLink href={href} label={`View ${gallery.title} gallery`}>
-          View gallery
-        </SkiperLink>
+        <div className="work-project__actions">
+          <span>{frames.length} photograph{frames.length === 1 ? '' : 's'}</span>
+          <SkiperLink href={href} label={`View ${gallery.title} gallery`}>
+            View gallery
+          </SkiperLink>
+        </div>
       </header>
 
       <animated.a
@@ -167,6 +175,16 @@ function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
           ),
         }}
       >
+        <animated.span
+          className="work-project__light"
+          aria-hidden="true"
+          style={{
+            background: to(
+              [tilt.lightX, tilt.lightY],
+              (x, y) => `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,.14), transparent 34%)`,
+            ),
+          }}
+        />
         {frames.map((frame, frameIndex) => (
           <ReelFrame
             key={`${gallery.id}-${frame.id}-${frameIndex}`}
@@ -206,18 +224,19 @@ export default function SelectedWorkReel({ galleries, tone }: Props) {
       ref={sectionRef}
       className="work-reel"
       data-tone={tone}
+      data-project-count={galleries.length}
+      data-motion-libraries="skiper-ui react-spring motion"
       aria-labelledby="selected-work-title"
     >
-      <div className="work-reel__topline">
-        <span>01</span>
-        <span>Portfolio</span>
-        <span>{String(galleries.length).padStart(2, '0')} project{galleries.length === 1 ? '' : 's'}</span>
-      </div>
-
-      <div className="work-reel__title-wrap">
+      <div className="work-reel__intro">
+        <span className="work-reel__label">Portfolio</span>
         <motion.h2 id="selected-work-title" style={{ x: headingX }}>
-          Selected work
+          <span>Selected</span>
+          <em>work</em>
         </motion.h2>
+        <span className="work-reel__count">
+          {String(galleries.length).padStart(2, '0')} project{galleries.length === 1 ? '' : 's'}
+        </span>
       </div>
 
       <div className="work-reel__projects">
