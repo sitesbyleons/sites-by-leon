@@ -1,0 +1,56 @@
+---
+import type { GalleryLayoutMode, MediaAspectRatio } from '../lib/content/types';
+
+interface Props {
+  layoutMode?: GalleryLayoutMode;
+  gridColumns?: 1 | 2 | 3 | 4;
+  imageAspectRatio?: MediaAspectRatio;
+}
+
+const {
+  layoutMode = 'grid',
+  gridColumns = 3,
+  imageAspectRatio = 'landscape',
+} = Astro.props;
+---
+
+<fieldset class="studio-layout-editor wide" data-layout-editor>
+  <legend>Gallery layout</legend>
+  <div class="studio-layout-fields">
+    <label>
+      <span>Display</span>
+      <select name="layout_mode" data-layout-mode>
+        <option value="grid" selected={layoutMode === 'grid'}>Photo grid</option>
+        <option value="stack" selected={layoutMode === 'stack'}>One below another</option>
+      </select>
+    </label>
+    <label>
+      <span>Photos per row</span>
+      <select name="grid_columns" data-layout-columns>
+        {[1, 2, 3, 4].map((columns) => (
+          <option value={columns} selected={gridColumns === columns}>{columns}</option>
+        ))}
+      </select>
+    </label>
+    <label>
+      <span>Photo shape</span>
+      <select name="image_aspect_ratio" data-layout-ratio>
+        <option value="square" selected={imageAspectRatio === 'square'}>Square</option>
+        <option value="portrait" selected={imageAspectRatio === 'portrait'}>Portrait</option>
+        <option value="landscape" selected={imageAspectRatio === 'landscape'}>Landscape</option>
+        <option value="wide" selected={imageAspectRatio === 'wide'}>Wide</option>
+      </select>
+    </label>
+  </div>
+  <div
+    class="studio-layout-preview"
+    data-layout-preview
+    data-mode={layoutMode}
+    data-columns={gridColumns}
+    data-ratio={imageAspectRatio}
+    aria-hidden="true"
+  >
+    {Array.from({ length: 6 }, (_, index) => <i style={`--preview-index:${index}`}></i>)}
+  </div>
+  <p>Grid fills each row. One below another gives every photograph its own line.</p>
+</fieldset>

@@ -14,6 +14,8 @@ export const prerender = false;
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const colorPattern = /^#[0-9a-f]{6}$/i;
+const mediaAspectRatios = new Set(['square', 'portrait', 'landscape', 'wide']);
+const imageAspectRatios = new Set(['inherit', ...mediaAspectRatios]);
 const orderable = new Set(['galleries', 'images', 'posts', 'services']);
 const deletable = new Set(['galleries', 'images', 'posts', 'services', 'clients', 'invoices']);
 const uploadRoot = process.env.UPLOAD_ROOT ?? '/data/uploads';
@@ -24,6 +26,14 @@ const text = (source: Record<string, unknown>, key: string, max = 2000) => {
 };
 const nullable = (value: string) => value || null;
 const managedPath = (workspaceId: string, value: string) => value.startsWith(`${workspaceId}/`) ? value : null;
+const boundedNumber = (source: Record<string, unknown>, key: string, minimum: number, maximum: number, fallback: number) => {
+  const value = Number(source[key]);
+  return Number.isFinite(value) && value >= minimum && value <= maximum ? value : fallback;
+};
+const mediaAspectRatio = (source: Record<string, unknown>, key: string, fallback = 'landscape') => {
+  const value = text(source, key, 20);
+  return mediaAspectRatios.has(value) ? value : fallback;
+};
 
 type UploadBackedResource =
   | { table: 'studio_galleries'; pathColumn: 'cover_storage_path'; path: string }
@@ -150,8 +160,30 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     const cover = text(source, 'cover_image_url', 2048);
     const coverPath = managedPath(workspaceId, text(source, 'cover_storage_path', 1024));
     const status = text(source, 'status', 20) === 'published' ? 'published' : 'draft';
+    const layoutMode = text(source, 'layout_mode', 20) === 'stack' ? 'stack' : 'grid';
+    const gridColumns = Math.round(boundedNumber(source, 'grid_columns', 1, 4, 3));
+    const imageAspectRatio = mediaAspectRatio(source, 'image_aspect_ratio');
+    const coverAspectRatio = mediaAspectRatio(source, 'cover_aspect_ratio');
+    const coverCropX = Math.round(boundedNumber(source, 'cover_crop_x', 0, 100, 50));
+    const coverCropY = Math.round(boundedNumber(source, 'cover_crop_y', 0, 100, 50));
+    const coverCropZoom = boundedNumber(source, 'cover_crop_zoom', 1, 3, 1);
     if (title.length < 2 || category.length < 2 || !slugPattern.test(slug) || !cover) return Response.json({ message: 'Complete the gallery title, URL, category, and cover image.' }, { status: 422 });
-    const values = { title, slug, category, cover_image_url: cover, cover_storage_path: coverPath, description: text(source, 'description', 500), status };
+    const values = {
+      title,
+      slug,
+      category,
+      cover_image_url: cover,
+      cover_storage_path: coverPath,
+      description: text(source, 'description', 500),
+      layout_mode: layoutMode,
+      grid_columns: gridColumns,
+      image_aspect_ratio: imageAspectRatio,
+      cover_aspect_ratio: coverAspectRatio,
+      cover_crop_x: coverCropX,
+      cover_crop_y: coverCropY,
+      cover_crop_zoom: coverCropZoom,
+      status,
+    };
     if (id) {
       if (!uuidPattern.test(id)) return Response.json({ message: 'Invalid gallery.' }, { status: 422 });
       const previous = await client.from('studio_galleries').select('cover_storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ cover_storage_path: string | null }>();
@@ -171,12 +203,17 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     const imageUrl = text(source, 'image_url', 2048);
     const altText = text(source, 'alt_text', 300);
     const storagePath = managedPath(workspaceId, text(source, 'storage_path', 1024));
+    const requestedAspectRatio = text(source, 'aspect_ratio', 20);
+    const aspectRatio = imageAspectRatios.has(requestedAspectRatio) ? requestedAspectRatio : 'inherit';
+    const cropX = Math.round(boundedNumber(source, 'crop_x', 0, 100, 50));
+    const cropY = Math.round(boundedNumber(source, 'crop_y', 0, 100, 50));
+    const cropZoom = boundedNumber(source, 'crop_zoom', 1, 3, 1);
     if (!imageUrl || altText.length < 2 || (!id && !uuidPattern.test(galleryId))) return Response.json({ message: 'Choose a gallery, image, and description.' }, { status: 422 });
     if (id) {
       if (!uuidPattern.test(id)) return Response.json({ message: 'Invalid image.' }, { status: 422 });
       const previous = await client.from('studio_gallery_images').select('storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ storage_path: string | null }>();
       oldPath = previous.data?.storage_path ?? null;
-      operation = client.from('studio_gallery_images').update({ image_url: imageUrl, alt_text: altText, storage_path: storagePath }).eq('workspace_id', workspaceId).eq('id', id);
+      operation = client.from('studio_gallery_images').update({ image_url: imageUrl, alt_text: altText, storage_path: storagePath, aspect_ratio: aspectRatio, crop_x: cropX, crop_y: cropY, crop_zoom: cropZoom }).eq('workspace_id', workspaceId).eq('id', id);
     } else {
       const gallery = await client.from('studio_galleries').select('id').eq('workspace_id', workspaceId).eq('id', galleryId).maybeSingle();
       if (!gallery.data) return Response.json({ message: 'Choose a gallery from this studio.' }, { status: 422 });
@@ -186,15 +223,19 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
         if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
         if (existing.data) return Response.json({ ok: true, id: existing.data.id });
       }
-      operation = client.insertOrdered('studio_gallery_images', workspaceId, { gallery_id: galleryId, image_url: imageUrl, alt_text: altText, storage_path: storagePath });
+      operation = client.insertOrdered('studio_gallery_images', workspaceId, { gallery_id: galleryId, image_url: imageUrl, alt_text: altText, storage_path: storagePath, aspect_ratio: aspectRatio, crop_x: cropX, crop_y: cropY, crop_zoom: cropZoom });
     }
   } else if (resource === 'posts') {
     const title = text(source, 'title', 140);
     const slug = text(source, 'slug', 140);
     const status = text(source, 'status', 20) === 'published' ? 'published' : 'draft';
     const coverPath = managedPath(workspaceId, text(source, 'cover_storage_path', 1024));
+    const coverAspectRatio = mediaAspectRatio(source, 'cover_aspect_ratio');
+    const coverCropX = Math.round(boundedNumber(source, 'cover_crop_x', 0, 100, 50));
+    const coverCropY = Math.round(boundedNumber(source, 'cover_crop_y', 0, 100, 50));
+    const coverCropZoom = boundedNumber(source, 'cover_crop_zoom', 1, 3, 1);
     if (title.length < 2 || !slugPattern.test(slug)) return Response.json({ message: 'Enter a post title and valid URL slug.' }, { status: 422 });
-    const values = { title, slug, excerpt: text(source, 'excerpt', 400), body: text(source, 'body', 20000), cover_image_url: nullable(text(source, 'cover_image_url', 2048)), cover_storage_path: coverPath, status, published_at: status === 'published' ? new Date().toISOString() : null };
+    const values = { title, slug, excerpt: text(source, 'excerpt', 400), body: text(source, 'body', 20000), cover_image_url: nullable(text(source, 'cover_image_url', 2048)), cover_storage_path: coverPath, cover_aspect_ratio: coverAspectRatio, cover_crop_x: coverCropX, cover_crop_y: coverCropY, cover_crop_zoom: coverCropZoom, status, published_at: status === 'published' ? new Date().toISOString() : null };
     if (id) {
       if (!uuidPattern.test(id)) return Response.json({ message: 'Invalid post.' }, { status: 422 });
       const previous = await client.from('studio_posts').select('cover_storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ cover_storage_path: string | null }>();

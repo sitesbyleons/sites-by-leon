@@ -146,6 +146,76 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
       let activeMediaPicker: HTMLButtonElement | null = null;
       let activeMediaFilter = 'all';
 
+      const updateCropEditor = (editor: HTMLElement) => {
+        const preview = editor.querySelector<HTMLElement>('[data-crop-preview]');
+        const image = editor.querySelector<HTMLImageElement>('[data-crop-preview-image]');
+        const aspect = editor.querySelector<HTMLSelectElement>('[data-crop-aspect]')?.value ?? 'landscape';
+        const resolvedAspect = aspect === 'inherit' ? editor.dataset.inheritedAspect ?? 'landscape' : aspect;
+        const x = editor.querySelector<HTMLInputElement>('[data-crop-x]')?.value ?? '50';
+        const y = editor.querySelector<HTMLInputElement>('[data-crop-y]')?.value ?? '50';
+        const zoom = editor.querySelector<HTMLInputElement>('[data-crop-zoom]')?.value ?? '1';
+        if (preview) preview.dataset.ratio = resolvedAspect;
+        if (image) {
+          image.style.setProperty('--crop-x', `${x}%`);
+          image.style.setProperty('--crop-y', `${y}%`);
+          image.style.setProperty('--crop-zoom', zoom);
+        }
+        const xOutput = editor.querySelector<HTMLOutputElement>('[data-crop-output="x"]');
+        const yOutput = editor.querySelector<HTMLOutputElement>('[data-crop-output="y"]');
+        const zoomOutput = editor.querySelector<HTMLOutputElement>('[data-crop-output="zoom"]');
+        if (xOutput) xOutput.value = x;
+        if (yOutput) yOutput.value = y;
+        if (zoomOutput) zoomOutput.value = `${Number(zoom).toFixed(2)}×`;
+      };
+
+      const setCropPreviewImage = (form: HTMLFormElement, url: string) => {
+        const editor = form.querySelector<HTMLElement>('[data-crop-editor]');
+        const preview = editor?.querySelector<HTMLElement>('[data-crop-preview]');
+        if (!editor || !preview || !url) return;
+        let image = preview.querySelector<HTMLImageElement>('[data-crop-preview-image]');
+        if (!image) {
+          image = document.createElement('img');
+          image.alt = 'Crop preview';
+          image.dataset.cropPreviewImage = '';
+          preview.replaceChildren(image);
+        }
+        image.src = url;
+        updateCropEditor(editor);
+      };
+
+      document.querySelectorAll<HTMLElement>('[data-crop-editor]').forEach((editor) => {
+        editor.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach((control) => {
+          control.addEventListener('input', () => updateCropEditor(editor));
+          control.addEventListener('change', () => updateCropEditor(editor));
+        });
+        updateCropEditor(editor);
+      });
+
+      const updateLayoutEditor = (editor: HTMLElement) => {
+        const preview = editor.querySelector<HTMLElement>('[data-layout-preview]');
+        if (!preview) return;
+        preview.dataset.mode = editor.querySelector<HTMLSelectElement>('[data-layout-mode]')?.value ?? 'grid';
+        preview.dataset.columns = editor.querySelector<HTMLSelectElement>('[data-layout-columns]')?.value ?? '3';
+        preview.dataset.ratio = editor.querySelector<HTMLSelectElement>('[data-layout-ratio]')?.value ?? 'landscape';
+      };
+
+      document.querySelectorAll<HTMLElement>('[data-layout-editor]').forEach((editor) => {
+        editor.querySelectorAll<HTMLSelectElement>('select').forEach((control) => {
+          control.addEventListener('change', () => updateLayoutEditor(editor));
+        });
+        updateLayoutEditor(editor);
+      });
+
+      document.querySelectorAll<HTMLSelectElement>('select[name="gallery_id"]').forEach((select) => {
+        select.addEventListener('change', () => {
+          const editor = select.form?.querySelector<HTMLElement>('[data-crop-editor]');
+          const option = select.selectedOptions[0];
+          if (!editor) return;
+          editor.dataset.inheritedAspect = option?.dataset.imageAspect ?? 'landscape';
+          updateCropEditor(editor);
+        });
+      });
+
       const openMediaDialog = (picker: HTMLButtonElement | null = null) => {
         activeMediaPicker = picker;
         if (dialogStatus) dialogStatus.textContent = '';
@@ -214,6 +284,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
           image.alt = '';
           preview.append(image);
         }
+        setCropPreviewImage(form, card.dataset.mediaUrl ?? '');
         const copy = activeMediaPicker.querySelector('strong');
         if (copy) copy.textContent = 'Change image';
         if (status) status.textContent = card.dataset.mediaName ?? 'Image selected';
@@ -305,6 +376,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
         }
         if (urlField) urlField.value = approved.publicUrl;
         if (pathField) pathField.value = approved.path;
+        setCropPreviewImage(form, approved.publicUrl);
         form.dataset.pendingUploadSignature = signature;
         form.dataset.pendingUploadPath = approved.path;
         return approved.path as string;

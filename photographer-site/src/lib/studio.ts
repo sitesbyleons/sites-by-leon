@@ -24,6 +24,13 @@ export type StudioGallery = {
   description: string;
   cover_image_url: string;
   cover_storage_path: string | null;
+  layout_mode: 'grid' | 'stack';
+  grid_columns: 1 | 2 | 3 | 4;
+  image_aspect_ratio: 'square' | 'portrait' | 'landscape' | 'wide';
+  cover_aspect_ratio: 'square' | 'portrait' | 'landscape' | 'wide';
+  cover_crop_x: number;
+  cover_crop_y: number;
+  cover_crop_zoom: number;
   status: string;
   sort_order: number;
 };
@@ -34,6 +41,10 @@ export type StudioImage = {
   image_url: string;
   alt_text: string;
   storage_path: string | null;
+  aspect_ratio: 'inherit' | 'square' | 'portrait' | 'landscape' | 'wide';
+  crop_x: number;
+  crop_y: number;
+  crop_zoom: number;
   sort_order: number;
 };
 export type StudioPost = {
@@ -45,6 +56,10 @@ export type StudioPost = {
   body: string;
   cover_image_url: string | null;
   cover_storage_path: string | null;
+  cover_aspect_ratio: 'square' | 'portrait' | 'landscape' | 'wide';
+  cover_crop_x: number;
+  cover_crop_y: number;
+  cover_crop_zoom: number;
   status: string;
   published_at: string | null;
   sort_order: number;
@@ -150,17 +165,17 @@ export function previewStudioData(): StudioAdminData {
     workspace: previewWorkspace,
     settings: { workspace_id: previewWorkspace.id, site_title: 'Northline Sports', hero_title: 'Northline Sports', hero_subtitle: 'Sports photography for teams and athletes.', contact_email: 'hello@northlinesports.example', contact_phone: null, paper_color: '#f4f6f8', ink_color: '#090d12', accent_color: '#ff3b30', font_preset: 'athletic' },
     galleries: [
-      { id: 'gallery_football', workspace_id: previewWorkspace.id, title: 'Football', slug: 'friday-night', category: 'Game coverage', description: 'High school and club football coverage.', cover_image_url: '/images/sports/football-huddle.webp', cover_storage_path: null, status: 'published', sort_order: 1 },
-      { id: 'gallery_basketball', workspace_id: previewWorkspace.id, title: 'Basketball', slug: 'above-the-rim', category: 'Game coverage', description: 'Basketball coverage from warmup through the final possession.', cover_image_url: '/images/sports/basketball-action.webp', cover_storage_path: null, status: 'published', sort_order: 2 },
-      { id: 'gallery_track', workspace_id: previewWorkspace.id, title: 'Track & Field', slug: 'lane-eight', category: 'Meet coverage', description: 'Track and field meets, relays, and athlete coverage.', cover_image_url: '/images/sports/track-runner.webp', cover_storage_path: null, status: 'published', sort_order: 3 },
+      { id: 'gallery_football', workspace_id: previewWorkspace.id, title: 'Football', slug: 'friday-night', category: 'Game coverage', description: 'High school and club football coverage.', cover_image_url: '/images/sports/football-huddle.webp', cover_storage_path: null, layout_mode: 'grid', grid_columns: 3, image_aspect_ratio: 'landscape', cover_aspect_ratio: 'wide', cover_crop_x: 50, cover_crop_y: 52, cover_crop_zoom: 1.08, status: 'published', sort_order: 1 },
+      { id: 'gallery_basketball', workspace_id: previewWorkspace.id, title: 'Basketball', slug: 'above-the-rim', category: 'Game coverage', description: 'Basketball coverage from warmup through the final possession.', cover_image_url: '/images/sports/basketball-action.webp', cover_storage_path: null, layout_mode: 'grid', grid_columns: 2, image_aspect_ratio: 'square', cover_aspect_ratio: 'landscape', cover_crop_x: 50, cover_crop_y: 50, cover_crop_zoom: 1, status: 'published', sort_order: 2 },
+      { id: 'gallery_track', workspace_id: previewWorkspace.id, title: 'Track & Field', slug: 'lane-eight', category: 'Meet coverage', description: 'Track and field meets, relays, and athlete coverage.', cover_image_url: '/images/sports/track-runner.webp', cover_storage_path: null, layout_mode: 'stack', grid_columns: 2, image_aspect_ratio: 'wide', cover_aspect_ratio: 'portrait', cover_crop_x: 45, cover_crop_y: 50, cover_crop_zoom: 1.12, status: 'published', sort_order: 3 },
     ],
     images: [
-      { id: 'image_1', workspace_id: previewWorkspace.id, gallery_id: 'gallery_football', image_url: '/images/sports/football-huddle.webp', alt_text: 'Football teams at the line of scrimmage', storage_path: null, sort_order: 1 },
-      { id: 'image_2', workspace_id: previewWorkspace.id, gallery_id: 'gallery_football', image_url: '/images/sports/football-player.webp', alt_text: 'Quarterback preparing to pass', storage_path: null, sort_order: 2 },
-      { id: 'image_3', workspace_id: previewWorkspace.id, gallery_id: 'gallery_football', image_url: '/images/sports/football-field.webp', alt_text: 'Football field under stadium lights', storage_path: null, sort_order: 3 },
+      { id: 'image_1', workspace_id: previewWorkspace.id, gallery_id: 'gallery_football', image_url: '/images/sports/football-huddle.webp', alt_text: 'Football teams at the line of scrimmage', storage_path: null, aspect_ratio: 'inherit', crop_x: 50, crop_y: 50, crop_zoom: 1, sort_order: 1 },
+      { id: 'image_2', workspace_id: previewWorkspace.id, gallery_id: 'gallery_football', image_url: '/images/sports/football-player.webp', alt_text: 'Quarterback preparing to pass', storage_path: null, aspect_ratio: 'portrait', crop_x: 54, crop_y: 44, crop_zoom: 1.18, sort_order: 2 },
+      { id: 'image_3', workspace_id: previewWorkspace.id, gallery_id: 'gallery_football', image_url: '/images/sports/football-field.webp', alt_text: 'Football field under stadium lights', storage_path: null, aspect_ratio: 'inherit', crop_x: 50, crop_y: 56, crop_zoom: 1.05, sort_order: 3 },
     ],
     posts: [
-      { id: 'post_1', workspace_id: previewWorkspace.id, title: 'Working the Sideline', slug: 'working-the-sideline', excerpt: 'A night of football coverage.', body: 'Game notes and selected photographs.', cover_image_url: '/images/sports/football-field.webp', cover_storage_path: null, status: 'published', published_at: '2026-07-08T12:00:00.000Z', sort_order: 1 },
+      { id: 'post_1', workspace_id: previewWorkspace.id, title: 'Working the Sideline', slug: 'working-the-sideline', excerpt: 'A night of football coverage.', body: 'Game notes and selected photographs.', cover_image_url: '/images/sports/football-field.webp', cover_storage_path: null, cover_aspect_ratio: 'wide', cover_crop_x: 50, cover_crop_y: 46, cover_crop_zoom: 1.1, status: 'published', published_at: '2026-07-08T12:00:00.000Z', sort_order: 1 },
     ],
     services,
     clients: [
@@ -207,9 +222,9 @@ export async function loadStudioAdminData(
   const id = workspace.id;
   const [settings, galleries, images, posts, services, clients, invoices, inquiries, uploads, supportTickets, connect] = await Promise.all([
     client.from('studio_settings').select('workspace_id,site_title,hero_title,hero_subtitle,contact_email,contact_phone,paper_color,ink_color,accent_color,font_preset').eq('workspace_id', id).maybeSingle<StudioSettings>(),
-    client.from('studio_galleries').select('id,workspace_id,title,slug,category,description,cover_image_url,cover_storage_path,status,sort_order').eq('workspace_id', id).order('sort_order'),
-    client.from('studio_gallery_images').select('id,workspace_id,gallery_id,image_url,alt_text,storage_path,sort_order').eq('workspace_id', id).order('sort_order'),
-    client.from('studio_posts').select('id,workspace_id,title,slug,excerpt,body,cover_image_url,cover_storage_path,status,published_at,sort_order').eq('workspace_id', id).order('sort_order'),
+    client.from('studio_galleries').select('id,workspace_id,title,slug,category,description,cover_image_url,cover_storage_path,layout_mode,grid_columns,image_aspect_ratio,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,sort_order').eq('workspace_id', id).order('sort_order'),
+    client.from('studio_gallery_images').select('id,workspace_id,gallery_id,image_url,alt_text,storage_path,aspect_ratio,crop_x,crop_y,crop_zoom,sort_order').eq('workspace_id', id).order('sort_order'),
+    client.from('studio_posts').select('id,workspace_id,title,slug,excerpt,body,cover_image_url,cover_storage_path,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,published_at,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_services').select('id,workspace_id,name,description,price_type,price_cents,is_active,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_clients').select('id,workspace_id,service_id,name,email,phone,notes,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('studio_invoices').select('id,workspace_id,client_id,status,description,amount_due_cents,deposit_cents,amount_paid_cents,due_date,hosted_invoice_url,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),

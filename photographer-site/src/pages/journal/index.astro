@@ -1,5 +1,6 @@
 ---
 import SiteLayout from '../../layouts/SiteLayout.astro';
+import { imagePresentationStyle } from '../../lib/content/presentation';
 import { siteRepository } from '../../lib/content/repository';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -34,15 +35,17 @@ const posts = portfolio.posts.map((post) => ({
             <article>
               <a href={`/journal/${post.slug}`}>
                 {post.cover && (
-                  <figure>
-                    <img
-                      src={post.cover.src}
-                      alt={post.cover.alt}
-                      width={post.cover.width}
-                      height={post.cover.height}
-                      loading="lazy"
-                      decoding="async"
-                    />
+                  <figure style={imagePresentationStyle(post.cover)}>
+                    <span class="media-crop-layer">
+                      <img
+                        src={post.cover.src}
+                        alt={post.cover.alt}
+                        width={post.cover.width}
+                        height={post.cover.height}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </span>
                   </figure>
                 )}
                 <div class="journal-card-copy">

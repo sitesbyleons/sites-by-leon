@@ -6,7 +6,7 @@ import {
   useSpring as useMotionSpring,
   useTransform,
 } from 'motion/react';
-import { useRef, type PointerEvent, type ReactNode } from 'react';
+import { useRef, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 
 import type { Gallery, GalleryImage } from '../lib/content/types';
 import './selected-work-reel.css';
@@ -71,16 +71,22 @@ function ReelFrame({
         : { clipPath: ['inset(9% 7% 9% 7%)', 'inset(0% 0% 0% 0%)'], opacity: [0.72, 1] }}
       viewport={{ amount: 0.28, once: false }}
       transition={{ duration: reducedMotion ? 0.25 : 0.82, ease: [0.16, 1, 0.3, 1] }}
+      style={{
+        '--crop-x': `${frame.cropX}%`,
+        '--crop-y': `${frame.cropY}%`,
+        '--crop-zoom': frame.cropZoom,
+      } as CSSProperties}
     >
-      <motion.img
-        src={frame.src}
-        alt={frame.alt}
-        width={frame.width}
-        height={frame.height}
-        loading={index === 0 ? 'eager' : 'lazy'}
-        decoding="async"
-        style={{ y }}
-      />
+      <motion.div className="work-project__image-drift" style={{ y }}>
+        <img
+          src={frame.src}
+          alt={frame.alt}
+          width={frame.width}
+          height={frame.height}
+          loading={index === 0 ? 'eager' : 'lazy'}
+          decoding="async"
+        />
+      </motion.div>
     </motion.figure>
   );
 }

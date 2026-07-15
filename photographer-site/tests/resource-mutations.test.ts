@@ -70,4 +70,20 @@ describe('studio resource mutations', () => {
     expect(schema).toMatch(/create unique index[^;]+studio_gallery_images[^;]+\(workspace_id, storage_path\)[^;]+where storage_path is not null/i);
     expect(schema).toMatch(/create unique index[^;]+studio_posts[^;]+\(workspace_id, cover_storage_path\)[^;]+where cover_storage_path is not null/i);
   });
+
+  it('persists validated gallery layout and image crop controls', () => {
+    const route = read('src/pages/api/admin/[resource].ts');
+    const schema = readWorkspace('infra/ovh/postgres/schema.sql');
+
+    for (const field of ['layout_mode', 'grid_columns', 'image_aspect_ratio', 'cover_aspect_ratio', 'cover_crop_x', 'cover_crop_y', 'cover_crop_zoom']) {
+      expect(route).toContain(field);
+      expect(schema).toContain(field);
+    }
+    for (const field of ['aspect_ratio', 'crop_x', 'crop_y', 'crop_zoom']) {
+      expect(route).toContain(field);
+      expect(schema).toContain(field);
+    }
+    expect(route).toContain("boundedNumber(source, 'cover_crop_zoom', 1, 3, 1)");
+    expect(route).toContain("Math.round(boundedNumber(source, 'grid_columns', 1, 4, 3))");
+  });
 });

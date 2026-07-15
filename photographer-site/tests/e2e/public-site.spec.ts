@@ -182,13 +182,15 @@ test('selected work has scroll-linked motion and remains usable before hydration
   const firstProject = page.locator('[data-portfolio-item]').first();
   await expect(firstProject).toBeVisible();
   await firstProject.scrollIntoViewIfNeeded();
-  await expect(page.locator('astro-island')).toHaveAttribute('client-render-time', /\d/);
+  const image = firstProject.locator('.work-project__image-drift').first();
+  await expect.poll(() => image.evaluate((element) => getComputedStyle(element).transform)).not.toBe('none');
   await page.waitForTimeout(700);
-
-  const image = firstProject.locator('img').first();
   const before = await image.evaluate((element) => getComputedStyle(element).transform);
-  await page.mouse.wheel(0, 300);
-  await page.waitForTimeout(450);
+  await firstProject.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    window.scrollTo(0, window.scrollY + box.top + box.height * 0.75);
+  });
+  await page.waitForTimeout(700);
   const after = await image.evaluate((element) => getComputedStyle(element).transform);
   expect(after).not.toBe(before);
 
@@ -237,27 +239,19 @@ test('gallery titles and descriptions never overlap', async ({ page }) => {
   }
 });
 
-test('desktop gallery frames stay centered with a restrained editorial stagger', async ({ page }) => {
+test('published galleries honor grid columns, aspect ratio, and crop positioning', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await navigate(page, '/work/friday-night');
-  const frames = await page.locator('.gallery-frame').evaluateAll((items) =>
-    items.map((item) => {
-      const box = item.getBoundingClientRect();
-      return { left: box.left, right: box.right, center: box.left + box.width / 2 };
-    }),
-  );
+  const sequence = page.locator('[data-gallery-layout]');
+  await expect(sequence).toHaveAttribute('data-gallery-layout', 'grid');
+  await expect(sequence).toHaveAttribute('data-columns', '3');
+  const frames = page.locator('.gallery-frame');
+  await expect(frames).toHaveCount(3);
+  expect(await frames.first().locator('figure').evaluate((element) => getComputedStyle(element).aspectRatio)).toBe('4 / 3');
+  expect(await frames.first().locator('img').evaluate((element) => getComputedStyle(element).objectPosition)).toBe('50% 50%');
 
-  expect(frames).toHaveLength(3);
-  expect(Math.abs(frames[0].center - 720)).toBeLessThan(40);
-  expect(frames[1].center).toBeLessThan(720);
-  expect(frames[2].center).toBeGreaterThan(720);
-  expect(Math.abs(frames[1].center - 720)).toBeLessThan(100);
-  expect(Math.abs(frames[2].center - 720)).toBeLessThan(100);
-
-  for (const frame of frames) {
-    expect(frame.left).toBeGreaterThan(80);
-    expect(frame.right).toBeLessThan(1360);
-  }
+  await navigate(page, '/work/lane-eight');
+  await expect(page.locator('[data-gallery-layout]')).toHaveAttribute('data-gallery-layout', 'stack');
 });
 
 test('publishes a favicon and tenant-aware search-engine discovery files', async ({ page, request }) => {
@@ -317,15 +311,9 @@ for (const gallery of demoPortfolio.galleries) {
     const heights = await images.evaluateAll((items) =>
       items.map((item) => item.getBoundingClientRect().height),
     );
-    const frames = await page.locator('.gallery-frame').evaluateAll((items) =>
-      items.map((item) => {
-        const box = item.getBoundingClientRect();
-        return { left: box.left, right: box.right, center: box.left + box.width / 2 };
-      }),
-    );
+    const frames = await page.locator('.gallery-frame').evaluateAll((items) => items.map((item) => item.getBoundingClientRect()));
     expect(Math.max(...heights)).toBeLessThanOrEqual(260);
     for (const frame of frames) {
-      expect(Math.abs(frame.center - 195)).toBeLessThan(1);
       expect(frame.left).toBeGreaterThanOrEqual(16);
       expect(frame.right).toBeLessThanOrEqual(374);
     }

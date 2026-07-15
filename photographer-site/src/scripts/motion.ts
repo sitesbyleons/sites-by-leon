@@ -32,7 +32,9 @@ function initializeMotion() {
     gsap.utils.toArray<HTMLElement>('[data-image-drift]').forEach((element, index) => {
       const direction = index % 2 === 0 ? 1 : -1;
       const strength = element.dataset.imageDrift === 'fast' ? 4 : 2.5;
-      const image = element.querySelector<HTMLElement>('img') ?? element;
+      const image = element.querySelector<HTMLElement>('[data-image-drift-layer]')
+        ?? element.querySelector<HTMLElement>('img')
+        ?? element;
 
       gsap.fromTo(
         image,

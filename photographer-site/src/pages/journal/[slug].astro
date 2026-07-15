@@ -1,5 +1,6 @@
 ---
 import SiteLayout from '../../layouts/SiteLayout.astro';
+import { imagePresentationStyle } from '../../lib/content/presentation';
 import { siteRepository } from '../../lib/content/repository';
 
 const slug = Astro.params.slug ?? '';
@@ -36,15 +37,17 @@ const publishedAt = post
         </header>
 
         {post.cover && (
-          <figure class="journal-story-cover page-gutter" data-entrance>
-            <img
-              src={post.cover.src}
-              alt={post.cover.alt}
-              width={post.cover.width}
-              height={post.cover.height}
-              loading="eager"
-              decoding="async"
-            />
+          <figure class="journal-story-cover page-gutter" data-entrance style={imagePresentationStyle(post.cover)}>
+            <span class="media-crop-layer">
+              <img
+                src={post.cover.src}
+                alt={post.cover.alt}
+                width={post.cover.width}
+                height={post.cover.height}
+                loading="eager"
+                decoding="async"
+              />
+            </span>
           </figure>
         )}
 
