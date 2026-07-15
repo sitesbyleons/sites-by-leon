@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import ComingSoon from '../components/ComingSoon.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import Hero from '../components/Hero.astro';
 import ConceptShowcase from '../components/ConceptShowcase.astro';
@@ -11,25 +10,19 @@ import SiteFooter from '../components/SiteFooter.astro';
 ---
 
 <BaseLayout
-  hostSwitch
-  title="Sites By Leon — Coming soon"
-  description="Sites By Leon is launching soon."
+  title="Sites By Leon — Website design and hosting"
+  description="Affordable websites and hosting built for photographers, with portfolios, inquiries, payments, and ongoing support handled."
+  canonicalUrl="https://test.leonsites.org/"
 >
-  <div class="host-coming">
-    <ComingSoon />
-  </div>
-
-  <div class="host-preview">
-    <SiteHeader />
-    <main id="preview-main">
-      <Hero />
-      <ConceptShowcase />
-      <Pricing />
-      <Services />
-      <Contact />
-    </main>
-    <SiteFooter />
-  </div>
+  <SiteHeader />
+  <main id="main">
+    <Hero />
+    <ConceptShowcase />
+    <Pricing />
+    <Services />
+    <Contact />
+  </main>
+  <SiteFooter />
 </BaseLayout>
 
 <script>

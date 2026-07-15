@@ -105,7 +105,7 @@ test('splits admin records into sortable pages', async ({ page }) => {
 
 test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const path of ['/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/sites/new?preview=true']) {
+  for (const path of ['/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/new?preview=true']) {
     await page.goto(path);
     const dimensions = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
     expect(dimensions.content, path).toBeLessThanOrEqual(dimensions.viewport);
@@ -113,10 +113,16 @@ test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
     await expect(page.getByRole('navigation', { name: 'Admin dashboard' })).toBeVisible();
     await page.getByRole('button', { name: 'Close navigation' }).first().click();
   }
+  await page.goto('/admin/sites?preview=true');
+  await expect(page.getByRole('link', { name: 'Manage Northline Portfolio' })).toBeVisible();
+  await page.getByRole('link', { name: 'Manage Northline Portfolio' }).click();
+  await expect(page.getByRole('button', { name: 'Add custom domain' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Use subscription' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Delete site' })).toBeVisible();
 });
 
 test('has no serious or critical accessibility violations on the client surfaces', async ({ page }) => {
-  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/sites/new?preview=true']) {
+  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/new?preview=true']) {
     await page.goto(path);
     const results = await new AxeBuilder({ page }).analyze();
     const important = results.violations.filter((violation) =>

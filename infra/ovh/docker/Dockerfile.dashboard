@@ -3,6 +3,7 @@ WORKDIR /workspace
 RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY dashboard/package.json dashboard/package.json
+COPY domain-worker/package.json domain-worker/package.json
 COPY platform-core/package.json platform-core/package.json
 COPY photographer-site/package.json photographer-site/package.json
 RUN pnpm install --frozen-lockfile

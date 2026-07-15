@@ -1,6 +1,11 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
+import {
+  applyHostingSubscriptionSnapshot,
+  createPostgresHostingQueryExecutor,
+  type HostingPlanKey,
+} from '@leon/platform-core/hosting-access';
 import { createPlatformDatabase } from '../../../lib/database';
 
 const subscriptionEvents = new Set([
@@ -8,10 +13,15 @@ const subscriptionEvents = new Set([
   'customer.subscription.updated',
   'customer.subscription.deleted',
 ]);
+const invoiceEvents = new Set([
+  'invoice.paid',
+  'invoice.payment_failed',
+]);
 const subscriptionStatuses = new Set([
   'incomplete', 'incomplete_expired', 'trialing', 'active', 'past_due', 'canceled', 'unpaid', 'paused',
 ]);
-const planKeys = new Set(['essential', 'studio', 'signature']);
+const planKeys = new Set<HostingPlanKey>(['essential', 'studio', 'signature']);
+const isPlanKey = (value: string): value is HostingPlanKey => planKeys.has(value as HostingPlanKey);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const POST: APIRoute = async ({ request }) => {
@@ -19,7 +29,8 @@ export const POST: APIRoute = async ({ request }) => {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const signature = request.headers.get('stripe-signature');
-  if (!database || !stripeKey || !webhookSecret || !signature) {
+  const hostingExecutor = createPostgresHostingQueryExecutor(process.env.DATABASE_URL);
+  if (!database || !hostingExecutor || !stripeKey || !webhookSecret || !signature) {
     return Response.json({ message: 'Webhook verification is not configured.' }, { status: 503 });
   }
 
@@ -52,6 +63,9 @@ export const POST: APIRoute = async ({ request }) => {
   };
 
   try {
+    if (event.account) {
+      return await acknowledgeIgnored('Ignored a connected-account event on the platform billing endpoint.');
+    }
     let subscriptionId: string | null = null;
     let completedSessionId: string | null = null;
     if (subscriptionEvents.has(event.type)) {
@@ -60,6 +74,10 @@ export const POST: APIRoute = async ({ request }) => {
       const session = event.data.object as Stripe.Checkout.Session;
       completedSessionId = session.id;
       subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null;
+    } else if (invoiceEvents.has(event.type)) {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscription = invoice.parent?.subscription_details?.subscription;
+      subscriptionId = typeof subscription === 'string' ? subscription : subscription?.id ?? null;
     }
 
     if (subscriptionId) {
@@ -68,7 +86,7 @@ export const POST: APIRoute = async ({ request }) => {
       const workspaceId = subscription.metadata.workspace_id;
       const planKey = subscription.metadata.plan_key;
       const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-      if (!item || !uuidPattern.test(workspaceId) || !planKeys.has(planKey) || !subscriptionStatuses.has(subscription.status)) {
+      if (!item || !uuidPattern.test(workspaceId) || !isPlanKey(planKey) || !subscriptionStatuses.has(subscription.status)) {
         return await acknowledgeIgnored('Ignored a Stripe subscription without recognized Sites by Leon metadata.');
       }
       const knownWorkspace = await database.from('client_workspaces')
@@ -77,7 +95,7 @@ export const POST: APIRoute = async ({ request }) => {
         .maybeSingle<{ id: string }>();
       if (knownWorkspace.error) throw new Error(knownWorkspace.error.message);
       if (!knownWorkspace.data) return await acknowledgeIgnored('Ignored a Stripe subscription for an unknown workspace.');
-      const synchronized = await database.syncSubscription({
+      const synchronized = await applyHostingSubscriptionSnapshot(hostingExecutor, {
         workspace_id: workspaceId,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscription.id,
@@ -86,9 +104,20 @@ export const POST: APIRoute = async ({ request }) => {
         status: subscription.status,
         current_period_end: new Date(item.current_period_end * 1000).toISOString(),
         cancel_at_period_end: subscription.cancel_at_period_end,
+        observed_at: new Date(event.created * 1000).toISOString(),
       });
       if (synchronized.error) throw new Error(synchronized.error.message);
-      if (!synchronized.data.length) {
+      if (!synchronized.data) throw new Error('Hosting subscription state was not returned.');
+      if (synchronized.data.outcome === 'missing_site') {
+        return await acknowledgeIgnored('Ignored a Stripe subscription for a workspace without a managed site.');
+      }
+      if (synchronized.data.outcome === 'link_conflict') {
+        throw new Error('The hosting site is linked to a different subscription record.');
+      }
+      if (synchronized.data.outcome === 'stale') {
+        return await acknowledgeIgnored('Ignored an out-of-order event for the current subscription.');
+      }
+      if (synchronized.data.outcome === 'subscription_conflict') {
         const duplicateActive = !['canceled', 'incomplete_expired'].includes(subscription.status);
         let duplicateRefunded = false;
         if (duplicateActive) {
@@ -122,7 +151,19 @@ export const POST: APIRoute = async ({ request }) => {
               : 'A duplicate active subscription was canceled; no refundable payment was found.'
             : null,
         }).eq('event_id', event.id);
-        return Response.json({ received: true, stale: true, duplicate_canceled: duplicateActive, duplicate_refunded: duplicateRefunded });
+        return Response.json({ received: true, subscription_conflict: true, duplicate_canceled: duplicateActive, duplicate_refunded: duplicateRefunded });
+      }
+      if (synchronized.data.outcome !== 'archived') {
+        const workspaceStatus = synchronized.data.outcome === 'manual'
+          ? null
+          : ['active', 'trialing'].includes(subscription.status)
+            ? 'active'
+            : ['canceled', 'incomplete_expired'].includes(subscription.status) ? 'approved' : null;
+        const workspaceUpdate = await database.from('client_workspaces').update({
+          ...(workspaceStatus ? { status: workspaceStatus } : {}),
+          stripe_customer_id: customerId,
+        }).eq('id', workspaceId);
+        if (workspaceUpdate.error) throw new Error(workspaceUpdate.error.message);
       }
       if (event.type === 'checkout.session.completed' && completedSessionId) {
         const clearedAttempt = await database.from('checkout_attempts').delete()
@@ -131,16 +172,6 @@ export const POST: APIRoute = async ({ request }) => {
         if (clearedAttempt.error) throw new Error(clearedAttempt.error.message);
       }
 
-      const workspaceStatus = ['active', 'trialing'].includes(subscription.status)
-        ? 'active'
-        : ['canceled', 'incomplete_expired'].includes(subscription.status) ? 'approved' : null;
-      if (workspaceStatus) {
-        const workspace = await database.from('client_workspaces').update({
-          status: workspaceStatus,
-          stripe_customer_id: customerId,
-        }).eq('id', workspaceId);
-        if (workspace.error) throw new Error(workspace.error.message);
-      }
     }
 
     await database.from('stripe_events').update({

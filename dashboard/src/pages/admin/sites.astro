@@ -12,10 +12,15 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
 const requestedStatus = Astro.url.searchParams.get('status') ?? 'all';
-const status = ['all', 'onboarding', 'design', 'review', 'live', 'paused'].includes(requestedStatus) ? requestedStatus : 'all';
+const status = ['all', 'onboarding', 'design', 'review', 'live', 'paused', 'archived'].includes(requestedStatus) ? requestedStatus : 'all';
 const sort = Astro.url.searchParams.get('sort') ?? 'updated';
 const sites = data.projects
-  .filter((project) => status === 'all' || project.status === status)
+  .filter((project) => {
+    const connection = data.connections.find((item) => item.workspace_id === project.workspace_id);
+    if (status === 'archived') return connection?.status === 'archived';
+    if (connection?.status === 'archived') return status === 'all';
+    return status === 'all' || project.status === status;
+  })
   .sort((a, b) => {
     if (sort === 'progress_high') return b.progress - a.progress;
     if (sort === 'progress_low') return a.progress - b.progress;
@@ -29,7 +34,7 @@ const provisioningRuns = new Map(data.provisioningRuns.map((run) => [run.workspa
 <AdminFrame active="sites" title="Sites" eyebrow="Client websites" description="Track every photographer site from design through launch." isPreview={isPreview} error={session.error}>
   <form class="admin-tools" method="get" aria-label="Sort and filter sites">
     {isPreview && <input type="hidden" name="preview" value="true" />}
-    <label><span>Status</span><select name="status"><option value="all" selected={status === 'all'}>All stages</option><option value="onboarding" selected={status === 'onboarding'}>Onboarding</option><option value="design" selected={status === 'design'}>Design</option><option value="review" selected={status === 'review'}>Review</option><option value="live" selected={status === 'live'}>Live</option><option value="paused" selected={status === 'paused'}>Paused</option></select></label>
+    <label><span>Status</span><select name="status"><option value="all" selected={status === 'all'}>All stages</option><option value="onboarding" selected={status === 'onboarding'}>Onboarding</option><option value="design" selected={status === 'design'}>Design</option><option value="review" selected={status === 'review'}>Review</option><option value="live" selected={status === 'live'}>Live</option><option value="paused" selected={status === 'paused'}>Paused</option><option value="archived" selected={status === 'archived'}>Deleted</option></select></label>
     <label><span>Sort</span><select name="sort"><option value="updated" selected={sort === 'updated'}>Recently updated</option><option value="progress_high" selected={sort === 'progress_high'}>Most complete</option><option value="progress_low" selected={sort === 'progress_low'}>Least complete</option><option value="client" selected={sort === 'client'}>Client A–Z</option></select></label>
     <button type="submit">Apply</button>
   </form>
@@ -44,42 +49,10 @@ const provisioningRuns = new Map(data.provisioningRuns.map((run) => [run.workspa
           <div>
             <span>{connections.get(project.workspace_id)?.status ?? project.status} · {project.progress}%{provisioningRuns.get(project.workspace_id) ? ` · setup ${provisioningRuns.get(project.workspace_id)!.status.replaceAll('_', ' ')}` : ''}</span>
             {provisioningRuns.get(project.workspace_id)?.last_error && <small class="site-provision-error">{provisioningRuns.get(project.workspace_id)!.last_error}</small>}
-            {connections.get(project.workspace_id) && (
-              <form class="site-control-actions" data-site-control>
-                <input type="hidden" name="workspace_id" value={project.workspace_id} />
-                <button type="submit" name="status" value="active">Active</button>
-                <button type="submit" name="status" value="maintenance">Maintenance</button>
-                <button type="submit" name="status" value="paused">Pause</button>
-                <small data-control-status aria-live="polite"></small>
-              </form>
-            )}
-            {connections.get(project.workspace_id) && <div class="site-open-links"><a href={`https://${connections.get(project.workspace_id)!.primary_domain}`} target="_blank" rel="noreferrer">Public site</a><a href={`https://${connections.get(project.workspace_id)!.admin_domain}/admin`} target="_blank" rel="noreferrer">Editor</a></div>}
+            {connections.get(project.workspace_id) && <div class="site-open-links"><a aria-label={`Manage ${project.name}`} href={`/admin/sites/${project.workspace_id}${isPreview ? '?preview=true' : ''}`}>Manage</a><a aria-label={`Open public site for ${project.name}`} href={`https://${connections.get(project.workspace_id)!.primary_domain}`} target="_blank" rel="noreferrer">Public site</a><a aria-label={`Open editor for ${project.name}`} href={`https://${connections.get(project.workspace_id)!.admin_domain}/admin`} target="_blank" rel="noreferrer">Editor</a></div>}
           </div>
         </article>
       )) : <p class="simple-empty">No sites match that stage.</p>}
     </div>
   </section>
-
-  <script>
-    document.querySelectorAll<HTMLFormElement>('[data-site-control]').forEach((form) => {
-      form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const submitter = (event as SubmitEvent).submitter as HTMLButtonElement | null;
-        const status = form.querySelector<HTMLElement>('[data-control-status]');
-        if (!submitter || !status) return;
-        status.textContent = 'Updating...';
-        if (new URL(location.href).searchParams.get('preview') === 'true') {
-          status.textContent = `${submitter.value} preview`;
-          return;
-        }
-        const response = await fetch('/api/admin/sites', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ workspace_id: new FormData(form).get('workspace_id'), status: submitter.value }),
-        });
-        status.textContent = response.ok ? 'Updated' : 'Not updated';
-        if (response.ok) window.setTimeout(() => location.reload(), 400);
-      });
-    });
-  </script>
 </AdminFrame>

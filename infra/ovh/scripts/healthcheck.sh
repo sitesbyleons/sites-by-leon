@@ -39,6 +39,31 @@ docker exec "${database_container}" sh -c \
 docker exec "${database_container}" sh -c \
   'psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --tuples-only --command "select count(*) from client_workspaces;"' >/dev/null
 
+mapfile -t domain_worker_containers < <(
+  docker ps -a \
+    --filter "label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}" \
+    --filter "label=com.docker.compose.service=domain-worker" \
+    --format '{{.ID}}'
+)
+domain_worker_required=false
+case ",${COMPOSE_PROFILES:-}," in
+  *,domains,*) domain_worker_required=true ;;
+esac
+if [[ ${CUSTOM_DOMAIN_AUTOMATION_ENABLED:-false} == true ]]; then
+  domain_worker_required=true
+fi
+if [[ ${domain_worker_required} == true || ${#domain_worker_containers[@]} -gt 0 ]]; then
+  if [[ ${#domain_worker_containers[@]} -ne 1 ]]; then
+    echo "Expected one running domain worker container; found ${#domain_worker_containers[@]}." >&2
+    exit 1
+  fi
+  domain_worker_state=$(docker inspect --format '{{.State.Status}}:{{if .State.Health}}{{.State.Health.Status}}{{else}}missing-healthcheck{{end}}' "${domain_worker_containers[0]}")
+  if [[ ${domain_worker_state} != 'running:healthy' ]]; then
+    echo "Custom-domain worker is not healthy (${domain_worker_state})." >&2
+    exit 1
+  fi
+fi
+
 mapfile -t active_site_domains < <(
   docker exec "${database_container}" sh -c \
     'psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --no-align --tuples-only --command "select distinct lower(primary_domain) from site_connections where status = '\''active'\'' order by 1;"'

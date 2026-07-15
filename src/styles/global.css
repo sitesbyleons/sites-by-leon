@@ -42,18 +42,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-.host-preview {
-  display: none;
-}
-
-html[data-site-mode='preview'] .host-coming {
-  display: none;
-}
-
-html[data-site-mode='preview'] .host-preview {
-  display: block;
-}
-
 body::before {
   position: fixed;
   z-index: 999;

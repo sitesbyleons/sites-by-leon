@@ -37,6 +37,16 @@
 		reverse_proxy dashboard:4321
 	}
 
+	@coming_soon {
+		host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}
+		path / /index.html
+	}
+	handle @coming_soon {
+		root * /srv/marketing
+		rewrite * /coming-soon/index.html
+		file_server
+	}
+
 	@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN} {$TEST_DOMAIN}
 	handle @marketing {
 		root * /srv/marketing
@@ -46,6 +56,7 @@
 
 	@media host {$MEDIA_DOMAIN}
 	handle @media {
+		header Cross-Origin-Resource-Policy cross-origin
 		handle_path /media/* {
 			root * /srv/uploads
 			header Cache-Control "public, max-age=31536000, immutable"

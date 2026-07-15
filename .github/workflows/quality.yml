@@ -34,10 +34,13 @@ jobs:
       PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.PUBLIC_CLERK_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
       TEST_DATABASE_URL: postgresql://leon_test:leon_test@127.0.0.1:5432/leon_platform_test
+      PROVISIONING_DATABASE_URL: postgresql://leon_test:leon_test@127.0.0.1:5432/leon_platform_test
 
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -52,6 +55,18 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Initialize integration database
+        run: >-
+          node --input-type=module -e "import fs from 'node:fs'; import postgres from 'postgres';
+          const sql = postgres(process.env.PROVISIONING_DATABASE_URL, { max: 1 });
+          await sql.unsafe(fs.readFileSync('infra/ovh/postgres/schema.sql', 'utf8'));
+          await sql.end({ timeout: 5 });"
+
+      - name: Run deployment preflight regressions
+        run: |
+          bash infra/ovh/tests/preflight-domain-worker.test.sh
+          bash infra/ovh/tests/healthcheck-domain-worker.test.sh
 
       - name: Install browser
         run: pnpm exec playwright install --with-deps chromium
@@ -79,6 +94,25 @@ jobs:
 
       - name: Run dashboard browser tests
         run: pnpm --dir dashboard test:e2e
+
+      - name: Type-check custom-domain worker
+        run: pnpm --dir domain-worker check
+
+      - name: Run custom-domain worker tests
+        run: pnpm --dir domain-worker test
+
+      - name: Build custom-domain worker
+        run: pnpm --dir domain-worker build
+
+      - name: Validate the production database migration
+        env:
+          BASE_SCHEMA_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "${BASE_SCHEMA_REF}" =~ ^0{40}$ ]]; then
+            echo 'No previous commit exists; migration compatibility validation is not applicable.'
+            exit 0
+          fi
+          bash infra/ovh/tests/validate-migration-ci.sh infra/ovh/scripts/validate-migration.sh
 
       - name: Type-check photographer site
         run: pnpm --dir photographer-site check

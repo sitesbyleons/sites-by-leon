@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Photography aperture">
+  <rect width="64" height="64" rx="14" fill="#111111"/>
+  <circle cx="32" cy="32" r="18" fill="none" stroke="#f7f7f3" stroke-width="4"/>
+  <path d="M32 14l9 15H23zm15.6 9L39 38l-9-15zm0 18H30l9-15zM32 50l-9-15h18zm-15.6-9L25 26l9 15zm0-18H34l-9 15z" fill="#f7f7f3"/>
+  <circle cx="32" cy="32" r="5" fill="#111111"/>
+</svg>

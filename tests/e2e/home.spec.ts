@@ -126,8 +126,30 @@ test('keeps contact direct and email-only', async ({ page }) => {
   );
 });
 
-test('shows a minimal coming-soon page for the production host mode', async ({ page }) => {
-  await page.goto('/?mode=coming');
+test('publishes correct metadata for the full marketing preview', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page).toHaveTitle('Sites By Leon — Website design and hosting');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    'Affordable websites and hosting built for photographers, with portfolios, inquiries, payments, and ongoing support handled.',
+  );
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://test.leonsites.org/',
+  );
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+    'content',
+    'Sites By Leon — Website design and hosting',
+  );
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
+    'content',
+    'https://test.leonsites.org/',
+  );
+});
+
+test('shows a minimal standalone coming-soon page for production', async ({ page }) => {
+  await page.goto('/coming-soon');
 
   await expect(page.getByRole('heading', { level: 1, name: 'Coming soon.' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'leon@leonsites.com' })).toHaveAttribute(
@@ -135,8 +157,11 @@ test('shows a minimal coming-soon page for the production host mode', async ({ p
     'mailto:leon@leonsites.com',
   );
   await expect(page.locator('.coming-soon')).not.toContainText('Websites for photographers');
-  await expect(page.locator('.host-preview')).toBeHidden();
+  await expect(page.locator('.host-preview,.hero,.website-concept,.pricing,.services')).toHaveCount(0);
+  await expect(page.locator('.coming-soon__gallery img')).toHaveCount(3);
+  await expect(page.locator('body')).not.toContainText('Show off your photography');
   await expect(page.locator('.coming-soon .brand-mark img')).toHaveAttribute('src', /^data:image\/png;base64,/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://leonsites.org/');
 });
 
 for (const viewport of [
@@ -145,7 +170,7 @@ for (const viewport of [
 ]) {
   test(`centers coming soon without overflow at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.goto('/?mode=coming');
+    await page.goto('/coming-soon');
 
     const layout = await page.locator('.coming-soon').evaluate((root) => {
       const heading = root.querySelector('h1')!.getBoundingClientRect();

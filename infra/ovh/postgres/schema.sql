@@ -345,6 +345,43 @@ create table if not exists site_connections (
 alter table site_connections add column if not exists admin_domain text;
 update site_connections set admin_domain = primary_domain where admin_domain is null;
 alter table site_connections alter column admin_domain set not null;
+alter table site_connections add column if not exists hosting_subscription_id uuid;
+alter table site_connections add column if not exists billing_mode text not null default 'manual';
+alter table site_connections add column if not exists desired_status text;
+update site_connections
+set desired_status = case
+  when status in ('active', 'maintenance', 'paused') then status
+  else 'maintenance'
+end
+where desired_status is null;
+alter table site_connections alter column desired_status set default 'active';
+alter table site_connections alter column desired_status set not null;
+alter table site_connections add column if not exists billing_state text not null default 'manual';
+alter table site_connections add column if not exists billing_updated_at timestamptz;
+alter table site_connections add column if not exists archived_at timestamptz;
+alter table site_connections add column if not exists archived_by_clerk_user_id text;
+alter table site_connections add column if not exists archive_reason text;
+alter table site_connections add column if not exists pre_archive_status text;
+alter table site_connections drop constraint if exists site_connections_status_check;
+alter table site_connections add constraint site_connections_status_check
+  check (status in ('active', 'paused', 'maintenance', 'error', 'archived'));
+alter table site_connections drop constraint if exists site_connections_billing_mode_check;
+alter table site_connections add constraint site_connections_billing_mode_check
+  check (billing_mode in ('manual', 'automatic'));
+alter table site_connections drop constraint if exists site_connections_desired_status_check;
+alter table site_connections add constraint site_connections_desired_status_check
+  check (desired_status in ('active', 'maintenance', 'paused'));
+alter table site_connections drop constraint if exists site_connections_billing_state_check;
+alter table site_connections add constraint site_connections_billing_state_check
+  check (billing_state in ('manual', 'paid', 'action_required', 'suspended'));
+alter table site_connections drop constraint if exists site_connections_pre_archive_status_check;
+alter table site_connections add constraint site_connections_pre_archive_status_check
+  check (pre_archive_status is null or pre_archive_status in ('active', 'maintenance', 'paused', 'error'));
+alter table site_connections drop constraint if exists site_connections_hosting_subscription_id_fkey;
+alter table site_connections add constraint site_connections_hosting_subscription_id_fkey
+  foreign key (hosting_subscription_id) references subscriptions(id) on delete set null;
+alter table site_connections drop constraint if exists site_connections_hosting_subscription_id_key;
+alter table site_connections add constraint site_connections_hosting_subscription_id_key unique (hosting_subscription_id);
 alter table site_connections drop constraint if exists site_connections_primary_domain_check;
 alter table site_connections add constraint site_connections_primary_domain_check
   check (char_length(primary_domain) between 3 and 253 and primary_domain = lower(primary_domain));
@@ -365,6 +402,74 @@ begin
     alter table site_connections drop column vercel_project_id;
   end if;
 end $$;
+
+create table if not exists site_domain_aliases (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references client_workspaces(id) on delete cascade,
+  hostname text not null,
+  status text not null default 'requested'
+    check (status in ('requested', 'configuring', 'dns_pending', 'active', 'error', 'removing', 'removed')),
+  is_canonical boolean not null default false,
+  cloudflare_custom_hostname_id text unique,
+  cloudflare_hostname_status text,
+  cloudflare_ssl_status text,
+  dns_target text not null default 'customers.leonsites.org',
+  last_error text,
+  last_checked_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (char_length(hostname) between 3 and 253 and hostname = lower(hostname)),
+  check (char_length(dns_target) between 3 and 253 and dns_target = lower(dns_target))
+);
+
+create table if not exists domain_jobs (
+  id uuid primary key default gen_random_uuid(),
+  domain_id uuid not null references site_domain_aliases(id) on delete cascade,
+  action text not null check (action in ('create', 'refresh', 'delete')),
+  status text not null default 'queued' check (status in ('queued', 'processing', 'completed', 'failed')),
+  idempotency_key uuid not null unique,
+  attempt_count integer not null default 0 check (attempt_count between 0 and 20),
+  available_at timestamptz not null default now(),
+  last_error text,
+  locked_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function ensure_customer_hostname_available()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended(lower(new.hostname), 0));
+  if exists (
+    select 1 from site_connections
+    where lower(primary_domain) = lower(new.hostname)
+       or lower(admin_domain) = lower(new.hostname)
+  ) then
+    raise exception 'Customer hostname is already assigned to a site.' using errcode = '23505';
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function ensure_connection_hostnames_available()
+returns trigger
+language plpgsql
+as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended(lower(new.primary_domain), 0));
+  perform pg_advisory_xact_lock(hashtextextended(lower(new.admin_domain), 0));
+  if exists (
+    select 1 from site_domain_aliases
+    where lower(hostname) in (lower(new.primary_domain), lower(new.admin_domain))
+      and status <> 'removed'
+  ) then
+    raise exception 'Site hostname is already assigned as a customer domain.' using errcode = '23505';
+  end if;
+  return new;
+end;
+$$;
 
 create table if not exists stripe_events (
   event_id text primary key,
@@ -413,6 +518,12 @@ create index if not exists website_projects_workspace_updated_idx on website_pro
 create unique index if not exists website_projects_workspace_unique_idx on website_projects (workspace_id);
 create unique index if not exists site_connections_primary_domain_lower_unique_idx on site_connections (lower(primary_domain));
 create unique index if not exists site_connections_admin_domain_lower_unique_idx on site_connections (lower(admin_domain));
+create unique index if not exists site_domain_aliases_hostname_lower_unique_idx
+  on site_domain_aliases (lower(hostname)) where status <> 'removed';
+create unique index if not exists site_domain_aliases_workspace_canonical_unique_idx
+  on site_domain_aliases (workspace_id) where is_canonical and status = 'active';
+create index if not exists site_domain_aliases_workspace_status_idx on site_domain_aliases (workspace_id, status, created_at);
+create index if not exists domain_jobs_ready_idx on domain_jobs (status, available_at, created_at);
 create index if not exists content_requests_workspace_created_idx on content_requests (workspace_id, created_at desc);
 create index if not exists studio_galleries_workspace_sort_idx on studio_galleries (workspace_id, sort_order, created_at);
 create unique index if not exists studio_galleries_workspace_cover_path_unique_idx on studio_galleries (workspace_id, cover_storage_path) where cover_storage_path is not null;
@@ -461,6 +572,16 @@ drop trigger if exists studio_inquiries_updated on studio_inquiries;
 create trigger studio_inquiries_updated before update on studio_inquiries for each row execute function set_updated_at();
 drop trigger if exists site_connections_updated on site_connections;
 create trigger site_connections_updated before update on site_connections for each row execute function set_updated_at();
+drop trigger if exists site_connections_hostname_available on site_connections;
+create trigger site_connections_hostname_available before insert or update of primary_domain, admin_domain
+  on site_connections for each row execute function ensure_connection_hostnames_available();
+drop trigger if exists site_domain_aliases_hostname_available on site_domain_aliases;
+create trigger site_domain_aliases_hostname_available before insert or update of hostname
+  on site_domain_aliases for each row execute function ensure_customer_hostname_available();
+drop trigger if exists site_domain_aliases_updated on site_domain_aliases;
+create trigger site_domain_aliases_updated before update on site_domain_aliases for each row execute function set_updated_at();
+drop trigger if exists domain_jobs_updated on domain_jobs;
+create trigger domain_jobs_updated before update on domain_jobs for each row execute function set_updated_at();
 drop trigger if exists site_provisioning_runs_updated on site_provisioning_runs;
 create trigger site_provisioning_runs_updated before update on site_provisioning_runs for each row execute function set_updated_at();
 

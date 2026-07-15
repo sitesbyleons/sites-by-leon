@@ -37,11 +37,21 @@ describe('fully self-hosted production stack', () => {
     expect(middleware).toContain("unavailableResponse('Site temporarily unavailable. Please try again soon.', 503)");
   });
 
-  it('defaults public preview deployment hosts to coming soon', () => {
-    const layout = read('src/layouts/BaseLayout.astro');
-    expect(layout).toContain("'test.leonsites.org'");
-    expect(layout).toContain("'localhost'");
-    expect(layout).not.toContain("!comingSoonHosts.has(host)");
+  it('serves a standalone coming-soon document only at the production marketing root', () => {
+    const caddy = read('infra/ovh/Caddyfile');
+    const fullMarketing = read('src/pages/index.astro');
+    const comingSoonUrl = new URL('../src/pages/coming-soon.astro', import.meta.url);
+    const comingSoonExists = fs.existsSync(comingSoonUrl);
+    const comingSoon = comingSoonExists ? fs.readFileSync(comingSoonUrl, 'utf8') : '';
+
+    expect(comingSoonExists).toBe(true);
+    expect(caddy).toMatch(/@coming_soon\s*\{[\s\S]*host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\}[\s\S]*path \/[\s\S]*\}/);
+    expect(caddy).toContain('rewrite * /coming-soon/index.html');
+    expect(caddy).toMatch(/@marketing host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\} \{\$TEST_DOMAIN\}/);
+    expect(fullMarketing).not.toContain('ComingSoon');
+    expect(fullMarketing).not.toContain('hostSwitch');
+    expect(comingSoon).toContain('<ComingSoon />');
+    expect(comingSoon).not.toMatch(/Hero|ConceptShowcase|Pricing|Services|Contact/);
   });
 
   it('defines the application schema without Supabase roles or auth functions', () => {

@@ -1,5 +1,10 @@
 import type { APIRoute } from 'astro';
 
+import {
+  createPostgresHostingQueryExecutor,
+  setDesiredSiteStatus,
+} from '@leon/platform-core/hosting-access';
+
 import { checkAppAdmin } from '../../../lib/admin';
 import { createPlatformDatabase } from '../../../lib/database';
 import { isTrustedOrigin } from '../../../lib/request-security';
@@ -22,8 +27,15 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   if (!workspaceId || !allowedStatuses.has(status)) {
     return Response.json({ message: 'Choose a valid site status.' }, { status: 400 });
   }
-  const result = await database.setSiteOperationalStatus(workspaceId, status as 'active' | 'maintenance' | 'paused');
+  const executor = createPostgresHostingQueryExecutor(process.env.DATABASE_URL);
+  if (!executor) return Response.json({ message: 'Site control is not configured.' }, { status: 503 });
+  const result = await setDesiredSiteStatus(executor, {
+    workspace_id: workspaceId,
+    desired_status: status as 'active' | 'maintenance' | 'paused',
+  });
+  if (result.data?.outcome === 'missing_site') return Response.json({ message: 'Site not found.' }, { status: 404 });
+  if (result.data?.outcome === 'archived') return Response.json({ message: 'Restore the site before changing its status.' }, { status: 409 });
   return result.error || !result.data
     ? Response.json({ message: 'Site status was not updated.' }, { status: 500 })
-    : Response.json({ ok: true, status: result.data.site_status });
+    : Response.json({ ok: true, status: result.data.site_status, message: 'Site status updated.' });
 };

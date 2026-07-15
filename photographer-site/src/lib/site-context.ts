@@ -1,6 +1,6 @@
 import type { DataClient } from '@leon/platform-core';
 
-export type SiteStatus = 'active' | 'paused' | 'maintenance' | 'error';
+export type SiteStatus = 'active' | 'paused' | 'maintenance' | 'error' | 'archived';
 
 export type SiteContext = {
   workspaceId: string;
@@ -20,6 +20,13 @@ type SiteConnectionRow = {
   primary_domain: string;
   admin_domain: string | null;
   status: string;
+};
+
+type SiteDomainAliasRow = {
+  workspace_id: string;
+  hostname: string;
+  status: string;
+  is_canonical: boolean;
 };
 
 type ResolutionInput = {
@@ -87,7 +94,8 @@ export class SiteContextCache {
 }
 
 const CONNECTION_COLUMNS = 'workspace_id,site_key,primary_domain,admin_domain,status';
-const VALID_STATUSES = new Set<SiteStatus>(['active', 'paused', 'maintenance', 'error']);
+const DOMAIN_ALIAS_COLUMNS = 'workspace_id,hostname,status,is_canonical';
+const VALID_STATUSES = new Set<SiteStatus>(['active', 'paused', 'maintenance', 'error', 'archived']);
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
 const siteStatus = (value: string): SiteStatus =>
@@ -99,6 +107,7 @@ const fallbackPermitted = ({ hostname, nodeEnv }: ResolutionInput) =>
 const fromConnection = (
   row: SiteConnectionRow,
   hostname: string,
+  primaryDomain: string,
   canonicalOrigin: string,
   isAdminHost: boolean,
   isFallback: boolean,
@@ -106,13 +115,49 @@ const fromConnection = (
   workspaceId: row.workspace_id,
   siteKey: row.site_key,
   hostname,
-  primaryDomain: row.primary_domain,
+  primaryDomain,
   adminDomain: row.admin_domain || row.primary_domain,
   canonicalOrigin,
   status: siteStatus(row.status),
   isAdminHost,
   isFallback,
 });
+
+const resolvedConnection = async (
+  database: DataClient,
+  row: SiteConnectionRow,
+  hostname: string,
+  matchedAlias?: SiteDomainAliasRow,
+): Promise<SiteContextResolution> => {
+  let canonicalDomain = row.primary_domain;
+  if (matchedAlias?.is_canonical) {
+    canonicalDomain = matchedAlias.hostname;
+  } else {
+    const canonicalAlias = await database
+      .from('site_domain_aliases')
+      .select<SiteDomainAliasRow>(DOMAIN_ALIAS_COLUMNS)
+      .eq('workspace_id', row.workspace_id)
+      .eq('status', 'active')
+      .eq('is_canonical', true)
+      .maybeSingle();
+
+    if (canonicalAlias.error) return { context: null, error: 'unavailable' };
+    if (canonicalAlias.data) canonicalDomain = canonicalAlias.data.hostname;
+  }
+
+  const adminDomain = row.admin_domain || row.primary_domain;
+  return {
+    context: fromConnection(
+      row,
+      hostname,
+      canonicalDomain,
+      `https://${canonicalDomain}`,
+      hostname === adminDomain,
+      false,
+    ),
+    error: null,
+  };
+};
 
 const matchesPathPrefix = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`);
@@ -123,6 +168,10 @@ const isEditorPath = (pathname: string) =>
 
 const isSharedAssetPath = (pathname: string) =>
   ['/_astro', '/_image', '/images'].some((prefix) => matchesPathPrefix(pathname, prefix));
+
+const isStableOperationalPath = (pathname: string) =>
+  ['/api/health', '/api/site-status', '/api/webhooks']
+    .some((prefix) => matchesPathPrefix(pathname, prefix));
 
 const redirectUrl = (domain: string, pathname: string, search: string) => {
   const target = new URL(`https://${domain}`);
@@ -137,7 +186,7 @@ export function siteRedirectTarget(
   search: string,
 ): string | null {
   if (context.isFallback || context.adminDomain === context.primaryDomain) return null;
-  if (context.isAdminHost && !isEditorPath(pathname) && !isSharedAssetPath(pathname)) {
+  if (context.isAdminHost && !isEditorPath(pathname) && !isSharedAssetPath(pathname) && !isStableOperationalPath(pathname)) {
     return redirectUrl(context.primaryDomain, pathname, search);
   }
   if (!context.isAdminHost && isEditorPath(pathname)) {
@@ -161,16 +210,7 @@ export async function resolveSiteContext(
     if (exact.error) {
       if (!fallbackPermitted(input)) return { context: null, error: 'unavailable' };
     } else if (exact.data) {
-      return {
-        context: fromConnection(
-          exact.data,
-          input.hostname,
-          `https://${exact.data.primary_domain}`,
-          false,
-          false,
-        ),
-        error: null,
-      };
+      return resolvedConnection(database, exact.data, input.hostname);
     } else {
       const admin = await database
         .from('site_connections')
@@ -181,18 +221,34 @@ export async function resolveSiteContext(
       if (admin.error) {
         if (!fallbackPermitted(input)) return { context: null, error: 'unavailable' };
       } else if (admin.data) {
-        return {
-          context: fromConnection(
-            admin.data,
-            input.hostname,
-            `https://${admin.data.primary_domain}`,
-            true,
-            false,
-          ),
-          error: null,
-        };
-      } else if (!fallbackPermitted(input)) {
-        return { context: null, error: 'unknown-host' };
+        return resolvedConnection(database, admin.data, input.hostname);
+      } else {
+        const alias = await database
+          .from('site_domain_aliases')
+          .select<SiteDomainAliasRow>(DOMAIN_ALIAS_COLUMNS)
+          .eq('hostname', input.hostname)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (alias.error) {
+          if (!fallbackPermitted(input)) return { context: null, error: 'unavailable' };
+        } else if (alias.data) {
+          const connection = await database
+            .from('site_connections')
+            .select<SiteConnectionRow>(CONNECTION_COLUMNS)
+            .eq('workspace_id', alias.data.workspace_id)
+            .maybeSingle();
+
+          if (connection.error) {
+            if (!fallbackPermitted(input)) return { context: null, error: 'unavailable' };
+          } else if (connection.data) {
+            return resolvedConnection(database, connection.data, input.hostname, alias.data);
+          } else if (!fallbackPermitted(input)) {
+            return { context: null, error: 'unknown-host' };
+          }
+        } else if (!fallbackPermitted(input)) {
+          return { context: null, error: 'unknown-host' };
+        }
       }
     }
   } else if (!fallbackPermitted(input)) {
@@ -211,6 +267,7 @@ export async function resolveSiteContext(
         context: fromConnection(
           connection.data,
           input.hostname,
+          connection.data.primary_domain,
           input.requestOrigin,
           false,
           true,

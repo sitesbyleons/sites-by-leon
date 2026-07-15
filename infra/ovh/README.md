@@ -31,9 +31,10 @@ Copy these ignored examples and replace every placeholder:
 2. `infra/ovh/secrets/postgres.env.example` to `infra/ovh/secrets/postgres.env`.
 3. `infra/ovh/secrets/dashboard.env.example` to `infra/ovh/secrets/dashboard.env`.
 4. `infra/ovh/secrets/northline.env.example` to `infra/ovh/secrets/northline.env`.
-5. Put the Cloudflare Tunnel token only in `infra/ovh/secrets/cloudflare-tunnel-token`.
-6. Copy `infra/ovh/secrets/backup.env.example` to `/opt/leon-platform/secrets/backup.env`.
-7. Generate `/opt/leon-platform/secrets/restic-password` with `openssl rand -base64 48` and keep an offline copy.
+5. Keep `infra/ovh/secrets/domain-worker.env.example` as a reference until custom-domain automation is activated.
+6. Put the Cloudflare Tunnel token only in `infra/ovh/secrets/cloudflare-tunnel-token`.
+7. Copy `infra/ovh/secrets/backup.env.example` to `/opt/leon-platform/secrets/backup.env`.
+8. Generate `/opt/leon-platform/secrets/restic-password` with `openssl rand -base64 48` and keep an offline copy.
 
 Set every secret file to mode `600`. The backup installer also refuses to source `backup.env` or read the Restic password unless each is a regular, root-owned file with no group or world permissions. `POSTGRES_PASSWORD` is the migration/backup credential and stays only in `postgres.env`. Put the separate `POSTGRES_RUNTIME_PASSWORD` into the `leon_web` database URLs in `dashboard.env` and `northline.env`; web containers must never use the database administrator login. The `northline.env` filename is retained for deployment compatibility, but it now configures the single shared photographer runtime rather than one Northline-only container.
 Generate `CONTACT_HASH_SALT` independently with `openssl rand -hex 32`; it is required for privacy-preserving inquiry rate limits.
@@ -50,6 +51,19 @@ Each application uses at most four PostgreSQL connections by default. Set `DATAB
 For the repeatable authenticated content and billing-guard check, follow the **Repeatable authenticated CRUD smoke test** in `docs/operations/client-provisioning.md`. It uses an existing private Clerk cookie jar or short-lived bearer-header file, refuses to run against a Stripe-enabled studio, and removes its temporary customer records on exit.
 
 Do not expose the Docker socket, SSH credentials, Cloudflare token, GitHub token, or database administrator password to either web application. Domain and repository automation belongs in a restricted host-side worker, not a browser request.
+
+## Activating custom client domains
+
+The normal deployment keeps custom-domain automation off. To activate it safely:
+
+1. Enable Cloudflare for SaaS for `leonsites.org` and confirm `customers.leonsites.org` is the Active fallback origin.
+2. Create a zone-scoped Cloudflare API token for `leonsites.org` with **SSL and Certificates: Edit**.
+3. Copy `secrets/domain-worker.env.example` to `secrets/domain-worker.env`. Put the token and zone ID there. Generate a separate URL-safe database password with `openssl rand -hex 32`, use it in that file's `DATABASE_URL`, and put the exact same password in `POSTGRES_DOMAIN_WORKER_PASSWORD` inside `secrets/postgres.env`.
+4. Set `CUSTOM_DOMAIN_AUTOMATION_ENABLED=true` and add `domains` to `COMPOSE_PROFILES` in `.env` (for example `COMPOSE_PROFILES=tunnel,domains`). These settings must change together; deployment refuses a mismatched state.
+5. Set both secret files to mode `600`. Deployment runs `scripts/preflight-domain-worker.sh` before it creates or changes Docker resources and refuses missing, duplicate, placeholder, malformed, insecure, short, or mismatched worker credentials.
+6. Deploy, confirm the domain worker is healthy, then connect one test hostname from `/admin/sites` before onboarding a client domain.
+
+For Namecheap, add the client's `www` CNAME to `customers.leonsites.org`, then add an unmasked permanent redirect from `@` to the `https://www...` address. Do not remove or replace MX/TXT email records.
 
 ## Import existing records
 
@@ -68,6 +82,18 @@ docker compose exec -T database psql -U leon_app -d leon_platform < migration-ar
 The current managed project has no stored image objects, so there are no image bytes to copy. New uploads are written directly to `/opt/leon-platform/uploads`.
 
 ## Deploy
+
+Run the non-mutating custom-domain deployment regression tests on a Linux host:
+
+```bash
+bash infra/ovh/tests/preflight-domain-worker.test.sh
+```
+
+Validate an upcoming schema against a disposable copy of the current production database:
+
+```bash
+SOURCE_ROOT=/path/to/release infra/ovh/scripts/validate-migration.sh
+```
 
 ```bash
 SOURCE_ROOT=/opt/leon-platform/current infra/ovh/scripts/deploy.sh

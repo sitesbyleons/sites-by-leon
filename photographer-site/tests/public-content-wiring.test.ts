@@ -47,4 +47,13 @@ describe('managed public content wiring', () => {
       expect(read(path), path).not.toContain('Northline');
     }
   });
+
+  it('links public pages to the shared favicon and tenant sitemap', () => {
+    const layout = read('src/layouts/SiteLayout.astro');
+
+    expect(layout).toContain('rel="icon"');
+    expect(layout).toContain('href="/favicon.svg"');
+    expect(layout).toContain('rel="sitemap"');
+    expect(layout).toContain('href="/sitemap.xml"');
+  });
 });
