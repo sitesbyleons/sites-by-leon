@@ -1,0 +1,71 @@
+---
+import type { MediaAspectRatio } from '../lib/content/types';
+
+interface Props {
+  imageUrl?: string | null;
+  title?: string;
+  aspectName?: string;
+  aspectRatio?: MediaAspectRatio | 'inherit';
+  allowInherit?: boolean;
+  inheritedAspectRatio?: MediaAspectRatio;
+  cropXName?: string;
+  cropYName?: string;
+  cropZoomName?: string;
+  cropX?: number;
+  cropY?: number;
+  cropZoom?: number;
+}
+
+const {
+  imageUrl = null,
+  title = 'Image crop',
+  aspectName = 'cover_aspect_ratio',
+  aspectRatio = 'landscape',
+  allowInherit = false,
+  inheritedAspectRatio = 'landscape',
+  cropXName = 'cover_crop_x',
+  cropYName = 'cover_crop_y',
+  cropZoomName = 'cover_crop_zoom',
+  cropX = 50,
+  cropY = 50,
+  cropZoom = 1,
+} = Astro.props;
+const resolvedRatio = aspectRatio === 'inherit' ? inheritedAspectRatio : aspectRatio;
+---
+
+<fieldset
+  class="studio-crop-editor wide"
+  data-crop-editor
+  data-inherited-aspect={inheritedAspectRatio}
+>
+  <legend>{title}</legend>
+  <div class="studio-crop-preview" data-crop-preview data-ratio={resolvedRatio}>
+    {imageUrl
+      ? <img src={imageUrl} alt="Crop preview" data-crop-preview-image style={`--crop-x:${cropX}%;--crop-y:${cropY}%;--crop-zoom:${cropZoom}`} />
+      : <span data-crop-preview-empty>Choose an image to preview the crop</span>}
+  </div>
+  <div class="studio-crop-fields">
+    <label>
+      <span>Shape</span>
+      <select name={aspectName} data-crop-aspect>
+        {allowInherit && <option value="inherit" selected={aspectRatio === 'inherit'}>Use gallery shape</option>}
+        <option value="square" selected={aspectRatio === 'square'}>Square</option>
+        <option value="portrait" selected={aspectRatio === 'portrait'}>Portrait</option>
+        <option value="landscape" selected={aspectRatio === 'landscape'}>Landscape</option>
+        <option value="wide" selected={aspectRatio === 'wide'}>Wide</option>
+      </select>
+    </label>
+    <label>
+      <span>Move left / right <output data-crop-output="x">{cropX}</output></span>
+      <input name={cropXName} type="range" min="0" max="100" step="1" value={cropX} data-crop-x />
+    </label>
+    <label>
+      <span>Move up / down <output data-crop-output="y">{cropY}</output></span>
+      <input name={cropYName} type="range" min="0" max="100" step="1" value={cropY} data-crop-y />
+    </label>
+    <label>
+      <span>Zoom <output data-crop-output="zoom">{Number(cropZoom).toFixed(2)}×</output></span>
+      <input name={cropZoomName} type="range" min="1" max="3" step="0.05" value={cropZoom} data-crop-zoom />
+    </label>
+  </div>
+</fieldset>

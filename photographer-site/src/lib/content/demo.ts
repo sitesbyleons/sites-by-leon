@@ -4,6 +4,7 @@ const sportsImage = (
   id: string,
   file: string,
   alt: string,
+  presentation: Partial<{ aspectRatio: 'square' | 'portrait' | 'landscape' | 'wide'; cropX: number; cropY: number; cropZoom: number }> = {},
 ) => ({
   id,
   src: `/images/sports/${file}.webp`,
@@ -11,6 +12,10 @@ const sportsImage = (
   caption: null,
   width: 1600,
   height: 1200,
+  aspectRatio: presentation.aspectRatio ?? 'landscape',
+  cropX: presentation.cropX ?? 50,
+  cropY: presentation.cropY ?? 50,
+  cropZoom: presentation.cropZoom ?? 1,
 });
 
 export const demoPortfolio = {
@@ -56,6 +61,9 @@ export const demoPortfolio = {
           'Football player carrying the ball while a defender closes in',
         ),
       ],
+      layoutMode: 'grid',
+      gridColumns: 3,
+      imageAspectRatio: 'landscape',
       publishedAt: '2026-08-22T14:00:00.000Z',
     },
     {
@@ -86,6 +94,9 @@ export const demoPortfolio = {
           'Basketball players practicing beneath arena lights on an orange court',
         ),
       ],
+      layoutMode: 'grid',
+      gridColumns: 3,
+      imageAspectRatio: 'square',
       publishedAt: '2026-02-14T14:00:00.000Z',
     },
     {
@@ -104,18 +115,24 @@ export const demoPortfolio = {
           'track-01',
           'track-runner',
           'Sprinter launching from the starting blocks on a red track',
+          { aspectRatio: 'wide' },
         ),
         sportsImage(
           'track-02',
           'track-start',
           'Runner accelerating away from the blocks on a red track',
+          { aspectRatio: 'wide' },
         ),
         sportsImage(
           'track-03',
           'track-night',
           'Woman sprinting alone on an illuminated running track at night',
+          { aspectRatio: 'wide' },
         ),
       ],
+      layoutMode: 'stack',
+      gridColumns: 2,
+      imageAspectRatio: 'wide',
       publishedAt: '2026-05-30T14:00:00.000Z',
     },
   ],
@@ -132,6 +149,7 @@ export const demoPortfolio = {
         'post-sideline-cover',
         'football-player',
         'Quarterback preparing to pass during a late-afternoon football game',
+        { aspectRatio: 'wide', cropX: 54, cropY: 44, cropZoom: 1.12 },
       ),
       relatedGallerySlug: 'friday-night',
       publishedAt: '2026-08-30T14:00:00.000Z',

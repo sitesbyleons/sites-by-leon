@@ -1,5 +1,6 @@
 ---
 import type { Gallery } from '../lib/content/types';
+import { imagePresentationStyle } from '../lib/content/presentation';
 
 interface Props {
   galleries: Gallery[];
@@ -13,15 +14,17 @@ const { galleries } = Astro.props;
     galleries.map((gallery, index) => (
       <li class="work-card" data-entrance>
         <a href={`/work/${gallery.slug}`}>
-          <figure data-image-drift={index % 2 === 0 ? 'slow' : 'fast'}>
-            <img
-              src={gallery.cover.src}
-              alt={gallery.cover.alt}
-              width={gallery.cover.width}
-              height={gallery.cover.height}
-              loading={index === 0 ? 'eager' : 'lazy'}
-              decoding="async"
-            />
+          <figure data-image-drift={index % 2 === 0 ? 'slow' : 'fast'} style={imagePresentationStyle(gallery.cover)}>
+            <div class="gallery-drift-layer" data-image-drift-layer>
+              <img
+                src={gallery.cover.src}
+                alt={gallery.cover.alt}
+                width={gallery.cover.width}
+                height={gallery.cover.height}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+              />
+            </div>
           </figure>
           <span class="work-caption">
             <h2>{gallery.title}</h2>

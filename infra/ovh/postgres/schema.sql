@@ -202,6 +202,13 @@ create table if not exists studio_galleries (
   description text not null default '',
   cover_image_url text not null,
   cover_storage_path text,
+  layout_mode text not null default 'grid' check (layout_mode in ('grid', 'stack')),
+  grid_columns smallint not null default 3 check (grid_columns between 1 and 4),
+  image_aspect_ratio text not null default 'landscape' check (image_aspect_ratio in ('square', 'portrait', 'landscape', 'wide')),
+  cover_aspect_ratio text not null default 'landscape' check (cover_aspect_ratio in ('square', 'portrait', 'landscape', 'wide')),
+  cover_crop_x smallint not null default 50 check (cover_crop_x between 0 and 100),
+  cover_crop_y smallint not null default 50 check (cover_crop_y between 0 and 100),
+  cover_crop_zoom numeric(4, 2) not null default 1 check (cover_crop_zoom between 1 and 3),
   status text not null default 'draft' check (status in ('draft', 'published')),
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
@@ -216,6 +223,10 @@ create table if not exists studio_gallery_images (
   image_url text not null,
   alt_text text not null check (char_length(alt_text) between 2 and 300),
   storage_path text,
+  aspect_ratio text not null default 'inherit' check (aspect_ratio in ('inherit', 'square', 'portrait', 'landscape', 'wide')),
+  crop_x smallint not null default 50 check (crop_x between 0 and 100),
+  crop_y smallint not null default 50 check (crop_y between 0 and 100),
+  crop_zoom numeric(4, 2) not null default 1 check (crop_zoom between 1 and 3),
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -230,6 +241,10 @@ create table if not exists studio_posts (
   body text not null default '',
   cover_image_url text,
   cover_storage_path text,
+  cover_aspect_ratio text not null default 'landscape' check (cover_aspect_ratio in ('square', 'portrait', 'landscape', 'wide')),
+  cover_crop_x smallint not null default 50 check (cover_crop_x between 0 and 100),
+  cover_crop_y smallint not null default 50 check (cover_crop_y between 0 and 100),
+  cover_crop_zoom numeric(4, 2) not null default 1 check (cover_crop_zoom between 1 and 3),
   status text not null default 'draft' check (status in ('draft', 'published')),
   published_at timestamptz,
   sort_order integer not null default 0,
@@ -237,6 +252,54 @@ create table if not exists studio_posts (
   updated_at timestamptz not null default now(),
   unique (workspace_id, slug)
 );
+
+alter table studio_galleries add column if not exists layout_mode text not null default 'grid';
+alter table studio_galleries add column if not exists grid_columns smallint not null default 3;
+alter table studio_galleries add column if not exists image_aspect_ratio text not null default 'landscape';
+alter table studio_galleries add column if not exists cover_aspect_ratio text not null default 'landscape';
+alter table studio_galleries add column if not exists cover_crop_x smallint not null default 50;
+alter table studio_galleries add column if not exists cover_crop_y smallint not null default 50;
+alter table studio_galleries add column if not exists cover_crop_zoom numeric(4, 2) not null default 1;
+alter table studio_galleries drop constraint if exists studio_galleries_layout_mode_check;
+alter table studio_galleries add constraint studio_galleries_layout_mode_check check (layout_mode in ('grid', 'stack'));
+alter table studio_galleries drop constraint if exists studio_galleries_grid_columns_check;
+alter table studio_galleries add constraint studio_galleries_grid_columns_check check (grid_columns between 1 and 4);
+alter table studio_galleries drop constraint if exists studio_galleries_image_aspect_ratio_check;
+alter table studio_galleries add constraint studio_galleries_image_aspect_ratio_check check (image_aspect_ratio in ('square', 'portrait', 'landscape', 'wide'));
+alter table studio_galleries drop constraint if exists studio_galleries_cover_aspect_ratio_check;
+alter table studio_galleries add constraint studio_galleries_cover_aspect_ratio_check check (cover_aspect_ratio in ('square', 'portrait', 'landscape', 'wide'));
+alter table studio_galleries drop constraint if exists studio_galleries_cover_crop_x_check;
+alter table studio_galleries add constraint studio_galleries_cover_crop_x_check check (cover_crop_x between 0 and 100);
+alter table studio_galleries drop constraint if exists studio_galleries_cover_crop_y_check;
+alter table studio_galleries add constraint studio_galleries_cover_crop_y_check check (cover_crop_y between 0 and 100);
+alter table studio_galleries drop constraint if exists studio_galleries_cover_crop_zoom_check;
+alter table studio_galleries add constraint studio_galleries_cover_crop_zoom_check check (cover_crop_zoom between 1 and 3);
+
+alter table studio_gallery_images add column if not exists aspect_ratio text not null default 'inherit';
+alter table studio_gallery_images add column if not exists crop_x smallint not null default 50;
+alter table studio_gallery_images add column if not exists crop_y smallint not null default 50;
+alter table studio_gallery_images add column if not exists crop_zoom numeric(4, 2) not null default 1;
+alter table studio_gallery_images drop constraint if exists studio_gallery_images_aspect_ratio_check;
+alter table studio_gallery_images add constraint studio_gallery_images_aspect_ratio_check check (aspect_ratio in ('inherit', 'square', 'portrait', 'landscape', 'wide'));
+alter table studio_gallery_images drop constraint if exists studio_gallery_images_crop_x_check;
+alter table studio_gallery_images add constraint studio_gallery_images_crop_x_check check (crop_x between 0 and 100);
+alter table studio_gallery_images drop constraint if exists studio_gallery_images_crop_y_check;
+alter table studio_gallery_images add constraint studio_gallery_images_crop_y_check check (crop_y between 0 and 100);
+alter table studio_gallery_images drop constraint if exists studio_gallery_images_crop_zoom_check;
+alter table studio_gallery_images add constraint studio_gallery_images_crop_zoom_check check (crop_zoom between 1 and 3);
+
+alter table studio_posts add column if not exists cover_aspect_ratio text not null default 'landscape';
+alter table studio_posts add column if not exists cover_crop_x smallint not null default 50;
+alter table studio_posts add column if not exists cover_crop_y smallint not null default 50;
+alter table studio_posts add column if not exists cover_crop_zoom numeric(4, 2) not null default 1;
+alter table studio_posts drop constraint if exists studio_posts_cover_aspect_ratio_check;
+alter table studio_posts add constraint studio_posts_cover_aspect_ratio_check check (cover_aspect_ratio in ('square', 'portrait', 'landscape', 'wide'));
+alter table studio_posts drop constraint if exists studio_posts_cover_crop_x_check;
+alter table studio_posts add constraint studio_posts_cover_crop_x_check check (cover_crop_x between 0 and 100);
+alter table studio_posts drop constraint if exists studio_posts_cover_crop_y_check;
+alter table studio_posts add constraint studio_posts_cover_crop_y_check check (cover_crop_y between 0 and 100);
+alter table studio_posts drop constraint if exists studio_posts_cover_crop_zoom_check;
+alter table studio_posts add constraint studio_posts_cover_crop_zoom_check check (cover_crop_zoom between 1 and 3);
 
 create table if not exists studio_services (
   id uuid primary key default gen_random_uuid(),

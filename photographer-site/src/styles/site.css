@@ -324,19 +324,13 @@ textarea:focus-visible {
   overflow: hidden;
   height: auto;
   margin: 0;
-  aspect-ratio: 4 / 3;
-}
-
-.portfolio-grid li:nth-child(2) figure,
-.work-card:nth-child(2) figure,
-.journal-card:nth-child(2) figure {
-  aspect-ratio: 3 / 4;
+  aspect-ratio: var(--media-aspect, 4 / 3);
 }
 
 .portfolio-grid img,
 .work-card img,
 .journal-card img {
-  transition: transform 320ms ease;
+  transition: filter 320ms ease;
 }
 
 .portfolio-grid a:hover img,
@@ -345,7 +339,7 @@ textarea:focus-visible {
 .work-card a:focus-visible img,
 .journal-card a:hover img,
 .journal-card a:focus-visible img {
-  transform: scale(1.015);
+  filter: saturate(1.06) contrast(1.02);
 }
 
 .portfolio-caption,
@@ -474,7 +468,7 @@ textarea:focus-visible {
   padding-bottom: clamp(7rem, 12vw, 12rem);
 }
 
-.gallery-sequence {
+.gallery-sequence--stack {
   display: flex;
   flex-direction: column;
   gap: clamp(4rem, 9vw, 9rem);
@@ -482,23 +476,36 @@ textarea:focus-visible {
   padding-bottom: clamp(5rem, 9vw, 9rem);
 }
 
-.gallery-frame {
+.gallery-sequence--grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.65rem, 1.6vw, 1.5rem);
+  padding-top: 0;
+  padding-bottom: clamp(5rem, 9vw, 9rem);
+}
+
+.gallery-sequence--grid[data-columns='1'] { grid-template-columns: 1fr; }
+.gallery-sequence--grid[data-columns='2'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gallery-sequence--grid[data-columns='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.gallery-sequence--grid[data-columns='4'] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.gallery-sequence--stack .gallery-frame {
   position: relative;
   left: 0;
   width: min(72%, 60rem);
   align-self: center;
 }
 
-.gallery-frame--lead {
+.gallery-sequence--stack .gallery-frame--lead {
   width: min(84%, 76rem);
 }
 
-.gallery-frame:nth-child(3n + 2) {
+.gallery-sequence--stack .gallery-frame:nth-child(3n + 2) {
   left: clamp(-3.5rem, -4vw, -1.5rem);
   width: min(62%, 54rem);
 }
 
-.gallery-frame:nth-child(3n) {
+.gallery-sequence--stack .gallery-frame:nth-child(3n) {
   left: clamp(1.5rem, 4vw, 3.5rem);
   width: min(68%, 58rem);
 }
@@ -506,14 +513,26 @@ textarea:focus-visible {
 .gallery-frame figure {
   overflow: hidden;
   margin: 0;
+  aspect-ratio: var(--media-aspect, 4 / 3);
 }
 
-.gallery-frame img {
+.gallery-drift-layer {
   width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  height: 100%;
+  will-change: transform;
 }
+
+.gallery-frame img,
+.media-crop-layer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--crop-x, 50%) var(--crop-y, 50%);
+  transform: scale(var(--crop-zoom, 1));
+  transform-origin: var(--crop-x, 50%) var(--crop-y, 50%);
+}
+
+.media-crop-layer { display: block; width: 100%; height: 100%; overflow: hidden; }
 
 .gallery-return {
   padding-bottom: clamp(5rem, 9vw, 9rem);
@@ -768,11 +787,11 @@ textarea:focus-visible {
   padding-bottom: clamp(4rem, 8vw, 8rem);
 }
 
-.journal-story-cover img {
+.journal-story-cover .media-crop-layer {
   width: min(100%, 80rem);
-  max-height: 70svh;
+  height: auto;
+  aspect-ratio: var(--media-aspect, 4 / 3);
   margin-inline: auto;
-  object-fit: cover;
 }
 
 .journal-story-body {
@@ -854,10 +873,14 @@ textarea:focus-visible {
   .editorial-hero-images,
   .portfolio-grid,
   .work-grid,
-  .journal-list,
-  .gallery-sequence {
+  .journal-list {
     grid-template-columns: 1fr;
   }
+
+  .gallery-sequence--grid[data-columns='1'] { grid-template-columns: 1fr; }
+  .gallery-sequence--grid[data-columns='2'],
+  .gallery-sequence--grid[data-columns='3'],
+  .gallery-sequence--grid[data-columns='4'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   .editorial-hero-image--portrait {
     width: 82%;
@@ -883,7 +906,7 @@ textarea:focus-visible {
     margin-bottom: 0;
   }
 
-  .gallery-frame:nth-child(n) {
+  .gallery-sequence--stack .gallery-frame:nth-child(n) {
     left: 0;
     width: 100%;
     align-self: stretch;
@@ -915,10 +938,6 @@ textarea:focus-visible {
 
   .gallery-sequence {
     gap: 1rem;
-  }
-
-  .gallery-frame img {
-    height: min(62vw, 240px);
   }
 
   .service-row {

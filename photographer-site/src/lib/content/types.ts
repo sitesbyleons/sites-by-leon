@@ -1,3 +1,6 @@
+export type MediaAspectRatio = 'square' | 'portrait' | 'landscape' | 'wide';
+export type GalleryLayoutMode = 'grid' | 'stack';
+
 export type GalleryImage = {
   id: string;
   src: string;
@@ -5,6 +8,10 @@ export type GalleryImage = {
   caption: string | null;
   width: number;
   height: number;
+  aspectRatio: MediaAspectRatio;
+  cropX: number;
+  cropY: number;
+  cropZoom: number;
 };
 
 export type Gallery = {
@@ -15,6 +22,9 @@ export type Gallery = {
   description: string;
   cover: GalleryImage;
   images: GalleryImage[];
+  layoutMode: GalleryLayoutMode;
+  gridColumns: 1 | 2 | 3 | 4;
+  imageAspectRatio: MediaAspectRatio;
   publishedAt: string;
 };
 

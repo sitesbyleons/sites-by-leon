@@ -55,6 +55,68 @@ test('studio admin remains usable at iPhone width', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
+test('reorder arrows stay centered in gallery, image, post, and service rows', async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    for (const path of ['/admin/galleries?preview=true', '/admin/posts?preview=true', '/admin/services?preview=true']) {
+      await page.goto(path);
+      const rows = page.locator('.studio-item').filter({ has: page.locator('.studio-reorder') });
+      const count = await rows.count();
+      expect(count).toBeGreaterThan(0);
+      for (let index = 0; index < count; index += 1) {
+        const centers = await rows.nth(index).evaluate((row) => {
+          const card = row.getBoundingClientRect();
+          const reorder = row.querySelector('.studio-reorder')!.getBoundingClientRect();
+          return {
+            card: card.left + card.width / 2,
+            reorder: reorder.left + reorder.width / 2,
+          };
+        });
+        expect(Math.abs(centers.card - centers.reorder), `${viewport.width}px ${path} row ${index + 1}`).toBeLessThan(1);
+      }
+    }
+  }
+});
+
+test('gallery editor previews grid, column, shape, and per-photo crop controls', async ({ page }) => {
+  await page.goto('/admin/galleries?preview=true');
+  await page.locator('summary', { hasText: 'Edit' }).first().click();
+  const form = page.locator('form[data-resource="galleries"]').filter({ has: page.locator('input[name="id"]') }).first();
+  await expect(form.getByLabel('Display')).toHaveValue('grid');
+  await form.getByLabel('Photos per row').selectOption('4');
+  await form.getByLabel('Photo shape').selectOption('portrait');
+  await expect(form.locator('[data-layout-preview]')).toHaveAttribute('data-columns', '4');
+  await expect(form.locator('[data-layout-preview]')).toHaveAttribute('data-ratio', 'portrait');
+
+  await form.locator('select[name="cover_aspect_ratio"]').selectOption('square');
+  await form.locator('input[name="cover_crop_x"]').fill('24');
+  await form.locator('input[name="cover_crop_y"]').fill('68');
+  await form.locator('input[name="cover_crop_zoom"]').fill('1.6');
+  await expect(form.locator('[data-crop-preview]')).toHaveAttribute('data-ratio', 'square');
+  await expect(form.locator('[data-crop-preview-image]')).toHaveCSS('object-position', '24% 68%');
+  await expect(form.locator('[data-crop-preview-image]')).toHaveCSS('transform', /matrix\(1\.6/);
+
+  await form.getByRole('button', { name: 'Save gallery' }).click();
+  await expect(form.locator('[data-form-status]')).toContainText('Preview saved locally');
+
+  await form.getByRole('button', { name: 'Close' }).click();
+  const imageEditor = page.locator('.studio-item').filter({ has: page.getByText('Football teams at the line of scrimmage', { exact: true }) });
+  await imageEditor.locator('summary', { hasText: 'Edit' }).click();
+  await expect(imageEditor.getByLabel('Shape')).toHaveValue('inherit');
+  await imageEditor.getByLabel('Shape').selectOption('portrait');
+  await expect(imageEditor.locator('[data-crop-preview]')).toHaveAttribute('data-ratio', 'portrait');
+});
+
+test('post editor gives cover images the same live aspect and crop controls', async ({ page }) => {
+  await page.goto('/admin/posts?preview=true');
+  await page.locator('summary', { hasText: 'Edit' }).first().click();
+  const form = page.locator('form[data-resource="posts"]').filter({ has: page.locator('input[name="id"]') }).first();
+  await form.getByLabel('Shape').selectOption('wide');
+  await form.locator('input[name="cover_crop_zoom"]').fill('1.4');
+  await expect(form.locator('[data-crop-preview]')).toHaveAttribute('data-ratio', 'wide');
+  await expect(form.locator('[data-crop-preview-image]')).toHaveCSS('transform', /matrix\(1\.4/);
+});
+
 test('portfolio items use the shared file browser with focused edit, order, and delete controls', async ({ page }) => {
   await page.goto('/admin/galleries?preview=true');
   await expect(page.locator('input[type="file"]')).toHaveCount(1);

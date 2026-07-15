@@ -1,5 +1,6 @@
 ---
 import SiteLayout from '../../layouts/SiteLayout.astro';
+import { imagePresentationStyle } from '../../lib/content/presentation';
 import { siteRepository } from '../../lib/content/repository';
 
 const slug = Astro.params.slug ?? '';
@@ -32,18 +33,24 @@ const placements = gallery?.images.map((image, index) => ({ image, index }));
           </div>
         </header>
 
-        <ol class="gallery-sequence page-gutter">
+        <ol
+          class:list={['gallery-sequence', 'page-gutter', `gallery-sequence--${gallery.layoutMode}`]}
+          data-columns={gallery.gridColumns}
+          data-gallery-layout={gallery.layoutMode}
+        >
           {placements?.map(({ image, index }) => (
             <li class:list={['gallery-frame', { 'gallery-frame--lead': index === 0 }]} data-entrance>
-              <figure data-image-drift={index % 2 === 0 ? 'slow' : 'fast'}>
-                <img
-                  src={image.src}
-                  alt={image.alt}
-                  width={image.width}
-                  height={image.height}
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                  decoding="async"
-                />
+              <figure data-image-drift={index % 2 === 0 ? 'slow' : 'fast'} style={imagePresentationStyle(image)}>
+                <div class="gallery-drift-layer" data-image-drift-layer>
+                  <img
+                    src={image.src}
+                    alt={image.alt}
+                    width={image.width}
+                    height={image.height}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                  />
+                </div>
               </figure>
             </li>
           ))}

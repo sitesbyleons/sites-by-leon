@@ -1,5 +1,5 @@
 import { demoPortfolio } from './demo';
-import type { Gallery, JournalPost, Portfolio } from './types';
+import type { Gallery, GalleryImage, JournalPost, MediaAspectRatio, Portfolio } from './types';
 import { createStudioDatabase } from '../database';
 
 export interface PortfolioRepository {
@@ -38,7 +38,23 @@ export const demoRepository = {
   },
 };
 
-const image = (id: string, src: string, alt: string) => ({ id, src, alt, caption: null, width: 1600, height: 1200 });
+const image = (
+  id: string,
+  src: string,
+  alt: string,
+  presentation: Partial<Pick<GalleryImage, 'aspectRatio' | 'cropX' | 'cropY' | 'cropZoom'>> = {},
+): GalleryImage => ({
+  id,
+  src,
+  alt,
+  caption: null,
+  width: 1600,
+  height: 1200,
+  aspectRatio: presentation.aspectRatio ?? 'landscape',
+  cropX: presentation.cropX ?? 50,
+  cropY: presentation.cropY ?? 50,
+  cropZoom: presentation.cropZoom ?? 1,
+});
 
 export type SiteTheme = {
   paperColor: string;
@@ -58,9 +74,45 @@ type SettingsRow = {
   accent_color: string;
   font_preset: SiteTheme['fontPreset'];
 };
-type GalleryRow = { id: string; slug: string; title: string; category: string; description: string; cover_image_url: string; updated_at: string };
-type GalleryImageRow = { id: string; gallery_id: string; image_url: string; alt_text: string };
-type PostRow = { id: string; slug: string; title: string; excerpt: string; body: string; cover_image_url: string | null; published_at: string | null };
+type GalleryRow = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  description: string;
+  cover_image_url: string;
+  layout_mode: Gallery['layoutMode'];
+  grid_columns: Gallery['gridColumns'];
+  image_aspect_ratio: MediaAspectRatio;
+  cover_aspect_ratio: MediaAspectRatio;
+  cover_crop_x: number;
+  cover_crop_y: number;
+  cover_crop_zoom: number;
+  updated_at: string;
+};
+type GalleryImageRow = {
+  id: string;
+  gallery_id: string;
+  image_url: string;
+  alt_text: string;
+  aspect_ratio: MediaAspectRatio | 'inherit';
+  crop_x: number;
+  crop_y: number;
+  crop_zoom: number;
+};
+type PostRow = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  cover_image_url: string | null;
+  cover_aspect_ratio: MediaAspectRatio;
+  cover_crop_x: number;
+  cover_crop_y: number;
+  cover_crop_zoom: number;
+  published_at: string | null;
+};
 type ServiceRow = { id: string; name: string; description: string; price_type: 'fixed' | 'from' | 'custom'; price_cents: number | null };
 
 const MANAGED_CACHE_TTL_MS = 3_000;
@@ -123,18 +175,42 @@ async function loadManagedPortfolio(workspaceId: string): Promise<Portfolio> {
     const id = workspace.data.id;
     const [settings, galleries, galleryImages, posts, services] = await Promise.all([
       client.from('studio_settings').select<Pick<SettingsRow, 'site_title' | 'hero_title' | 'hero_subtitle' | 'contact_email'>>('site_title,hero_title,hero_subtitle,contact_email').eq('workspace_id', id).maybeSingle(),
-      client.from('studio_galleries').select<GalleryRow>('id,slug,title,category,description,cover_image_url,updated_at').eq('workspace_id', id).eq('status', 'published').order('sort_order'),
-      client.from('studio_gallery_images').select<GalleryImageRow>('id,gallery_id,image_url,alt_text').eq('workspace_id', id).order('sort_order'),
-      client.from('studio_posts').select<PostRow>('id,slug,title,excerpt,body,cover_image_url,published_at').eq('workspace_id', id).eq('status', 'published').order('sort_order'),
+      client.from('studio_galleries').select<GalleryRow>('id,slug,title,category,description,cover_image_url,layout_mode,grid_columns,image_aspect_ratio,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,updated_at').eq('workspace_id', id).eq('status', 'published').order('sort_order'),
+      client.from('studio_gallery_images').select<GalleryImageRow>('id,gallery_id,image_url,alt_text,aspect_ratio,crop_x,crop_y,crop_zoom').eq('workspace_id', id).order('sort_order'),
+      client.from('studio_posts').select<PostRow>('id,slug,title,excerpt,body,cover_image_url,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,published_at').eq('workspace_id', id).eq('status', 'published').order('sort_order'),
       client.from('studio_services').select<ServiceRow>('id,name,description,price_type,price_cents').eq('workspace_id', id).eq('is_active', true).order('sort_order'),
     ]);
     const queryError = [settings, galleries, galleryImages, posts, services].find((result) => result.error)?.error;
     if (queryError) throw new ManagedContentUnavailableError(queryError);
 
     const mappedGalleries: Gallery[] = (galleries.data ?? []).map((gallery) => {
-      const frames = (galleryImages.data ?? []).filter((item) => item.gallery_id === gallery.id).map((item) => image(item.id, item.image_url, item.alt_text));
-      const cover = image(`${gallery.id}-cover`, gallery.cover_image_url, `${gallery.title} gallery cover`);
-      return { id: gallery.id, slug: gallery.slug, title: gallery.title, category: gallery.category, description: gallery.description, cover, images: frames.length ? frames : [cover], publishedAt: gallery.updated_at };
+      const frames = (galleryImages.data ?? [])
+        .filter((item) => item.gallery_id === gallery.id)
+        .map((item) => image(item.id, item.image_url, item.alt_text, {
+          aspectRatio: !item.aspect_ratio || item.aspect_ratio === 'inherit' ? (gallery.image_aspect_ratio ?? 'landscape') : item.aspect_ratio,
+          cropX: item.crop_x ?? 50,
+          cropY: item.crop_y ?? 50,
+          cropZoom: Number(item.crop_zoom ?? 1),
+        }));
+      const cover = image(`${gallery.id}-cover`, gallery.cover_image_url, `${gallery.title} gallery cover`, {
+        aspectRatio: gallery.cover_aspect_ratio ?? 'landscape',
+        cropX: gallery.cover_crop_x ?? 50,
+        cropY: gallery.cover_crop_y ?? 50,
+        cropZoom: Number(gallery.cover_crop_zoom ?? 1),
+      });
+      return {
+        id: gallery.id,
+        slug: gallery.slug,
+        title: gallery.title,
+        category: gallery.category,
+        description: gallery.description,
+        cover,
+        images: frames.length ? frames : [cover],
+        layoutMode: gallery.layout_mode ?? 'grid',
+        gridColumns: gallery.grid_columns ?? 3,
+        imageAspectRatio: gallery.image_aspect_ratio ?? 'landscape',
+        publishedAt: gallery.updated_at,
+      };
     });
     const mappedPosts: JournalPost[] = (posts.data ?? []).map((post) => ({
       id: post.id,
@@ -142,7 +218,12 @@ async function loadManagedPortfolio(workspaceId: string): Promise<Portfolio> {
       title: post.title,
       excerpt: post.excerpt,
       body: post.body.split(/\n{2,}/).map((paragraph: string) => paragraph.trim()).filter(Boolean),
-      cover: post.cover_image_url ? image(`${post.id}-cover`, post.cover_image_url, `${post.title} cover`) : null,
+      cover: post.cover_image_url ? image(`${post.id}-cover`, post.cover_image_url, `${post.title} cover`, {
+        aspectRatio: post.cover_aspect_ratio ?? 'landscape',
+        cropX: post.cover_crop_x ?? 50,
+        cropY: post.cover_crop_y ?? 50,
+        cropZoom: Number(post.cover_crop_zoom ?? 1),
+      }) : null,
       relatedGallerySlug: null,
       publishedAt: post.published_at ?? new Date().toISOString(),
     }));
