@@ -46,6 +46,27 @@ describe('Leon PostgreSQL data client', () => {
     expect(() => client.from('client_workspaces').eq('id OR 1=1', 'x')).toThrow(/column/i);
   });
 
+  it('allows every managed gallery and post presentation field used by the live editor', async () => {
+    const recorder = recordingExecutor([]);
+    const client = createDataClient(recorder.execute);
+
+    await client.from('studio_galleries')
+      .select('layout_mode,grid_columns,image_aspect_ratio,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom')
+      .eq('workspace_id', 'ws-1');
+    await client.from('studio_gallery_images')
+      .update({ aspect_ratio: 'portrait', crop_x: 32, crop_y: 61, crop_zoom: 1.4 })
+      .eq('workspace_id', 'ws-1');
+    await client.from('studio_posts')
+      .update({ cover_aspect_ratio: 'wide', cover_crop_x: 44, cover_crop_y: 52, cover_crop_zoom: 1.2 })
+      .eq('workspace_id', 'ws-1');
+
+    expect(recorder.calls[0].text).toContain('"layout_mode", "grid_columns", "image_aspect_ratio"');
+    expect(recorder.calls[1].text).toContain('"aspect_ratio" = $1');
+    expect(recorder.calls[1].text).toContain('"crop_zoom" = $4');
+    expect(recorder.calls[2].text).toContain('"cover_aspect_ratio" = $1');
+    expect(recorder.calls[2].text).toContain('"cover_crop_zoom" = $4');
+  });
+
   it('parameterizes updates and filters', async () => {
     const recorder = recordingExecutor([]);
     const client = createDataClient(recorder.execute);
