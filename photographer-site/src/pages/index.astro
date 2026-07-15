@@ -1,9 +1,12 @@
 ---
 import ContactSheet from '../components/ContactSheet.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
-import { siteRepository } from '../lib/content/repository';
+import { loadSiteTheme, siteRepository } from '../lib/content/repository';
 
-const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
+const [portfolio, theme] = await Promise.all([
+  siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId),
+  loadSiteTheme(Astro.locals.siteContext.workspaceId),
+]);
 const featuredGalleries = portfolio.home.featuredGallerySlugs
   .map((slug) => portfolio.galleries.find((gallery) => gallery.slug === slug))
   .filter((gallery) => gallery !== undefined);
@@ -58,7 +61,7 @@ const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conj
     </div>
   </section>
 
-  <ContactSheet galleries={featuredGalleries} />
+  <ContactSheet galleries={featuredGalleries} tone={theme.fontPreset} />
 
   {
     portfolio.packages.length > 0 && (

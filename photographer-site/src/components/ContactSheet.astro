@@ -1,37 +1,13 @@
 ---
+import SelectedWorkReel from './SelectedWorkReel';
 import type { Gallery } from '../lib/content/types';
 
 interface Props {
   galleries: Gallery[];
+  tone: 'editorial' | 'athletic' | 'modern';
 }
 
-const { galleries } = Astro.props;
+const { galleries, tone } = Astro.props;
 ---
 
-<section class="portfolio-section page-gutter" aria-labelledby="selected-work-title">
-  <h2 id="selected-work-title" data-entrance>Selected work</h2>
-  <ol class="portfolio-grid" data-portfolio-grid>
-    {
-      galleries.map((gallery, index) => (
-        <li data-portfolio-item data-entrance>
-          <a href={`/work/${gallery.slug}`}>
-            <figure data-image-drift={index % 2 === 0 ? 'slow' : 'fast'}>
-              <img
-                src={gallery.cover.src}
-                alt={gallery.cover.alt}
-                width={gallery.cover.width}
-                height={gallery.cover.height}
-                loading={index === 0 ? 'eager' : 'lazy'}
-                decoding="async"
-              />
-            </figure>
-            <span class="portfolio-caption">
-              <h3>{gallery.title}</h3>
-              <small>{gallery.category}</small>
-            </span>
-          </a>
-        </li>
-      ))
-    }
-  </ol>
-</section>
+<SelectedWorkReel galleries={galleries} tone={tone} client:visible />
