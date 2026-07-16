@@ -79,6 +79,151 @@ test('loads GSAP ScrollTrigger with visible 2D and 3D depth scenes', async ({ pa
   expect(progressedTransform).not.toBe(initialTransform);
 });
 
+test('uses restrained desktop depth and readable reveal ranges', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  const heroStart = await page.locator('.hero-gallery__image').evaluateAll((images) =>
+    images.map((image) => {
+      const transform = (image as HTMLElement).style.transform;
+      return {
+        yPercent: Number(transform.match(/translate(?:3d)?\([^,]+,\s*(-?[\d.]+)%/)?.[1]),
+        rotation: Number(transform.match(/rotate\((-?[\d.]+)deg\)/)?.[1]),
+      };
+    }),
+  );
+  expect(heroStart.map(({ yPercent }) => yPercent)).toEqual([4, -4, 5]);
+  expect(heroStart.map(({ rotation }) => rotation)).toEqual([-1, 1.2, -1.2]);
+
+  const firstConceptStart = await page.locator('[data-motion-depth="concept"]').first().evaluate((element) => {
+    const transform = (element as HTMLElement).style.transform;
+    return {
+      perspective: Number(transform.match(/perspective\(([\d.]+)px\)/)?.[1]),
+      z: Number(transform.match(/translate3d\([^,]+,[^,]+,\s*(-?[\d.]+)px\)/)?.[1]),
+      rotationX: Number(transform.match(/rotateX\((-?[\d.]+)deg\)/)?.[1]),
+      rotationY: Number(transform.match(/rotateY\((-?[\d.]+)deg\)/)?.[1]),
+      scale: Number(transform.match(/scale\(([\d.]+)/)?.[1]),
+    };
+  });
+  expect(firstConceptStart).toEqual({
+    perspective: 1600,
+    z: -80,
+    rotationX: 5,
+    rotationY: -6,
+    scale: 0.97,
+  });
+
+  const reveal = page.locator('.services [data-reveal]').first();
+  const revealStartY = await reveal.evaluate((element) => {
+    const transform = getComputedStyle(element).transform;
+    return new DOMMatrixReadOnly(transform === 'none' ? undefined : transform).m42;
+  });
+  expect(revealStartY).toBeCloseTo(20, 1);
+  await expect(reveal).toHaveCSS('transition-duration', '0s');
+
+  const pricingCard = page.locator('.pricing-card').first();
+  const pricingStart = await pricingCard.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const matrix = new DOMMatrixReadOnly(style.transform === 'none' ? undefined : style.transform);
+    return {
+      opacity: Number(style.opacity),
+      transform: (element as HTMLElement).style.transform,
+      y: matrix.m42,
+    };
+  });
+  expect(pricingStart.opacity).toBeCloseTo(0.88, 2);
+  expect(pricingStart.y).toBeCloseTo(24, 1);
+  expect(pricingStart.transform).not.toContain('rotateY');
+  await expect(pricingCard).toHaveCSS('will-change', 'auto');
+  await expect(page.locator('.concept-browser').first()).toHaveCSS('will-change', 'auto');
+
+  const heroHeight = await page.locator('.hero').evaluate((hero) => (hero as HTMLElement).offsetHeight);
+  await page.evaluate((scrollTop) => window.scrollTo(0, scrollTop), heroHeight);
+  await page.waitForTimeout(1_000);
+  const heroEndScales = await page.locator('.hero-gallery__image').evaluateAll((images) =>
+    images.map((image) => {
+      const transform = getComputedStyle(image).transform;
+      const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+      return Math.hypot(matrix.m11, matrix.m12);
+    }),
+  );
+  for (const scale of heroEndScales) expect(scale).toBeCloseTo(1.015, 2);
+});
+
+test('uses a restrained mobile concept entrance', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const conceptStart = await page.locator('[data-motion-depth="concept"]').first().evaluate((element) => {
+    const transform = (element as HTMLElement).style.transform;
+    return {
+      y: Number(transform.match(/translate(?:3d)?\([^,]+,\s*(-?[\d.]+)px/)?.[1]),
+      rotation: Number(transform.match(/rotate\((-?[\d.]+)deg\)/)?.[1]),
+      scale: Number(transform.match(/scale\(([\d.]+)/)?.[1]),
+    };
+  });
+  expect(conceptStart).toEqual({ y: 24, rotation: -0.6, scale: 0.985 });
+});
+
+test('uses tokenized press feedback and fine-pointer image hover', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  const button = page.locator('.button').first();
+  const buttonTransition = await button.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      durations: style.transitionDuration.split(', ').map((value) => value.trim()),
+      properties: style.transitionProperty.split(', ').map((value) => value.trim()),
+      timingFunctions: style.transitionTimingFunction,
+    };
+  });
+  expect(buttonTransition.properties).toEqual(['background-color', 'border-color', 'color', 'transform']);
+  expect(new Set(buttonTransition.durations)).toEqual(new Set(['0.16s']));
+  expect(buttonTransition.timingFunctions).toBe('ease, ease, ease, cubic-bezier(0.23, 1, 0.32, 1)');
+
+  await button.hover();
+  await page.mouse.down();
+  await expect
+    .poll(() =>
+      button.evaluate((element) => {
+        const transform = getComputedStyle(element).transform;
+        const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+        return Math.hypot(matrix.m11, matrix.m12);
+      }),
+    )
+    .toBeCloseTo(0.97, 2);
+  await page.mouse.up();
+
+  const image = page.locator('.hero-gallery__image img').first();
+  await expect(image).toHaveCSS('transition-property', 'filter, transform');
+  await expect(image).toHaveCSS('transition-duration', '0.24s, 0.24s');
+  const hasGatedHoverRule = await page.evaluate(() =>
+    Array.from(document.styleSheets).some((styleSheet) =>
+      Array.from(styleSheet.cssRules).some(
+        (rule) =>
+          rule instanceof CSSMediaRule &&
+          rule.conditionText === '(hover: hover) and (pointer: fine)' &&
+          Array.from(rule.cssRules).some((nestedRule) =>
+            nestedRule.cssText.includes('.hero-gallery__image:hover img'),
+          ),
+      ),
+    ),
+  );
+  expect(hasGatedHoverRule).toBe(true);
+
+  await image.hover();
+  await expect
+    .poll(() =>
+      image.evaluate((element) => {
+        const transform = getComputedStyle(element).transform;
+        const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+        return Math.hypot(matrix.m11, matrix.m12);
+      }),
+    )
+    .toBeCloseTo(1.018, 2);
+});
+
 test('keeps interface language focused on what clients need', async ({ page }) => {
   await page.goto('/');
 
@@ -284,7 +429,10 @@ test('keeps content visible without spatial motion when reduced motion is reques
   await page.goto('/');
 
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
+  await expect(page.locator('html')).toHaveAttribute('data-motion-scenes', 'opacity-feedback');
   await expect(page.locator('[data-motion-depth="concept"]').first()).toHaveCSS('transform', 'none');
+  await expect(page.locator('[data-motion-depth="pricing"]').first()).toHaveCSS('transform', 'none');
+  await expect(page.locator('.services [data-reveal]').first()).toHaveCSS('transform', 'none');
   await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });

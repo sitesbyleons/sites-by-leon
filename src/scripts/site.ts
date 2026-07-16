@@ -12,13 +12,22 @@ window.addEventListener('scroll', updateHeader, { passive: true });
 const revealItems = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
 
 const initializeScrollMotion = () => {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reducedMotion) {
+    document.documentElement.dataset.motion = 'reduced';
+    document.documentElement.dataset.motionScenes = 'opacity-feedback';
+    gsap.set(revealItems, { autoAlpha: 1, clearProps: 'transform' });
+    return;
+  }
+
   document.documentElement.dataset.motion = 'gsap-scrolltrigger';
   document.documentElement.dataset.motionScenes = 'hero-depth concept-3d pricing-3d';
 
   const batchedRevealItems = revealItems.filter(
     (item) => !item.matches('.process-list li, .portfolio-story'),
   );
-  gsap.set(batchedRevealItems, { y: 28 });
+  gsap.set(batchedRevealItems, { y: 20 });
   ScrollTrigger.batch(batchedRevealItems, {
     start: 'clamp(top 86%)',
     once: true,
@@ -27,8 +36,8 @@ const initializeScrollMotion = () => {
     onEnter: (batch) => {
       gsap.to(batch, {
         y: 0,
-        duration: 0.82,
-        stagger: 0.08,
+        duration: 0.56,
+        stagger: 0.055,
         ease: 'power3.out',
         overwrite: true,
       });
@@ -86,15 +95,15 @@ const initializeScrollMotion = () => {
 
     if (hero && heroImages.length) {
       heroImages.forEach((image, index) => {
-        const startY = [7, -7, 10][index] ?? 6;
-        const startRotation = [-1.8, 2.2, -2.4][index] ?? 0;
+        const startY = [4, -4, 5][index] ?? 3;
+        const startRotation = [-1, 1.2, -1.2][index] ?? 0;
         gsap.fromTo(
           image,
           { yPercent: startY, rotation: startRotation, scale: 0.96 },
           {
             yPercent: -startY,
             rotation: -startRotation * 0.45,
-            scale: 1.025,
+            scale: 1.015,
             ease: 'none',
             scrollTrigger: {
               trigger: hero,
@@ -118,10 +127,10 @@ const initializeScrollMotion = () => {
         browser,
         {
           transformPerspective: 1600,
-          rotationX: 9,
-          rotationY: direction * 10,
-          z: -140,
-          scale: 0.94,
+          rotationX: 5,
+          rotationY: direction * 6,
+          z: -80,
+          scale: 0.97,
           transformOrigin: '50% 45%',
         },
         {
@@ -161,20 +170,14 @@ const initializeScrollMotion = () => {
     if (pricingGrid && pricingCards.length) {
       gsap.fromTo(
         pricingCards,
+        { y: 24, autoAlpha: 0.88 },
         {
-          transformPerspective: 1200,
-          rotationY: (index) => [-11, 0, 11][index] ?? 0,
-          y: 64,
-          z: -90,
-        },
-        {
-          rotationY: 0,
           y: 0,
-          z: 0,
-          duration: 0.95,
-          stagger: 0.12,
+          autoAlpha: 1,
+          duration: 0.42,
+          stagger: 0.055,
           ease: 'power3.out',
-          scrollTrigger: { trigger: pricingGrid, start: 'clamp(top 78%)', once: true },
+          scrollTrigger: { trigger: pricingGrid, start: 'clamp(top 82%)', once: true },
         },
       );
     }
@@ -186,12 +189,12 @@ const initializeScrollMotion = () => {
       if (!browser) return;
       gsap.fromTo(
         browser,
-        { y: 42, rotation: index % 2 === 0 ? -1.2 : 1.2, scale: 0.975 },
+        { y: 24, rotation: index % 2 === 0 ? -0.6 : 0.6, scale: 0.985 },
         {
           y: 0,
           rotation: 0,
           scale: 1,
-          duration: 0.85,
+          duration: 0.56,
           ease: 'power3.out',
           scrollTrigger: { trigger: story, start: 'clamp(top 86%)', once: true },
         },
