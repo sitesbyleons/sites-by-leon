@@ -5,10 +5,14 @@ import { concepts, contactEmail } from '../content/site';
 const images = [concepts[0].images[0], concepts[1].images[0], concepts[2].images[0]];
 ---
 
-<main class="coming-soon" id="main">
+<main class="coming-soon" id="main" data-motion-surface="coming-soon">
   <div class="coming-soon__gallery" aria-hidden="true">
     {images.map((image, index) => (
-      <figure class={`coming-soon__image coming-soon__image--${index + 1}`}>
+      <figure
+        class={`coming-soon__image coming-soon__image--${index + 1}`}
+        data-coming-image
+        style={`--coming-index: ${index}`}
+      >
         <img src={image.src} alt="" width="1536" height="1024" loading={index === 0 ? 'eager' : 'lazy'} />
       </figure>
     ))}
@@ -18,9 +22,9 @@ const images = [concepts[0].images[0], concepts[1].images[0], concepts[2].images
 
   <div class="coming-soon__content">
     <BrandMark />
-    <div class="coming-soon__message">
+    <div class="coming-soon__message" data-coming-content>
       <h1>Coming soon.</h1>
     </div>
-    <a href={`mailto:${contactEmail}`}>{contactEmail} <span aria-hidden="true">↗</span></a>
+    <a data-coming-content href={`mailto:${contactEmail}`}>{contactEmail} <span aria-hidden="true">↗</span></a>
   </div>
 </main>

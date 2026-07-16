@@ -328,6 +328,30 @@ h2 em {
 }
 
 /* Coming soon */
+@keyframes coming-image-enter {
+  from {
+    opacity: 0;
+    transform: scale(1.025);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes coming-content-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--coming-content-x, 0%), 1rem, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(var(--coming-content-x, 0%), 0, 0);
+  }
+}
+
 .coming-soon {
   position: relative;
   min-height: 100dvh;
@@ -353,6 +377,11 @@ h2 em {
   min-height: 0;
   margin: 0;
   overflow: hidden;
+}
+
+.coming-soon [data-coming-image] {
+  animation: coming-image-enter 700ms var(--motion-ease-out) both;
+  animation-delay: calc(var(--coming-index) * 70ms);
 }
 
 .coming-soon__image:first-child {
@@ -392,6 +421,23 @@ h2 em {
   left: var(--gutter);
 }
 
+.coming-soon__content .brand-mark,
+.coming-soon [data-coming-content] {
+  animation: coming-content-enter var(--motion-slow) var(--motion-ease-out) both;
+}
+
+.coming-soon__content .brand-mark {
+  animation-delay: 220ms;
+}
+
+.coming-soon .coming-soon__message {
+  animation-delay: 300ms;
+}
+
+.coming-soon .coming-soon__content > a {
+  animation-delay: 380ms;
+}
+
 .coming-soon__message {
   display: grid;
   min-height: 100dvh;
@@ -410,6 +456,7 @@ h2 em {
 }
 
 .coming-soon__content > a {
+  --coming-content-x: -50%;
   position: absolute;
   bottom: clamp(1.5rem, 3vw, 3rem);
   left: 50%;
@@ -2338,5 +2385,29 @@ h2 em {
 
   .contact__email a {
     overflow-wrap: anywhere;
+  }
+}
+
+@keyframes coming-fade-only {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .coming-soon [data-coming-image],
+  .coming-soon__content .brand-mark,
+  .coming-soon [data-coming-content] {
+    animation-duration: 200ms;
+    animation-delay: 0ms;
+    animation-name: coming-fade-only;
   }
 }

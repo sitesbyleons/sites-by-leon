@@ -167,6 +167,35 @@ test('shows a minimal standalone coming-soon page for production', async ({ page
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://leonsites.org/');
 });
 
+test('orchestrates the coming-soon entrance', async ({ page }) => {
+  await page.goto('/coming-soon');
+
+  const images = page.locator('[data-coming-image]');
+  await expect(images.nth(0)).toHaveCSS('animation-name', 'coming-image-enter');
+  await expect(images.nth(0)).toHaveCSS('animation-delay', '0s');
+  await expect(images.nth(1)).toHaveCSS('animation-delay', '0.07s');
+  await expect(images.nth(2)).toHaveCSS('animation-delay', '0.14s');
+  await expect(page.locator('.coming-soon__content .brand-mark')).toHaveCSS('animation-delay', '0.22s');
+  await expect(page.locator('.coming-soon__message')).toHaveCSS('animation-delay', '0.3s');
+  await expect(page.locator('.coming-soon__content > a')).toHaveCSS('animation-delay', '0.38s');
+});
+
+test('uses a fade-only coming-soon entrance for reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/coming-soon');
+
+  for (const element of [
+    page.locator('[data-coming-image]').first(),
+    page.locator('.coming-soon__content .brand-mark'),
+    page.locator('[data-coming-content]').first(),
+  ]) {
+    await expect(element).toHaveCSS('animation-name', 'coming-fade-only');
+    await expect(element).toHaveCSS('animation-duration', '0.2s');
+    await expect(element).toHaveCSS('animation-delay', '0s');
+  }
+  await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');
+});
+
 for (const viewport of [
   { width: 390, height: 844 },
   { width: 1440, height: 900 },
@@ -175,7 +204,8 @@ for (const viewport of [
     await page.setViewportSize(viewport);
     await page.goto('/coming-soon');
 
-    const layout = await page.locator('.coming-soon').evaluate((root) => {
+    const layout = await page.locator('.coming-soon').evaluate(async (root) => {
+      await Promise.all(root.getAnimations({ subtree: true }).map((animation) => animation.finished));
       const heading = root.querySelector('h1')!.getBoundingClientRect();
       const logo = root.querySelector('.brand-mark')!.getBoundingClientRect();
       return {
