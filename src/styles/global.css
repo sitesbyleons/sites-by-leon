@@ -340,6 +340,16 @@ h2 em {
   }
 }
 
+@keyframes coming-veil-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes coming-content-enter {
   from {
     opacity: 0;
@@ -403,6 +413,7 @@ h2 em {
     radial-gradient(circle at 52% 42%, rgb(9 9 8 / 28%), rgb(9 9 8 / 72%) 62%),
     linear-gradient(180deg, rgb(9 9 8 / 24%), rgb(9 9 8 / 78%));
   backdrop-filter: saturate(0.72);
+  animation: coming-veil-enter 700ms var(--motion-ease-out) both;
 }
 
 .coming-soon__content {
@@ -2404,8 +2415,9 @@ h2 em {
   }
 
   .coming-soon [data-coming-image],
+  .coming-soon__veil,
   .coming-soon__content .brand-mark,
-  .coming-soon [data-coming-content] {
+  .coming-soon .coming-soon__content > [data-coming-content] {
     animation-duration: 200ms;
     animation-delay: 0ms;
     animation-name: coming-fade-only;

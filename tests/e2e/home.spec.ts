@@ -171,10 +171,15 @@ test('orchestrates the coming-soon entrance', async ({ page }) => {
   await page.goto('/coming-soon');
 
   const images = page.locator('[data-coming-image]');
+  const veil = page.locator('.coming-soon__veil');
   await expect(images.nth(0)).toHaveCSS('animation-name', 'coming-image-enter');
   await expect(images.nth(0)).toHaveCSS('animation-delay', '0s');
   await expect(images.nth(1)).toHaveCSS('animation-delay', '0.07s');
   await expect(images.nth(2)).toHaveCSS('animation-delay', '0.14s');
+  await expect(veil).toHaveCSS('animation-name', 'coming-veil-enter');
+  await expect(veil).toHaveCSS('animation-duration', '0.7s');
+  await expect(veil).toHaveCSS('animation-delay', '0s');
+  await expect(veil).toHaveCSS('transform', 'none');
   await expect(page.locator('.coming-soon__content .brand-mark')).toHaveCSS('animation-delay', '0.22s');
   await expect(page.locator('.coming-soon__message')).toHaveCSS('animation-delay', '0.3s');
   await expect(page.locator('.coming-soon__content > a')).toHaveCSS('animation-delay', '0.38s');
@@ -184,10 +189,21 @@ test('uses a fade-only coming-soon entrance for reduced motion', async ({ page }
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/coming-soon');
 
+  const images = page.locator('[data-coming-image]');
+  const content = page.locator('[data-coming-content]');
+  const message = page.locator('.coming-soon__message[data-coming-content]');
+  const email = page.locator('.coming-soon__content > a[data-coming-content]');
+  await expect(images).toHaveCount(3);
+  await expect(content).toHaveCount(2);
+
   for (const element of [
-    page.locator('[data-coming-image]').first(),
+    email,
+    images.nth(0),
+    images.nth(1),
+    images.nth(2),
+    page.locator('.coming-soon__veil'),
     page.locator('.coming-soon__content .brand-mark'),
-    page.locator('[data-coming-content]').first(),
+    message,
   ]) {
     await expect(element).toHaveCSS('animation-name', 'coming-fade-only');
     await expect(element).toHaveCSS('animation-duration', '0.2s');
@@ -208,11 +224,20 @@ for (const viewport of [
       await Promise.all(root.getAnimations({ subtree: true }).map((animation) => animation.finished));
       const heading = root.querySelector('h1')!.getBoundingClientRect();
       const logo = root.querySelector('.brand-mark')!.getBoundingClientRect();
+      const email = root.querySelector<HTMLAnchorElement>('.coming-soon__content > a')!;
+      const emailBounds = email.getBoundingClientRect();
+      const emailTransform = getComputedStyle(email).transform;
+      const emailMatrix = emailTransform === 'none' ? new DOMMatrixReadOnly() : new DOMMatrixReadOnly(emailTransform);
       return {
         headingCenterX: heading.left + heading.width / 2,
         headingCenterY: heading.top + heading.height / 2,
         logoLeft: logo.left,
         logoTop: logo.top,
+        emailCenterX: emailBounds.left + emailBounds.width / 2,
+        emailWidth: emailBounds.width,
+        emailTransform,
+        emailTranslateX: emailMatrix.m41,
+        emailTranslateY: emailMatrix.m42,
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       };
     });
@@ -221,6 +246,10 @@ for (const viewport of [
     expect(Math.abs(layout.headingCenterY - viewport.height / 2)).toBeLessThanOrEqual(2);
     expect(layout.logoLeft).toBeLessThan(viewport.width / 10);
     expect(layout.logoTop).toBeLessThan(viewport.height / 10);
+    expect(Math.abs(layout.emailCenterX - viewport.width / 2)).toBeLessThanOrEqual(2);
+    expect(layout.emailTransform).not.toBe('none');
+    expect(Math.abs(layout.emailTranslateX + layout.emailWidth / 2)).toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.emailTranslateY)).toBeLessThanOrEqual(0.1);
     expect(layout.overflow).toBe(false);
   });
 }

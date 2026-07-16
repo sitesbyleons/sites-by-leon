@@ -107,7 +107,8 @@ git commit -m "test: define marketing motion contracts"
 
 **Interfaces:**
 - Consumes the motion tokens from Task 1.
-- Produces `data-motion-surface="coming-soon"`, three `data-coming-image` elements, and three `data-coming-content` elements.
+- Produces `data-motion-surface="coming-soon"`, three `data-coming-image` elements, and two `data-coming-content` elements.
+- Uses the existing `.brand-mark` as the third content animation target without changing `BrandMark`.
 
 - [ ] **Step 1: Add semantic animation hooks without changing content or layout**
 
@@ -151,14 +152,23 @@ Add to `src/styles/global.css` near the coming-soon styles:
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes coming-veil-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes coming-content-enter {
-  from { opacity: 0; transform: translate3d(0, 1rem, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
+  from { opacity: 0; transform: translate3d(var(--coming-content-x, 0%), 1rem, 0); }
+  to { opacity: 1; transform: translate3d(var(--coming-content-x, 0%), 0, 0); }
 }
 
 .coming-soon [data-coming-image] {
   animation: coming-image-enter 700ms var(--motion-ease-out) both;
   animation-delay: calc(var(--coming-index) * 70ms);
+}
+
+.coming-soon__veil {
+  animation: coming-veil-enter 700ms var(--motion-ease-out) both;
 }
 
 .coming-soon__content .brand-mark,
@@ -167,8 +177,9 @@ Add to `src/styles/global.css` near the coming-soon styles:
 }
 
 .coming-soon__content .brand-mark { animation-delay: 220ms; }
-.coming-soon__message { animation-delay: 300ms; }
-.coming-soon__content > a { animation-delay: 380ms; }
+.coming-soon .coming-soon__message { animation-delay: 300ms; }
+.coming-soon .coming-soon__content > a { animation-delay: 380ms; }
+.coming-soon__content > a { --coming-content-x: -50%; }
 ```
 
 - [ ] **Step 3: Add the reduced-motion fallback**
@@ -180,8 +191,9 @@ Add near the end of `global.css`:
   html { scroll-behavior: auto; }
 
   .coming-soon [data-coming-image],
+  .coming-soon__veil,
   .coming-soon__content .brand-mark,
-  .coming-soon [data-coming-content] {
+  .coming-soon .coming-soon__content > [data-coming-content] {
     animation-duration: 200ms;
     animation-delay: 0ms;
     animation-name: coming-fade-only;
@@ -202,7 +214,7 @@ Run:
 pnpm exec playwright test tests/e2e/home.spec.ts --grep "coming-soon|centers coming soon"
 ```
 
-Expected: all matching tests pass at `390x844` and `1440x900` with no overflow.
+Expected: all matching tests pass. The veil uses its opacity-only entrance, all seven reduced-motion targets use a zero-delay `200ms` fade, and the settled email stays horizontally centered at `390x844` and `1440x900` with no overflow.
 
 - [ ] **Step 5: Commit**
 
