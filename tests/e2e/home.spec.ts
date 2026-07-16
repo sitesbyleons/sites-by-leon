@@ -152,6 +152,9 @@ test('shows a minimal standalone coming-soon page for production', async ({ page
   await page.goto('/coming-soon');
 
   await expect(page.getByRole('heading', { level: 1, name: 'Coming soon.' })).toBeVisible();
+  await expect(page.locator('.coming-soon')).toHaveAttribute('data-motion-surface', 'coming-soon');
+  await expect(page.locator('[data-coming-image]')).toHaveCount(3);
+  await expect(page.locator('[data-coming-content]')).toHaveCount(2);
   await expect(page.getByRole('link', { name: 'leon@leonsites.com' })).toHaveAttribute(
     'href',
     'mailto:leon@leonsites.com',
@@ -217,11 +220,12 @@ for (const width of [390, 768, 1440]) {
   });
 }
 
-test('keeps scroll motion on by default when the browser prefers reduced motion', async ({ page }) => {
+test('keeps content visible without spatial motion when reduced motion is requested', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
 
-  await expect(page.locator('html')).toHaveAttribute('data-motion', 'gsap-scrolltrigger');
-  await expect(page.getByRole('button', { name: /motion/i })).toHaveCount(0);
-  await expect(page.locator('[data-motion-depth="concept"]').first()).not.toHaveCSS('transform', 'none');
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
+  await expect(page.locator('[data-motion-depth="concept"]').first()).toHaveCSS('transform', 'none');
+  await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });

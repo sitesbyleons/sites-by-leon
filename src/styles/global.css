@@ -15,6 +15,11 @@
   --font-signature: 'Allura', cursive;
   --container: 105rem;
   --gutter: clamp(1.25rem, 3vw, 3.5rem);
+  --motion-fast: 160ms;
+  --motion-medium: 240ms;
+  --motion-slow: 560ms;
+  --motion-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --motion-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 *,
