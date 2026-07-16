@@ -382,14 +382,44 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
         return approved.path as string;
       };
 
-      document.querySelectorAll<HTMLFormElement>('.studio-editor-form').forEach((form) => {
+      const rememberOpenGallery = (galleryId: string | undefined) => {
+        if (galleryId) window.sessionStorage.setItem('studio:open-gallery', galleryId);
+      };
+
+      const activateCreatedGallery = (form: HTMLFormElement, galleryId: string) => {
+        const editor = form.closest<HTMLElement>('[data-gallery-editor-id]');
+        const stage = editor?.querySelector<HTMLElement>('[data-gallery-photo-stage]');
+        const galleryIdField = form.querySelector<HTMLInputElement>('[data-gallery-id-input]');
+        const photoIdField = editor?.querySelector<HTMLInputElement>('[data-gallery-photo-id]');
+        const photoForm = photoIdField?.closest<HTMLFormElement>('form');
+        const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (editor) editor.dataset.galleryEditorId = galleryId;
+        if (stage) stage.hidden = false;
+        if (galleryIdField) galleryIdField.value = galleryId;
+        if (photoIdField) photoIdField.value = galleryId;
+        if (photoForm) photoForm.dataset.reopenGallery = galleryId;
+        form.dataset.reopenGallery = galleryId;
+        delete form.dataset.galleryCreate;
+        if (submit) submit.textContent = 'Save details';
+        const adder = stage?.querySelector<HTMLDetailsElement>('.studio-photo-adder');
+        if (adder) adder.open = true;
+      };
+
+      document.querySelectorAll<HTMLElement>('.studio-editor-form').forEach((editor) => {
         const close = document.createElement('button');
         close.type = 'button';
         close.className = 'studio-editor-close';
         close.textContent = 'Close';
-        close.addEventListener('click', () => form.closest('details')?.removeAttribute('open'));
-        form.prepend(close);
+        close.addEventListener('click', () => editor.closest('details.studio-editor')?.removeAttribute('open'));
+        editor.prepend(close);
       });
+
+      const pendingGallery = window.sessionStorage.getItem('studio:open-gallery');
+      if (pendingGallery) {
+        window.sessionStorage.removeItem('studio:open-gallery');
+        const editor = document.querySelector<HTMLDetailsElement>(`[data-gallery-editor-id="${CSS.escape(pendingGallery)}"]`);
+        if (editor) editor.open = true;
+      }
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') document.querySelectorAll('details.studio-editor[open]').forEach((editor) => editor.removeAttribute('open'));
       });
@@ -400,7 +430,15 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
           const status = form.querySelector<HTMLElement>('[data-form-status]');
           if (!status) return;
           status.textContent = 'Saving...';
-          if (document.body.dataset.preview === 'true') { status.textContent = 'Preview saved locally. Sign in to save real changes.'; return; }
+          if (document.body.dataset.preview === 'true') {
+            if (form.dataset.galleryCreate === 'true') {
+              activateCreatedGallery(form, 'preview-new-gallery');
+              status.textContent = 'Gallery created in preview. Add photos below.';
+              return;
+            }
+            status.textContent = 'Preview saved locally. Sign in to save real changes.';
+            return;
+          }
           const resource = form.dataset.resource;
           let uploadedPath: string | null = null;
           try { uploadedPath = await uploadImage(form); } catch (error) { status.textContent = error instanceof Error ? error.message : 'Image could not be uploaded.'; return; }
@@ -426,6 +464,12 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
             return;
           }
           status.textContent = 'Saved.';
+          if (form.dataset.galleryCreate === 'true' && typeof payload?.id === 'string') {
+            activateCreatedGallery(form, payload.id);
+            status.textContent = 'Gallery created. Add photos below.';
+            return;
+          }
+          rememberOpenGallery(form.dataset.reopenGallery);
           if (payload?.reload !== false) window.setTimeout(() => window.location.reload(), 450);
         });
       });
@@ -446,6 +490,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
             button.textContent = payload?.message ?? 'Try again';
             return;
           }
+          rememberOpenGallery(button.dataset.reopenGallery);
           window.location.reload();
         });
       });

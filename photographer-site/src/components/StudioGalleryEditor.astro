@@ -1,0 +1,108 @@
+---
+import type { StudioGallery, StudioImage } from '../lib/studio';
+import StudioCropControls from './StudioCropControls.astro';
+import StudioGalleryLayoutControls from './StudioGalleryLayoutControls.astro';
+import StudioMediaField from './StudioMediaField.astro';
+
+interface Props {
+  gallery?: StudioGallery;
+  images?: StudioImage[];
+  create?: boolean;
+}
+
+const { gallery, images = [], create = false } = Astro.props;
+const galleryId = gallery?.id ?? '';
+const title = create ? 'New gallery' : gallery?.title ?? 'Gallery';
+const imageAspect = gallery?.image_aspect_ratio ?? 'landscape';
+---
+
+<details class:list={['studio-editor', 'studio-gallery-editor', create && 'studio-gallery-editor--create']} data-gallery-editor-id={galleryId || 'new'}>
+  <summary class:list={[create && 'studio-button']}>{create ? 'Create gallery' : 'Edit'}</summary>
+  <div class="studio-editor-form studio-gallery-workbench" role="dialog" aria-modal="true" aria-label={`${create ? 'Create' : 'Edit'} gallery`}>
+    <header class="studio-gallery-workbench__header">
+      <div><small>Gallery editor</small><h2>{title}</h2></div>
+      {!create && <span class:list={['studio-status', gallery?.status === 'published' && 'studio-status--published']}>{gallery?.status}</span>}
+    </header>
+
+    <section class="studio-gallery-workbench__section">
+      <div class="studio-gallery-workbench__section-title"><h3>Gallery details</h3><small>Title, display, and cover</small></div>
+      <form
+        class="studio-form studio-gallery-details-form"
+        data-studio-form
+        data-resource="galleries"
+        data-upload-kind="cover"
+        data-gallery-create={create ? 'true' : undefined}
+        data-reopen-gallery={galleryId || undefined}
+      >
+        <input type="hidden" name="id" value={galleryId} data-gallery-id-input />
+        <label><span>Title</span><input name="title" value={gallery?.title ?? ''} required /></label>
+        <label><span>URL</span><input name="slug" value={gallery?.slug ?? ''} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /></label>
+        <label><span>Category</span><input name="category" value={gallery?.category ?? ''} required /></label>
+        <label><span>Status</span><select name="status"><option value="draft" selected={!gallery || gallery.status === 'draft'}>Draft</option><option value="published" selected={gallery?.status === 'published'}>Published</option></select></label>
+        <label class="wide"><span>Description</span><textarea name="description" maxlength="500">{gallery?.description ?? ''}</textarea></label>
+        <StudioGalleryLayoutControls layoutMode={gallery?.layout_mode} gridColumns={gallery?.grid_columns} imageAspectRatio={imageAspect} />
+        <StudioMediaField kind="cover" resource="galleries" label="Cover image" url={gallery?.cover_image_url} path={gallery?.cover_storage_path} currentId={galleryId} />
+        <StudioCropControls title="Cover position" imageUrl={gallery?.cover_image_url} aspectRatio={gallery?.cover_aspect_ratio} cropX={gallery?.cover_crop_x} cropY={gallery?.cover_crop_y} cropZoom={gallery?.cover_crop_zoom} />
+        <div class="wide studio-form-actions"><button type="submit">{create ? 'Create gallery' : 'Save details'}</button></div>
+        <p class="studio-form-status wide" data-form-status aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="studio-gallery-workbench__section studio-gallery-photos" data-gallery-photo-stage hidden={create}>
+      <div class="studio-gallery-workbench__section-title">
+        <h3>Photos</h3>
+        <small>{images.length} {images.length === 1 ? 'photo' : 'photos'}</small>
+      </div>
+
+      {images.length ? (
+        <div class="studio-gallery-photo-grid">
+          {images.map((image, index) => (
+            <article class="studio-gallery-photo" data-gallery-photo>
+              <div class="studio-gallery-photo__image">
+                <img
+                  src={image.image_url}
+                  alt={image.alt_text}
+                  style={`--crop-x:${image.crop_x}%;--crop-y:${image.crop_y}%;--crop-zoom:${image.crop_zoom}`}
+                />
+                <span>{String(index + 1).padStart(2, '0')}</span>
+              </div>
+              <div class="studio-gallery-photo__copy"><strong>{image.alt_text}</strong></div>
+              <div class="studio-gallery-photo__actions">
+                <div class="studio-reorder" role="group" aria-label={`Reorder ${image.alt_text}`}>
+                  <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="images" data-id={image.id} data-reopen-gallery={galleryId} aria-label="Move photo up">↑</button>
+                  <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="images" data-id={image.id} data-reopen-gallery={galleryId} aria-label="Move photo down">↓</button>
+                </div>
+                <div class="studio-gallery-photo__tools">
+                  <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="images" data-id={image.id} data-reopen-gallery={galleryId}>Delete</button>
+                </div>
+              </div>
+              <details class="studio-photo-editor">
+                <summary>Edit</summary>
+                <form class="studio-form studio-photo-form" data-studio-form data-resource="images" data-upload-kind="image" data-reopen-gallery={galleryId}>
+                  <input type="hidden" name="id" value={image.id} />
+                  <label class="wide"><span>Description</span><input name="alt_text" value={image.alt_text} required maxlength="300" /></label>
+                  <StudioMediaField kind="image" resource="images" label="Photo" url={image.image_url} path={image.storage_path} currentId={image.id} />
+                  <StudioCropControls title="Position and crop" imageUrl={image.image_url} aspectName="aspect_ratio" aspectRatio={image.aspect_ratio} allowInherit inheritedAspectRatio={imageAspect} cropXName="crop_x" cropYName="crop_y" cropZoomName="crop_zoom" cropX={image.crop_x} cropY={image.crop_y} cropZoom={image.crop_zoom} />
+                  <div class="wide studio-form-actions"><button type="submit">Save photo</button></div>
+                  <p class="studio-form-status wide" data-form-status aria-live="polite"></p>
+                </form>
+              </details>
+            </article>
+          ))}
+        </div>
+      ) : <p class="studio-gallery-photos__empty">No photos yet.</p>}
+
+      <details class="studio-photo-adder">
+        <summary>Add photo</summary>
+        <form class="studio-form studio-photo-add-form" data-studio-form data-resource="images" data-upload-kind="image" data-reopen-gallery={galleryId || undefined}>
+          <input type="hidden" name="gallery_id" value={galleryId} data-gallery-photo-id />
+          <StudioMediaField kind="image" resource="images" label="Photo" />
+          <label class="wide"><span>Description</span><input name="alt_text" required maxlength="300" /></label>
+          <StudioCropControls title="Position and crop" aspectName="aspect_ratio" aspectRatio="inherit" allowInherit inheritedAspectRatio={imageAspect} cropXName="crop_x" cropYName="crop_y" cropZoomName="crop_zoom" />
+          <div class="wide studio-form-actions"><button type="submit">Add photo</button></div>
+          <p class="studio-form-status wide" data-form-status aria-live="polite"></p>
+        </form>
+      </details>
+    </section>
+  </div>
+</details>

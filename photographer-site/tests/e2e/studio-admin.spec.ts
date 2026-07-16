@@ -29,8 +29,10 @@ for (const [path, title] of pages) {
 
 test('studio pages expose the requested management areas', async ({ page }) => {
   await page.goto('/admin/galleries?preview=true');
-  await expect(page.getByRole('heading', { name: 'Gallery images' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Create gallery' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Galleries' })).toBeVisible();
+  await expect(page.locator('.studio-gallery-editor--create > summary')).toHaveText('Create gallery');
+  await expect(page.getByRole('heading', { name: 'Gallery images' })).toHaveCount(0);
+  await expect(page.getByText('Add an image', { exact: true })).toHaveCount(0);
 
   await page.goto('/admin/clients?preview=true');
   await expect(page.getByRole('button', { name: 'Add client' })).toBeVisible();
@@ -51,11 +53,11 @@ test('studio forms provide save feedback in preview mode', async ({ page }) => {
 test('studio admin remains usable at iPhone width', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/admin/galleries?preview=true');
-  await expect(page.getByRole('heading', { name: 'Galleries', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Galleries', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
-test('reorder arrows stay centered in gallery, image, post, and service rows', async ({ page }) => {
+test('reorder arrows stay centered in gallery, post, and service rows', async ({ page }) => {
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     for (const path of ['/admin/galleries?preview=true', '/admin/posts?preview=true', '/admin/services?preview=true']) {
@@ -80,8 +82,9 @@ test('reorder arrows stay centered in gallery, image, post, and service rows', a
 
 test('gallery editor previews grid, column, shape, and per-photo crop controls', async ({ page }) => {
   await page.goto('/admin/galleries?preview=true');
-  await page.locator('summary', { hasText: 'Edit' }).first().click();
-  const form = page.locator('form[data-resource="galleries"]').filter({ has: page.locator('input[name="id"]') }).first();
+  const galleryEditor = page.locator('.studio-gallery-item').first().locator('.studio-gallery-editor');
+  await galleryEditor.locator(':scope > summary').click();
+  const form = galleryEditor.locator('form[data-resource="galleries"]');
   await expect(form.getByLabel('Display')).toHaveValue('grid');
   await form.getByLabel('Photos per row').selectOption('4');
   await form.getByLabel('Photo shape').selectOption('portrait');
@@ -96,15 +99,52 @@ test('gallery editor previews grid, column, shape, and per-photo crop controls',
   await expect(form.locator('[data-crop-preview-image]')).toHaveCSS('object-position', '24% 68%');
   await expect(form.locator('[data-crop-preview-image]')).toHaveCSS('transform', /matrix\(1\.6/);
 
-  await form.getByRole('button', { name: 'Save gallery' }).click();
+  await form.getByRole('button', { name: 'Save details' }).click();
   await expect(form.locator('[data-form-status]')).toContainText('Preview saved locally');
 
-  await form.getByRole('button', { name: 'Close' }).click();
-  const imageEditor = page.locator('.studio-item').filter({ has: page.getByText('Football teams at the line of scrimmage', { exact: true }) });
-  await imageEditor.locator('summary', { hasText: 'Edit' }).click();
-  await expect(imageEditor.getByLabel('Shape')).toHaveValue('inherit');
-  await imageEditor.getByLabel('Shape').selectOption('portrait');
-  await expect(imageEditor.locator('[data-crop-preview]')).toHaveAttribute('data-ratio', 'portrait');
+  const photo = page.locator('[data-gallery-photo]').filter({ hasText: 'Football teams at the line of scrimmage' });
+  await photo.locator('.studio-photo-editor > summary').click();
+  const imageForm = photo.locator('form[data-resource="images"]');
+  await expect(imageForm.getByLabel('Shape')).toHaveValue('inherit');
+  await imageForm.getByLabel('Shape').selectOption('portrait');
+  await expect(imageForm.locator('[data-crop-preview]')).toHaveAttribute('data-ratio', 'portrait');
+});
+
+test('photo ordering stays centered without colliding with edit controls', async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/admin/galleries?preview=true');
+    const editor = page.locator('.studio-gallery-item').first().locator('.studio-gallery-editor');
+    await editor.locator(':scope > summary').click();
+    const photo = editor.locator('[data-gallery-photo]').first();
+    const positions = await photo.evaluate((card) => {
+      const cardBox = card.getBoundingClientRect();
+      const reorderBox = card.querySelector('.studio-reorder')!.getBoundingClientRect();
+      const editBox = card.querySelector('.studio-photo-editor > summary')!.getBoundingClientRect();
+      return {
+        cardCenter: cardBox.left + cardBox.width / 2,
+        reorderCenter: reorderBox.left + reorderBox.width / 2,
+        reorderRight: reorderBox.right,
+        editLeft: editBox.left,
+      };
+    });
+    expect(Math.abs(positions.cardCenter - positions.reorderCenter)).toBeLessThan(1);
+    expect(positions.reorderRight).toBeLessThanOrEqual(positions.editLeft);
+  }
+});
+
+test('creating a gallery reveals photo management inside the same editor', async ({ page }) => {
+  await page.goto('/admin/galleries?preview=true');
+  await page.locator('.studio-gallery-editor--create > summary').click();
+  const editor = page.locator('.studio-gallery-editor--create');
+  const form = editor.locator('form[data-resource="galleries"]');
+  await form.getByLabel('Title').fill('Track Meets');
+  await form.getByLabel('URL').fill('track-meets');
+  await form.getByLabel('Category').fill('Track');
+  await form.getByRole('button', { name: 'Create gallery' }).click();
+  await expect(form.locator('[data-form-status]')).toContainText('Gallery created in preview');
+  await expect(editor.locator('[data-gallery-photo-stage]')).toBeVisible();
+  await expect(editor.locator('.studio-photo-adder > summary')).toBeVisible();
 });
 
 test('post editor gives cover images the same live aspect and crop controls', async ({ page }) => {
@@ -120,13 +160,14 @@ test('post editor gives cover images the same live aspect and crop controls', as
 test('portfolio items use the shared file browser with focused edit, order, and delete controls', async ({ page }) => {
   await page.goto('/admin/galleries?preview=true');
   await expect(page.locator('input[type="file"]')).toHaveCount(1);
-  await expect(page.locator('[data-media-picker]')).toHaveCount(8);
-  await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(6);
+  await expect(page.locator('[data-media-picker]')).toHaveCount(11);
+  await expect(page.locator('button[data-studio-action="delete"]')).toHaveCount(6);
   await expect(page.locator('summary', { hasText: 'Edit' })).toHaveCount(6);
-  await page.locator('summary', { hasText: 'Edit' }).first().click();
-  await expect(page.getByRole('button', { name: 'Save gallery' })).toBeVisible();
-  await page.locator('[data-media-picker]').first().click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  const galleryEditor = page.locator('.studio-gallery-item').first().locator('.studio-gallery-editor');
+  await galleryEditor.locator(':scope > summary').click();
+  await expect(galleryEditor.getByRole('button', { name: 'Save details' })).toBeVisible();
+  await galleryEditor.locator('[data-media-picker]').first().click();
+  await expect(page.locator('dialog[data-media-dialog]')).toBeVisible();
   await expect(page.locator('[data-media-card]')).toHaveCount(3);
 
   await page.goto('/admin/services?preview=true');
