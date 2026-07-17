@@ -121,18 +121,27 @@ const isMotionElement = (element: ts.JsxOpeningElement, tagName: string) =>
   && element.tagName.expression.text === 'motion'
   && element.tagName.name.text === tagName;
 
+const expectNoJsxSpreadAttributes = (
+  element: JsxElementWithAttributes,
+  label: string,
+) => {
+  const spreadAttributes = element.attributes.properties.filter(ts.isJsxSpreadAttribute);
+  if (spreadAttributes.length > 0) {
+    throw new Error(`${label} must not contain JSX spread attributes`);
+  }
+};
+
 const findMotionElement = (sourceFile: ts.SourceFile, target: MotionElementTarget) => {
   const matches: ts.JsxOpeningElement[] = [];
   const visit = (node: ts.Node) => {
-    if (
-      ts.isJsxOpeningElement(node)
-      && isMotionElement(node, target.tagName)
-      && (
+    if (ts.isJsxOpeningElement(node) && isMotionElement(node, target.tagName)) {
+      expectNoJsxSpreadAttributes(node, `motion.${target.tagName}`);
+      if (
         !target.identityAttribute
         || getStringAttributeValue(node, target.identityAttribute) === target.identityValue
-      )
-    ) {
-      matches.push(node);
+      ) {
+        matches.push(node);
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -296,6 +305,17 @@ const insertObjectMember = (
   return `${source.slice(0, object.properties.end)}${separator}${member}${source.slice(object.properties.end)}`;
 };
 
+const insertJsxSpreadAttribute = (
+  source: string,
+  target: MotionElementTarget,
+  expression: string,
+) => {
+  const sourceFile = parseSelectedWorkSource(source);
+  const element = findMotionElement(sourceFile, target);
+  const position = element.attributes.properties.end;
+  return `${source.slice(0, position)} {...${expression}}${source.slice(position)}`;
+};
+
 const expectSelectedWorkMotionContracts = (source: string) => {
   const sourceFile = parseSelectedWorkSource(source);
   const frame = findMotionElement(sourceFile, reelFrameTarget);
@@ -384,6 +404,34 @@ const structuralPropertyMutations = [
   },
 ] as const;
 
+const jsxSpreadMutations = [
+  {
+    name: 'image style JSX spread override',
+    target: imageDriftTarget,
+    expression: '{ style: { transform: headingTransform, y: 1 } }',
+  },
+  {
+    name: 'heading style JSX spread override',
+    target: selectedWorkHeadingTarget,
+    expression: '{ style: { transform: imageTransform, x: 1 } }',
+  },
+  {
+    name: 'project whileInView JSX spread override',
+    target: projectTarget,
+    expression: "{ whileInView: { y: [36, 0], transform: ['translate3d(0, 99px, 0)'] } }",
+  },
+  {
+    name: 'frame viewport JSX spread override',
+    target: reelFrameTarget,
+    expression: '{ viewport: { amount: 0.28, once: false } }',
+  },
+  {
+    name: 'project viewport JSX spread override',
+    target: projectTarget,
+    expression: '{ viewport: { amount: 0.08, once: false } }',
+  },
+] as const;
+
 describe('SelectedWorkReel', () => {
   it('turns a single featured gallery into a complete three-frame showcase', () => {
     const gallery = demoPortfolio.galleries[0];
@@ -412,6 +460,16 @@ describe('SelectedWorkReel', () => {
     async ({ target, member }) => {
       const source = await readFile(selectedWorkSourceUrl, 'utf8');
       const mutatedSource = insertObjectMember(source, target, member);
+
+      expect(() => expectSelectedWorkMotionContracts(mutatedSource)).toThrow();
+    },
+  );
+
+  it.each(jsxSpreadMutations)(
+    'rejects a $name regression',
+    async ({ target, expression }) => {
+      const source = await readFile(selectedWorkSourceUrl, 'utf8');
+      const mutatedSource = insertJsxSpreadAttribute(source, target, expression);
 
       expect(() => expectSelectedWorkMotionContracts(mutatedSource)).toThrow();
     },
