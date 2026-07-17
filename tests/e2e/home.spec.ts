@@ -179,8 +179,35 @@ test('settles the mobile concept entrance once across re-entry', async ({ page }
   await concept.scrollIntoViewIfNeeded();
   await expect.poll(poseError).toBeLessThan(0.01);
   await page.locator('.pricing').scrollIntoViewIfNeeded();
-  await concept.scrollIntoViewIfNeeded();
-  await expect.poll(poseError).toBeLessThan(0.01);
+  const reentry = await concept.evaluate(async (element) => {
+    const poseErrorAtFrame = () => {
+      const transform = getComputedStyle(element).transform;
+      const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+      const scale = Math.hypot(matrix.m11, matrix.m12);
+      const rotation = (Math.atan2(matrix.m12, matrix.m11) * 180) / Math.PI;
+      return Math.max(Math.abs(matrix.m42), Math.abs(rotation), Math.abs(scale - 1));
+    };
+    const root = document.documentElement;
+    const previousScrollBehavior = root.style.scrollBehavior;
+    root.style.scrollBehavior = 'auto';
+    element.scrollIntoView({ block: 'center' });
+    root.style.scrollBehavior = previousScrollBehavior;
+
+    const startedAt = performance.now();
+    const samples = [poseErrorAtFrame()];
+    while (performance.now() - startedAt < 600) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      samples.push(poseErrorAtFrame());
+    }
+    return {
+      duration: performance.now() - startedAt,
+      maxError: Math.max(...samples),
+      sampleCount: samples.length,
+    };
+  });
+  expect(reentry.duration).toBeGreaterThanOrEqual(560);
+  expect(reentry.sampleCount).toBeGreaterThan(20);
+  expect(reentry.maxError).toBeLessThan(0.01);
 });
 
 test('keeps mobile pricing horizontally scrollable with snap points', async ({ page }) => {
@@ -261,41 +288,73 @@ test('uses tokenized press feedback and fine-pointer image hover', async ({ page
     .toBeCloseTo(1.018, 2);
 });
 
-test('keeps concept image hover independent from figure scroll drift', async ({ page }) => {
+test('composes concept image hover without changing figure or caption geometry', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
 
   const browser = page.locator('.website-concept--fieldwork-commercial [data-motion-depth="concept"]');
   const figure = browser.locator('.concept-canvas figure').first();
   const image = figure.locator('img');
-  const readTransform = (selector: typeof figure) =>
-    selector.evaluate((element) => {
-      const transform = getComputedStyle(element).transform;
-      const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+  const readImageMotion = () =>
+    image.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const matrix = new DOMMatrixReadOnly(style.transform === 'none' ? undefined : style.transform);
       return {
         scale: Math.hypot(matrix.m11, matrix.m12),
-        transform,
+        scaleLonghand: style.scale,
+        transform: style.transform,
         y: matrix.m42,
       };
     });
+  const readGeometry = () =>
+    figure.evaluate((element) => {
+      const figureBounds = element.getBoundingClientRect();
+      const captionBounds = element.querySelector('figcaption')!.getBoundingClientRect();
+      const nextBounds = element.nextElementSibling!.getBoundingClientRect();
+      return {
+        captionBottom: figureBounds.bottom - captionBounds.bottom,
+        captionLeft: captionBounds.left - figureBounds.left,
+        captionRight: figureBounds.right - captionBounds.right,
+        figureHeight: figureBounds.height,
+        figureTransform: getComputedStyle(element).transform,
+        figureWidth: figureBounds.width,
+        gap: nextBounds.left - figureBounds.right,
+      };
+    });
 
-  const figureStart = await readTransform(figure);
-  const imageStart = await readTransform(image);
-  expect(figureStart.scale).toBeCloseTo(1.025, 2);
-  expect(Math.abs(figureStart.y)).toBeGreaterThan(0);
-  expect(imageStart.scale).toBeCloseTo(1, 2);
+  await expect(image).toHaveCSS('transition-property', 'filter, scale');
+  await expect(image).toHaveCSS('transition-duration', '0.24s, 0.24s');
+  const imageStart = await readImageMotion();
+  const geometryStart = await readGeometry();
+  expect(imageStart.transform).not.toBe('none');
+  expect(imageStart.scale).toBeCloseTo(1.025, 2);
+  expect(Math.abs(imageStart.y)).toBeGreaterThan(0);
+  expect(imageStart.scaleLonghand).toBe('none');
+  expect(geometryStart.figureTransform).toBe('none');
 
   await browser.evaluate((element) => {
     const bounds = element.getBoundingClientRect();
     window.scrollTo(0, window.scrollY + bounds.top + (bounds.height - window.innerHeight) / 2);
   });
-  await expect.poll(async () => Math.abs((await readTransform(figure)).y)).toBeLessThan(0.75);
+  await expect.poll(async () => Math.abs((await readImageMotion()).y)).toBeLessThan(0.75);
+  const geometryBeforeHover = await readGeometry();
+  expect(geometryBeforeHover.figureTransform).toBe('none');
 
   await image.hover();
-  await expect.poll(async () => (await readTransform(image)).scale).toBeCloseTo(1.018, 2);
-  const figureDuringHover = await readTransform(figure);
-  expect(figureDuringHover.transform).not.toBe('none');
-  expect(figureDuringHover.scale).toBeCloseTo(1.025, 2);
+  await expect
+    .poll(async () => Number.parseFloat((await readImageMotion()).scaleLonghand))
+    .toBeCloseTo(1.018, 3);
+  const imageDuringHover = await readImageMotion();
+  const geometryDuringHover = await readGeometry();
+  expect(imageDuringHover.transform).not.toBe('none');
+  expect(imageDuringHover.scale).toBeCloseTo(1.025, 2);
+  expect(geometryDuringHover.figureTransform).toBe('none');
+  expect(geometryDuringHover.figureWidth).toBeCloseTo(geometryBeforeHover.figureWidth, 1);
+  expect(geometryDuringHover.figureHeight).toBeCloseTo(geometryBeforeHover.figureHeight, 1);
+  expect(geometryDuringHover.gap).toBeCloseTo(geometryBeforeHover.gap, 1);
+  expect(geometryDuringHover.captionLeft).toBeCloseTo(geometryBeforeHover.captionLeft, 1);
+  expect(geometryDuringHover.captionRight).toBeCloseTo(geometryBeforeHover.captionRight, 1);
+  expect(geometryDuringHover.captionBottom).toBeCloseTo(geometryBeforeHover.captionBottom, 1);
 });
 
 test('keeps interface language focused on what clients need', async ({ page }) => {
@@ -516,11 +575,12 @@ test('keeps reduced-motion press and image hover feedback spatially still', asyn
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
 
-  const settledTransform = (selector: string) =>
+  const settledMotion = (selector: string) =>
     page.locator(selector).first().evaluate(async (element) => {
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       await Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined)));
-      return getComputedStyle(element).transform;
+      const style = getComputedStyle(element);
+      return { scale: style.scale, transform: style.transform };
     });
 
   const button = page.locator('.button').first();
@@ -529,14 +589,18 @@ test('keeps reduced-motion press and image hover feedback spatially still', asyn
     Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
   );
   await page.mouse.down();
-  expect(await settledTransform('.button')).toBe('none');
+  expect((await settledMotion('.button')).transform).toBe('none');
   await page.mouse.up();
 
   const heroImage = page.locator('.hero-gallery__image img').first();
   await heroImage.hover();
-  expect(await settledTransform('.hero-gallery__image img')).toBe('none');
+  expect((await settledMotion('.hero-gallery__image img')).transform).toBe('none');
 
   const conceptImage = page.locator('.website-concept--fieldwork-commercial .concept-canvas figure img').first();
   await conceptImage.hover();
-  expect(await settledTransform('.website-concept--fieldwork-commercial .concept-canvas figure img')).toBe('none');
+  const conceptMotion = await settledMotion(
+    '.website-concept--fieldwork-commercial .concept-canvas figure img',
+  );
+  expect(conceptMotion.transform).toBe('none');
+  expect(conceptMotion.scale).toBe('none');
 });

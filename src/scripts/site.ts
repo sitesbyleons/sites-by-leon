@@ -49,7 +49,7 @@ const initializeScrollMotion = () => {
     if (!browser) return;
 
     const progress = browser.querySelector<HTMLElement>('.concept-browser__progress');
-    const leadFigure = browser.querySelector<HTMLImageElement>('.concept-canvas img')?.parentElement;
+    const leadImage = browser.querySelector<HTMLImageElement>('.concept-canvas img');
 
     if (progress) {
       gsap.fromTo(
@@ -68,9 +68,9 @@ const initializeScrollMotion = () => {
       );
     }
 
-    if (leadFigure && window.innerWidth > 768) {
+    if (leadImage && window.innerWidth > 768) {
       gsap.fromTo(
-        leadFigure,
+        leadImage,
         { yPercent: -1.5, scale: 1.025 },
         {
           yPercent: 1.5,

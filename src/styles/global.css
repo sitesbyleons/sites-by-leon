@@ -630,7 +630,14 @@ h2 em {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.hero-gallery img {
   transition: filter var(--motion-medium) ease, transform var(--motion-medium) var(--motion-ease-out);
+}
+
+.concept-canvas img {
+  transition: filter var(--motion-medium) ease, scale var(--motion-medium) var(--motion-ease-out);
 }
 
 .hero-gallery__image--1 img {
@@ -649,7 +656,14 @@ h2 em {
   .hero-gallery__image:hover img,
   .concept-canvas figure:hover img {
     filter: saturate(1.06) contrast(1.02);
+  }
+
+  .hero-gallery__image:hover img {
     transform: scale(1.018);
+  }
+
+  .concept-canvas figure:hover img {
+    scale: 1.018 !important;
   }
 }
 
@@ -2423,8 +2437,11 @@ h2 em {
   }
 
   .button:active,
-  .hero-gallery__image:hover img,
-  .concept-canvas figure:hover img {
+  .hero-gallery__image:hover img {
     transform: none;
+  }
+
+  .concept-canvas figure:hover img {
+    scale: none !important;
   }
 }
