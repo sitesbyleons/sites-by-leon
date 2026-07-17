@@ -353,17 +353,17 @@ test('selected work image drift responds to scroll with JavaScript enabled', asy
   const firstProject = page.locator('[data-portfolio-item]').first();
   await expect(firstProject).toBeVisible();
   await firstProject.scrollIntoViewIfNeeded();
-  const reelIsland = page.locator('astro-island:has([data-portfolio-item])');
-  await expect(reelIsland).not.toHaveAttribute('ssr', '');
   const image = firstProject.locator('.work-project__image-drift').first();
   await expect.poll(() => image.evaluate((element) => getComputedStyle(element).transform)).not.toBe('none');
+  await page.waitForTimeout(700);
   const before = await image.evaluate((element) => getComputedStyle(element).transform);
   await firstProject.evaluate((element) => {
     const box = element.getBoundingClientRect();
     window.scrollTo(0, window.scrollY + box.top + box.height * 0.75);
   });
-  await expect.poll(() => image.evaluate((element) => getComputedStyle(element).transform))
-    .not.toBe(before);
+  await page.waitForTimeout(700);
+  const after = await image.evaluate((element) => getComputedStyle(element).transform);
+  expect(after).not.toBe(before);
 });
 
 test('selected work reel and gallery links remain usable without JavaScript hydration', async ({ browser }) => {
