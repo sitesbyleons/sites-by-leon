@@ -132,26 +132,16 @@ test('home is an image-first editorial sports portfolio', async ({ page }) => {
   await expect(page.locator('.journal-feature,.studio-position,.featured-work,.package-teaser')).toHaveCount(0);
 });
 
-test('always-on motion uses editorial reveal and image drift scenes', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+test('reduced motion keeps editorial content visible without drift', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await navigate(page, '/');
-  await page.waitForTimeout(900);
+  await page.goto('/');
 
-  await expect(page.locator('html')).toHaveAttribute('data-motion', 'gsap-always');
-  await expect(page.locator('html')).toHaveAttribute(
-    'data-motion-scenes',
-    'editorial-entrance image-drift scroll-progress',
-  );
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
+  await expect(page.locator('html')).toHaveAttribute('data-motion-scenes', 'editorial-fade');
   await expect(page.getByRole('button', { name: /motion/i })).toHaveCount(0);
-
-  const leadImage = page.locator('.editorial-hero [data-image-drift="slow"] img');
-  const initialTransform = await leadImage.evaluate((element) => getComputedStyle(element).transform);
-  await page.evaluate(() => scrollTo(0, 500));
-  await page.waitForTimeout(350);
-  const progressedTransform = await leadImage.evaluate((element) => getComputedStyle(element).transform);
-  expect(progressedTransform).not.toBe(initialTransform);
-  await expect(page.locator('[data-scroll-progress]')).not.toHaveCSS('transform', 'none');
+  await expect(page.locator('.editorial-hero [data-image-drift="slow"] img')).toHaveCSS('transform', 'none');
+  await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
 test('mobile home keeps the editorial image rhythm without overflow', async ({ page }) => {
@@ -177,6 +167,7 @@ test('mobile home keeps the editorial image rhythm without overflow', async ({ p
 
 test('selected work has scroll-linked motion and remains usable before hydration', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
   await navigate(page, '/');
 
   const firstProject = page.locator('[data-portfolio-item]').first();
