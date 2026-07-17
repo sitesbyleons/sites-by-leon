@@ -135,11 +135,11 @@ const findMotionElement = (sourceFile: ts.SourceFile, target: MotionElementTarge
   const matches: ts.JsxOpeningElement[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isJsxOpeningElement(node) && isMotionElement(node, target.tagName)) {
-      expectNoJsxSpreadAttributes(node, `motion.${target.tagName}`);
       if (
         !target.identityAttribute
         || getStringAttributeValue(node, target.identityAttribute) === target.identityValue
       ) {
+        expectNoJsxSpreadAttributes(node, `motion.${target.tagName}`);
         matches.push(node);
       }
     }
