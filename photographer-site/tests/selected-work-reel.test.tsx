@@ -16,6 +16,14 @@ type MotionElementTarget = {
 
 type JsxElementWithAttributes = ts.JsxOpeningElement | ts.JsxSelfClosingElement;
 
+type ContractedObjectTarget =
+  | {
+      kind: 'attribute';
+      element: MotionElementTarget;
+      attribute: string;
+    }
+  | { kind: 'projectEntrance' };
+
 const reelFrameTarget = { tagName: 'figure' } as const;
 const imageDriftTarget = {
   tagName: 'div',
@@ -31,6 +39,28 @@ const selectedWorkHeadingTarget = {
   tagName: 'h2',
   identityAttribute: 'id',
   identityValue: 'selected-work-title',
+} as const;
+
+const imageStyleTarget = {
+  kind: 'attribute',
+  element: imageDriftTarget,
+  attribute: 'style',
+} as const;
+const headingStyleTarget = {
+  kind: 'attribute',
+  element: selectedWorkHeadingTarget,
+  attribute: 'style',
+} as const;
+const projectEntranceTarget = { kind: 'projectEntrance' } as const;
+const frameViewportTarget = {
+  kind: 'attribute',
+  element: reelFrameTarget,
+  attribute: 'viewport',
+} as const;
+const projectViewportTarget = {
+  kind: 'attribute',
+  element: projectTarget,
+  attribute: 'viewport',
 } as const;
 
 const parseSelectedWorkSource = (source: string) => ts.createSourceFile(
@@ -119,6 +149,29 @@ const getObjectAttributeValue = (element: JsxElementWithAttributes, name: string
   return expression;
 };
 
+const getProjectEntrance = (project: ts.JsxOpeningElement) => {
+  const whileInView = unwrapExpression(getExpressionAttributeValue(project, 'whileInView'));
+  if (!ts.isConditionalExpression(whileInView)) {
+    throw new Error('Expected project whileInView to be conditional');
+  }
+  const reducedMotionCondition = unwrapExpression(whileInView.condition);
+  if (!ts.isIdentifier(reducedMotionCondition) || reducedMotionCondition.text !== 'reducedMotion') {
+    throw new Error('Expected reducedMotion to select the project entrance');
+  }
+  const entrance = unwrapExpression(whileInView.whenFalse);
+  if (!ts.isObjectLiteralExpression(entrance)) {
+    throw new Error('Expected a non-reduced project entrance object');
+  }
+  return entrance;
+};
+
+const getContractedObject = (
+  sourceFile: ts.SourceFile,
+  target: ContractedObjectTarget,
+) => target.kind === 'projectEntrance'
+  ? getProjectEntrance(findMotionElement(sourceFile, projectTarget))
+  : getObjectAttributeValue(findMotionElement(sourceFile, target.element), target.attribute);
+
 const getObjectPropertyName = (property: ts.ObjectLiteralElementLike) => {
   if (ts.isSpreadAssignment(property)) return undefined;
   const { name } = property;
@@ -133,6 +186,20 @@ const getObjectPropertyName = (property: ts.ObjectLiteralElementLike) => {
 
 const findObjectProperties = (object: ts.ObjectLiteralExpression, name: string) =>
   object.properties.filter((property) => getObjectPropertyName(property) === name);
+
+const expectStaticObjectMembers = (
+  object: ts.ObjectLiteralExpression,
+  label: string,
+) => {
+  for (const property of object.properties) {
+    if (ts.isSpreadAssignment(property)) {
+      throw new Error(`${label} must not contain spread assignments`);
+    }
+    if (getObjectPropertyName(property) === undefined) {
+      throw new Error(`${label} contains an unresolved property name`);
+    }
+  }
+};
 
 const getPropertyAssignment = (object: ts.ObjectLiteralExpression, name: string) => {
   const properties = findObjectProperties(object, name);
@@ -218,16 +285,15 @@ const getViewportOnceInitializers = (sourceFile: ts.SourceFile) => {
   return initializers;
 };
 
-const insertQuotedStyleProperty = (
+const insertObjectMember = (
   source: string,
-  target: MotionElementTarget,
-  propertyName: string,
+  target: ContractedObjectTarget,
+  member: string,
 ) => {
   const sourceFile = parseSelectedWorkSource(source);
-  const style = getObjectAttributeValue(findMotionElement(sourceFile, target), 'style');
-  const separator = style.properties.hasTrailingComma ? ' ' : ', ';
-  const insertion = `${separator}${JSON.stringify(propertyName)}: 1`;
-  return `${source.slice(0, style.properties.end)}${insertion}${source.slice(style.properties.end)}`;
+  const object = getContractedObject(sourceFile, target);
+  const separator = object.properties.hasTrailingComma ? ' ' : ', ';
+  return `${source.slice(0, object.properties.end)}${separator}${member}${source.slice(object.properties.end)}`;
 };
 
 const expectSelectedWorkMotionContracts = (source: string) => {
@@ -238,25 +304,17 @@ const expectSelectedWorkMotionContracts = (source: string) => {
   const heading = findMotionElement(sourceFile, selectedWorkHeadingTarget);
 
   const imageStyle = getObjectAttributeValue(imageDrift, 'style');
+  expectStaticObjectMembers(imageStyle, 'Image drift style');
   expectIdentifierProperty(imageStyle, 'transform', 'imageTransform');
   expectNoObjectProperty(imageStyle, 'y');
 
   const headingStyle = getObjectAttributeValue(heading, 'style');
+  expectStaticObjectMembers(headingStyle, 'Selected work heading style');
   expectIdentifierProperty(headingStyle, 'transform', 'headingTransform');
   expectNoObjectProperty(headingStyle, 'x');
 
-  const whileInView = unwrapExpression(getExpressionAttributeValue(project, 'whileInView'));
-  if (!ts.isConditionalExpression(whileInView)) {
-    throw new Error('Expected project whileInView to be conditional');
-  }
-  const reducedMotionCondition = unwrapExpression(whileInView.condition);
-  if (!ts.isIdentifier(reducedMotionCondition) || reducedMotionCondition.text !== 'reducedMotion') {
-    throw new Error('Expected reducedMotion to select the project entrance');
-  }
-  const projectEntrance = unwrapExpression(whileInView.whenFalse);
-  if (!ts.isObjectLiteralExpression(projectEntrance)) {
-    throw new Error('Expected a non-reduced project entrance object');
-  }
+  const projectEntrance = getProjectEntrance(project);
+  expectStaticObjectMembers(projectEntrance, 'Project entrance');
   expectStringArrayProperty(projectEntrance, 'transform', [
     'translate3d(0, 36px, 0)',
     'translate3d(0, 0, 0)',
@@ -264,10 +322,12 @@ const expectSelectedWorkMotionContracts = (source: string) => {
   expectNoObjectProperty(projectEntrance, 'y');
 
   const frameViewport = getObjectAttributeValue(frame, 'viewport');
+  expectStaticObjectMembers(frameViewport, 'Reel frame viewport');
   expectNumberProperty(frameViewport, 'amount', 0.28);
   expectBooleanProperty(frameViewport, 'once', true);
 
   const projectViewport = getObjectAttributeValue(project, 'viewport');
+  expectStaticObjectMembers(projectViewport, 'Project viewport');
   expectNumberProperty(projectViewport, 'amount', 0.08);
   expectBooleanProperty(projectViewport, 'once', true);
 
@@ -284,13 +344,43 @@ const expectSelectedWorkMotionContracts = (source: string) => {
 const structuralPropertyMutations = [
   {
     name: 'quoted y property on image drift',
-    target: imageDriftTarget,
-    propertyName: 'y',
+    target: imageStyleTarget,
+    member: '"y": 1',
   },
   {
     name: 'quoted x property on selected work heading',
-    target: selectedWorkHeadingTarget,
-    propertyName: 'x',
+    target: headingStyleTarget,
+    member: '"x": 1',
+  },
+  {
+    name: 'image style spread with y and transform overrides',
+    target: imageStyleTarget,
+    member: '...{ y: 1, transform: headingTransform }',
+  },
+  {
+    name: 'heading style spread with x and transform overrides',
+    target: headingStyleTarget,
+    member: '...{ x: 1, transform: imageTransform }',
+  },
+  {
+    name: 'project entrance spread with y and transform overrides',
+    target: projectEntranceTarget,
+    member: "...{ y: [36, 0], transform: ['translate3d(0, 99px, 0)', 'translate3d(0, 1px, 0)'] }",
+  },
+  {
+    name: 'frame viewport spread with once false',
+    target: frameViewportTarget,
+    member: '...{ once: false }',
+  },
+  {
+    name: 'project viewport spread with once false',
+    target: projectViewportTarget,
+    member: '...{ once: false }',
+  },
+  {
+    name: 'unresolved computed image style property',
+    target: imageStyleTarget,
+    member: '[unresolvedMotionKey]: 1',
   },
 ] as const;
 
@@ -319,9 +409,9 @@ describe('SelectedWorkReel', () => {
 
   it.each(structuralPropertyMutations)(
     'rejects a $name regression',
-    async ({ target, propertyName }) => {
+    async ({ target, member }) => {
       const source = await readFile(selectedWorkSourceUrl, 'utf8');
-      const mutatedSource = insertQuotedStyleProperty(source, target, propertyName);
+      const mutatedSource = insertObjectMember(source, target, member);
 
       expect(() => expectSelectedWorkMotionContracts(mutatedSource)).toThrow();
     },
