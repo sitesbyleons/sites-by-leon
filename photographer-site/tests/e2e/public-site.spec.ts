@@ -287,7 +287,7 @@ test('mobile home keeps the editorial image rhythm without overflow', async ({ p
   expect(cards[2].top).toBeGreaterThan(cards[1].bottom);
 });
 
-test('selected work has scroll-linked motion and remains usable before hydration', async ({ page }) => {
+test('selected work image drift responds to scroll with JavaScript enabled', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await navigate(page, '/');
@@ -306,9 +306,47 @@ test('selected work has scroll-linked motion and remains usable before hydration
   await page.waitForTimeout(700);
   const after = await image.evaluate((element) => getComputedStyle(element).transform);
   expect(after).not.toBe(before);
+});
 
-  await expect(firstProject.getByRole('link', { name: 'Open Football gallery' })).toBeVisible();
-  await expect(firstProject.getByRole('link', { name: 'View Football gallery' })).toBeVisible();
+test('selected work reel and gallery links remain usable without JavaScript hydration', async ({ browser }) => {
+  const publicBaseUrl = 'http://127.0.0.1:4344';
+  const context = await browser.newContext({
+    baseURL: publicBaseUrl,
+    javaScriptEnabled: false,
+    viewport: { width: 1440, height: 1000 },
+  });
+  const page = await context.newPage();
+  const gallery = demoPortfolio.galleries[0];
+  const galleryHref = `/work/${gallery.slug}`;
+  const galleryLinkNames = [
+    `Open ${gallery.title} gallery`,
+    `View ${gallery.title} gallery`,
+  ];
+
+  try {
+    const response = await navigate(page, '/');
+    expect(response?.status()).toBe(200);
+
+    const reel = page.locator('.work-reel');
+    const firstProject = page.locator('[data-portfolio-item]').first();
+    await expect(reel).toBeVisible();
+    await expect(firstProject).toBeVisible();
+
+    for (const name of galleryLinkNames) {
+      const link = firstProject.getByRole('link', { name });
+      await expect(link).toBeVisible();
+      await expect(link).toHaveAttribute('href', galleryHref);
+    }
+
+    for (const name of galleryLinkNames) {
+      await navigate(page, '/');
+      const link = page.locator('[data-portfolio-item]').first().getByRole('link', { name });
+      await link.click();
+      await expect(page).toHaveURL(`${publicBaseUrl}${galleryHref}`);
+    }
+  } finally {
+    await context.close();
+  }
 });
 
 test('public pages contain no prototype language and contact collects event details', async ({ page }) => {
