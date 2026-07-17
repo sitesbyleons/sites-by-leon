@@ -16,6 +16,12 @@ function initializeMotion() {
   const context = gsap.context(() => {
     gsap.set('[data-entrance]', { autoAlpha: 1 });
 
+    const driftScenes = gsap.utils.toArray<HTMLElement>('[data-image-drift]').map((element) => ({
+      element,
+      target: element.querySelector<HTMLElement>('[data-image-drift-layer]')
+        ?? element.querySelector<HTMLElement>('img')
+        ?? element,
+    }));
     const motionMedia = gsap.matchMedia();
 
     motionMedia.add('(prefers-reduced-motion: no-preference)', () => {
@@ -33,15 +39,12 @@ function initializeMotion() {
           '-=0.18',
         );
 
-      gsap.utils.toArray<HTMLElement>('[data-image-drift]').forEach((element, index) => {
+      driftScenes.forEach(({ element, target }, index) => {
         const direction = index % 2 === 0 ? 1 : -1;
         const strength = element.dataset.imageDrift === 'fast' ? 4 : 2.5;
-        const image = element.querySelector<HTMLElement>('[data-image-drift-layer]')
-          ?? element.querySelector<HTMLElement>('img')
-          ?? element;
 
         gsap.fromTo(
-          image,
+          target,
           { yPercent: -direction * strength, scale: 1.06 },
           {
             yPercent: direction * strength,
@@ -80,7 +83,9 @@ function initializeMotion() {
     motionMedia.add('(prefers-reduced-motion: reduce)', () => {
       document.documentElement.dataset.motion = 'reduced';
       document.documentElement.dataset.motionScenes = 'editorial-fade';
-      gsap.set('[data-site-header], [data-image-drift]', { clearProps: 'transform' });
+      gsap.set('[data-site-header]', { clearProps: 'transform' });
+      gsap.set('[data-entrance]', { clearProps: 'transform' });
+      gsap.set(driftScenes.map(({ target }) => target), { clearProps: 'transform' });
       gsap.fromTo(
         '[data-entrance]',
         { autoAlpha: 0.88 },

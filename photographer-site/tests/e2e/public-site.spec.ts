@@ -20,6 +20,51 @@ const expectNoSeriousOrCriticalAccessibilityViolations = async (page: Page) => {
 const navigate = (page: Page, url: string) =>
   page.goto(url, { waitUntil: 'domcontentloaded' });
 
+const normalMotionScenes = 'editorial-entrance image-drift scroll-progress';
+
+const expectMotionMetadata = async (page: Page, motion: string, scenes: string) => {
+  await expect(page.locator('html')).toHaveAttribute('data-motion', motion);
+  await expect(page.locator('html')).toHaveAttribute('data-motion-scenes', scenes);
+};
+
+const expectResolvedDriftTargets = async (
+  page: Page,
+  expectedKinds: Array<'element' | 'img' | 'layer'>,
+  state: 'active' | 'clear',
+) => {
+  await expect.poll(() => page.locator('[data-image-drift]').evaluateAll((elements) =>
+    elements.map((element) => {
+      const layer = element.querySelector<HTMLElement>('[data-image-drift-layer]');
+      const image = element.querySelector<HTMLElement>('img');
+      const target = layer ?? image ?? element;
+      const kind = layer ? 'layer' : image ? 'img' : 'element';
+      const targetState = getComputedStyle(target).transform === 'none' ? 'clear' : 'active';
+
+      return `${kind}:${targetState}`;
+    }),
+  )).toEqual(expectedKinds.map((kind) => `${kind}:${state}`));
+};
+
+const expectReducedSpatialState = async (page: Page) => {
+  await expect(page.locator('[data-site-header]')).toHaveCSS('transform', 'none');
+
+  const entrances = page.locator('[data-entrance]');
+  await expect(entrances.first()).toBeAttached();
+  await expect.poll(() => entrances.evaluateAll((elements) =>
+    elements.every((element) => getComputedStyle(element).transform === 'none'),
+  )).toBe(true);
+
+  await expect.poll(() => page.locator('[data-scroll-progress]').evaluate((element) => {
+    const transform = getComputedStyle(element).transform;
+    const scaleX = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform).a;
+
+    return {
+      hasInlineTransform: (element as HTMLElement).style.transform.length > 0,
+      scaleX: Number(scaleX.toFixed(3)),
+    };
+  })).toEqual({ hasInlineTransform: true, scaleX: 1 });
+};
+
 const representativePublicRoutes = [
   '/',
   '/work',
@@ -142,6 +187,66 @@ test('reduced motion keeps editorial content visible without drift', async ({ pa
   await expect(page.locator('.editorial-hero [data-image-drift="slow"] img')).toHaveCSS('transform', 'none');
   await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+});
+
+test('live motion preference clears and restores resolved drift targets', async ({ context, page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+
+  const galleryPage = await context.newPage();
+  await galleryPage.emulateMedia({ reducedMotion: 'no-preference' });
+  await galleryPage.goto('/work/friday-night');
+
+  await expectMotionMetadata(page, 'gsap-always', normalMotionScenes);
+  await expectMotionMetadata(galleryPage, 'gsap-always', normalMotionScenes);
+  await expectResolvedDriftTargets(page, ['img', 'img'], 'active');
+  await expectResolvedDriftTargets(galleryPage, ['layer', 'layer', 'layer'], 'active');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await galleryPage.emulateMedia({ reducedMotion: 'reduce' });
+
+  await expectMotionMetadata(page, 'reduced', 'editorial-fade');
+  await expectMotionMetadata(galleryPage, 'reduced', 'editorial-fade');
+  await expectReducedSpatialState(page);
+  await expectReducedSpatialState(galleryPage);
+  await expectResolvedDriftTargets(page, ['img', 'img'], 'clear');
+  await expectResolvedDriftTargets(galleryPage, ['layer', 'layer', 'layer'], 'clear');
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await galleryPage.emulateMedia({ reducedMotion: 'no-preference' });
+
+  await expectMotionMetadata(page, 'gsap-always', normalMotionScenes);
+  await expectMotionMetadata(galleryPage, 'gsap-always', normalMotionScenes);
+  await expectResolvedDriftTargets(page, ['img', 'img'], 'active');
+  await expectResolvedDriftTargets(galleryPage, ['layer', 'layer', 'layer'], 'active');
+});
+
+test('reduced motion clears preexisting spatial transforms without a normal setup', async ({ page }) => {
+  await page.addInitScript(() => {
+    document.addEventListener('readystatechange', () => {
+      if (document.readyState !== 'interactive') return;
+
+      const driftTargets = Array.from(document.querySelectorAll<HTMLElement>('[data-image-drift]'))
+        .map((element) => element.querySelector<HTMLElement>('[data-image-drift-layer]')
+          ?? element.querySelector<HTMLElement>('img')
+          ?? element);
+      const spatialTargets = [
+        document.querySelector<HTMLElement>('[data-site-header]'),
+        ...document.querySelectorAll<HTMLElement>('[data-entrance]'),
+        ...driftTargets,
+      ].filter((element): element is HTMLElement => Boolean(element));
+
+      spatialTargets.forEach((element) => {
+        element.style.transform = 'translate3d(12px, 8px, 0)';
+      });
+    }, { once: true });
+  });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+
+  await expectMotionMetadata(page, 'reduced', 'editorial-fade');
+  await expectReducedSpatialState(page);
+  await expectResolvedDriftTargets(page, ['img', 'img'], 'clear');
 });
 
 test('mobile home keeps the editorial image rhythm without overflow', async ({ page }) => {
