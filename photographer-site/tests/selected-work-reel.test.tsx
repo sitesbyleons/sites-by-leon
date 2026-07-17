@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
@@ -19,5 +20,17 @@ describe('SelectedWorkReel', () => {
     expect(html).toContain(`href="/work/${gallery.slug}"`);
     expect(html).toContain('1 project');
     expect(html).toContain('3 photographs');
+  });
+
+  it('uses full transform strings for scroll-linked motion', async () => {
+    const source = await readFile(
+      new URL('../src/components/SelectedWorkReel.tsx', import.meta.url),
+      'utf8',
+    );
+
+    expect(source).not.toContain('style={{ y }}');
+    expect(source).not.toContain('style={{ x: headingX }}');
+    expect(source).toContain('translate3d');
+    expect(source).toContain('once: true');
   });
 });

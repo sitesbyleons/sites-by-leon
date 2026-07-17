@@ -61,6 +61,7 @@ function ReelFrame({
     [0, 1],
     reducedMotion ? [0, 0] : distances,
   );
+  const imageTransform = useTransform(y, (value) => `translate3d(0, ${value}px, 0)`);
 
   return (
     <motion.figure
@@ -69,7 +70,7 @@ function ReelFrame({
       whileInView={reducedMotion
         ? { opacity: [0.88, 1] }
         : { clipPath: ['inset(9% 7% 9% 7%)', 'inset(0% 0% 0% 0%)'], opacity: [0.72, 1] }}
-      viewport={{ amount: 0.28, once: false }}
+      viewport={{ amount: 0.28, once: true }}
       transition={{ duration: reducedMotion ? 0.25 : 0.82, ease: [0.16, 1, 0.3, 1] }}
       style={{
         '--crop-x': `${frame.cropX}%`,
@@ -77,7 +78,7 @@ function ReelFrame({
         '--crop-zoom': frame.cropZoom,
       } as CSSProperties}
     >
-      <motion.div className="work-project__image-drift" style={{ y }}>
+      <motion.div className="work-project__image-drift" style={{ transform: imageTransform }}>
         <img
           src={frame.src}
           alt={frame.alt}
@@ -140,8 +141,8 @@ function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
       initial={false}
       whileInView={reducedMotion
         ? { opacity: [0.9, 1] }
-        : { opacity: [0.78, 1], y: [36, 0] }}
-      viewport={{ amount: 0.08, once: false }}
+        : { opacity: [0.78, 1], transform: ['translate3d(0, 36px, 0)', 'translate3d(0, 0, 0)'] }}
+      viewport={{ amount: 0.08, once: true }}
       transition={{ duration: reducedMotion ? 0.25 : 0.72, ease: [0.16, 1, 0.3, 1] }}
     >
       <header className="work-project__heading">
@@ -216,6 +217,10 @@ export default function SelectedWorkReel({ galleries, tone }: Props) {
     [0, 1],
     reducedMotion ? ['0%', '0%'] : ['4%', '-4%'],
   );
+  const headingTransform = useTransform(
+    headingX,
+    (value) => `translate3d(${value}, 0, 0)`,
+  );
 
   if (galleries.length === 0) return null;
 
@@ -230,7 +235,7 @@ export default function SelectedWorkReel({ galleries, tone }: Props) {
     >
       <div className="work-reel__intro">
         <span className="work-reel__label">Portfolio</span>
-        <motion.h2 id="selected-work-title" style={{ x: headingX }}>
+        <motion.h2 id="selected-work-title" style={{ transform: headingTransform }}>
           <span>Selected</span>
           <em>work</em>
         </motion.h2>
