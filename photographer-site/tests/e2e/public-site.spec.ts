@@ -20,6 +20,22 @@ const expectNoSeriousOrCriticalAccessibilityViolations = async (page: Page) => {
 const navigate = (page: Page, url: string) =>
   page.goto(url, { waitUntil: 'domcontentloaded' });
 
+const expectSelectedWorkHydrated = async (page: Page) => {
+  const island = page.locator('astro-island:has(.work-reel)');
+  const media = page.locator('.work-project__media').first();
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await media.scrollIntoViewIfNeeded();
+    try {
+      await expect(island).not.toHaveAttribute('ssr', '', { timeout: 5_000 });
+      return;
+    } catch (error) {
+      if (attempt > 0) throw error;
+      await page.reload({ waitUntil: 'domcontentloaded' });
+    }
+  }
+};
+
 const expectPressedScale = async (page: Page, target: Locator) => {
   const initialBox = await target.boundingBox();
   if (!initialBox) throw new Error('Expected a rendered call-to-action bounding box.');
@@ -247,6 +263,42 @@ test('reduced motion keeps editorial content visible without drift', async ({ pa
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
+test('reduced motion resets and suppresses selected work focus scale', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+
+  const media = page.locator('.work-project__media').first();
+  await expectSelectedWorkHydrated(page);
+  await media.focus();
+  await expect.poll(() => media.evaluate((element) => {
+    const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
+    return Number(matrix.a.toFixed(3));
+  })).toBe(1.006);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(() => media.evaluate((element) => {
+    const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
+    return Number(matrix.a.toFixed(3));
+  })).toBe(1);
+
+  const reducedFocusScales = await media.evaluate(async (element) => {
+    const readScale = () => Number(
+      new DOMMatrixReadOnly(getComputedStyle(element).transform).a.toFixed(3),
+    );
+    element.blur();
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    (element as HTMLElement).focus();
+
+    const samples: number[] = [];
+    for (let frame = 0; frame < 12; frame += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      samples.push(readScale());
+    }
+    return samples;
+  });
+  expect(reducedFocusScales).toEqual(Array(12).fill(1));
+});
+
 test('live motion preference clears and restores resolved drift targets', async ({ context, page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
@@ -352,7 +404,7 @@ test('selected work image drift responds to scroll with JavaScript enabled', asy
 
   const firstProject = page.locator('[data-portfolio-item]').first();
   await expect(firstProject).toBeVisible();
-  await firstProject.scrollIntoViewIfNeeded();
+  await expectSelectedWorkHydrated(page);
   const image = firstProject.locator('.work-project__image-drift').first();
   await expect.poll(() => image.evaluate((element) => getComputedStyle(element).transform)).not.toBe('none');
   await page.waitForTimeout(700);

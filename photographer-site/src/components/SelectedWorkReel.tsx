@@ -6,7 +6,14 @@ import {
   useSpring as useMotionSpring,
   useTransform,
 } from 'motion/react';
-import { useRef, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 
 import type { Gallery, GalleryImage } from '../lib/content/types';
 import './selected-work-reel.css';
@@ -27,6 +34,21 @@ const uniqueFrames = (gallery: Gallery) => {
   return frames
     .filter((frame, index) => frames.findIndex((candidate) => candidate.src === frame.src) === index)
     .slice(0, 3);
+};
+
+const useLiveReducedMotion = () => {
+  const initialPreference = useReducedMotion() ?? false;
+  const [reducedMotion, setReducedMotion] = useState(initialPreference);
+
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncPreference = () => setReducedMotion(preference.matches);
+    syncPreference();
+    preference.addEventListener('change', syncPreference);
+    return () => preference.removeEventListener('change', syncPreference);
+  }, []);
+
+  return reducedMotion;
 };
 
 /**
@@ -92,9 +114,16 @@ function ReelFrame({
   );
 }
 
-function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
+function WorkProject({
+  gallery,
+  index,
+  reducedMotion,
+}: {
+  gallery: Gallery;
+  index: number;
+  reducedMotion: boolean;
+}) {
   const projectRef = useRef<HTMLElement>(null);
-  const reducedMotion = useReducedMotion() ?? false;
   const frames = uniqueFrames(gallery);
   const { scrollYProgress } = useScroll({
     target: projectRef,
@@ -116,6 +145,18 @@ function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
     lightX: 50,
     lightY: 50,
   });
+  useEffect(() => {
+    if (!reducedMotion) return;
+    tiltApi.start({
+      rotateX: 0,
+      rotateY: 0,
+      scale: 1,
+      lightX: 50,
+      lightY: 50,
+      immediate: true,
+    });
+  }, [reducedMotion, tiltApi]);
+
   const moveTilt = (event: PointerEvent<HTMLAnchorElement>) => {
     if (reducedMotion || event.pointerType === 'touch') return;
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -166,7 +207,9 @@ function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
         aria-label={`Open ${gallery.title} gallery`}
         onPointerMove={moveTilt}
         onPointerLeave={resetTilt}
-        onFocus={() => tiltApi.start({ scale: 1.006 })}
+        onFocus={() => {
+          if (!reducedMotion) tiltApi.start({ scale: 1.006 });
+        }}
         onBlur={resetTilt}
         style={{
           transform: to(
@@ -202,7 +245,7 @@ function WorkProject({ gallery, index }: { gallery: Gallery; index: number }) {
 
 export default function SelectedWorkReel({ galleries, tone }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
-  const reducedMotion = useReducedMotion() ?? false;
+  const reducedMotion = useLiveReducedMotion();
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start end', 'end start'],
@@ -246,7 +289,12 @@ export default function SelectedWorkReel({ galleries, tone }: Props) {
 
       <div className="work-reel__projects">
         {galleries.map((gallery, index) => (
-          <WorkProject key={gallery.id} gallery={gallery} index={index} />
+          <WorkProject
+            key={gallery.id}
+            gallery={gallery}
+            index={index}
+            reducedMotion={reducedMotion}
+          />
         ))}
       </div>
     </section>
