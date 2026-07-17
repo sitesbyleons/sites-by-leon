@@ -249,6 +249,23 @@ test('reduced motion clears preexisting spatial transforms without a normal setu
   await expectResolvedDriftTargets(page, ['img', 'img'], 'clear');
 });
 
+test('reduced motion avoids missing-target warnings without drift scenes', async ({ page }) => {
+  const missingTargetWarnings: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'warning' && /GSAP target.*not found/i.test(message.text())) {
+      missingTargetWarnings.push(message.text());
+    }
+  });
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/contact');
+
+  await expectMotionMetadata(page, 'reduced', 'editorial-fade');
+  await expect(page.locator('[data-image-drift]')).toHaveCount(0);
+  await expectReducedSpatialState(page);
+  expect(missingTargetWarnings).toEqual([]);
+});
+
 test('mobile home keeps the editorial image rhythm without overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await navigate(page, '/');

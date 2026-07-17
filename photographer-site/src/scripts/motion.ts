@@ -22,6 +22,7 @@ function initializeMotion() {
         ?? element.querySelector<HTMLElement>('img')
         ?? element,
     }));
+    const resolvedDriftTargets = driftScenes.map(({ target }) => target);
     const motionMedia = gsap.matchMedia();
 
     motionMedia.add('(prefers-reduced-motion: no-preference)', () => {
@@ -85,7 +86,9 @@ function initializeMotion() {
       document.documentElement.dataset.motionScenes = 'editorial-fade';
       gsap.set('[data-site-header]', { clearProps: 'transform' });
       gsap.set('[data-entrance]', { clearProps: 'transform' });
-      gsap.set(driftScenes.map(({ target }) => target), { clearProps: 'transform' });
+      if (driftScenes.length > 0) {
+        gsap.set(resolvedDriftTargets, { clearProps: 'transform' });
+      }
       gsap.fromTo(
         '[data-entrance]',
         { autoAlpha: 0.88 },
