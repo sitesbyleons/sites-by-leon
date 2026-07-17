@@ -225,7 +225,7 @@
   object-position: var(--crop-x, 50%) var(--crop-y, 50%);
   transform: scale(var(--crop-zoom, 1));
   transform-origin: var(--crop-x, 50%) var(--crop-y, 50%);
-  transition: filter 500ms ease;
+  transition: filter var(--motion-medium) ease;
 }
 
 .work-project__light {
@@ -234,15 +234,13 @@
   z-index: 3;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 350ms ease;
+  transition: opacity var(--motion-medium) ease;
 }
 
-.work-project__media:hover .work-project__light,
 .work-project__media:focus-visible .work-project__light {
   opacity: 1;
 }
 
-.work-project__media:hover .work-project__frame img,
 .work-project__media:focus-visible .work-project__frame img {
   filter: saturate(1.06) contrast(1.025);
 }
@@ -257,6 +255,11 @@
   font-size: 0.78rem;
   font-weight: 650;
   text-decoration: none;
+  transition: transform var(--motion-fast) var(--motion-ease-out);
+}
+
+.skiper-link:active {
+  transform: scale(0.97);
 }
 
 .skiper-link::before,
@@ -277,10 +280,9 @@
 .skiper-link::after {
   background: var(--accent);
   transform: scaleX(0);
-  transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--motion-medium) var(--motion-ease-out);
 }
 
-.skiper-link:hover::after,
 .skiper-link:focus-visible::after {
   transform: scaleX(1);
   transform-origin: left center;
@@ -297,13 +299,34 @@
   stroke-linejoin: round;
   stroke-width: 1.25;
   transform: translate(-0.2em, 0.2em);
-  transition: opacity 300ms ease, transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity var(--motion-medium) ease,
+    transform var(--motion-medium) var(--motion-ease-out);
 }
 
-.skiper-link:hover svg,
 .skiper-link:focus-visible svg {
   opacity: 1;
   transform: translate(0, 0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .work-project__media:hover .work-project__light {
+    opacity: 1;
+  }
+
+  .work-project__media:hover .work-project__frame img {
+    filter: saturate(1.06) contrast(1.025);
+  }
+
+  .skiper-link:hover::after {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+
+  .skiper-link:hover svg {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
 }
 
 .work-reel[data-tone='athletic'] h2,
@@ -435,9 +458,38 @@
 
 @media (prefers-reduced-motion: reduce) {
   .work-project__frame img,
-  .work-project__light,
-  .skiper-link::after,
+  .work-project__light {
+    transition-duration: var(--motion-fast);
+  }
+
+  .skiper-link {
+    transition: opacity var(--motion-fast) ease;
+  }
+
+  .skiper-link:active {
+    opacity: 0.72;
+    transform: none;
+  }
+
+  .skiper-link::after {
+    opacity: 0;
+    transform: none;
+    transition: opacity var(--motion-fast) ease;
+  }
+
+  .skiper-link:hover::after,
+  .skiper-link:focus-visible::after {
+    opacity: 1;
+    transform: none;
+  }
+
   .skiper-link svg {
-    transition-duration: 120ms;
+    transform: none;
+    transition: opacity var(--motion-fast) ease;
+  }
+
+  .skiper-link:hover svg,
+  .skiper-link:focus-visible svg {
+    transform: none;
   }
 }

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { demoPortfolio } from '../../src/lib/content/demo';
 
@@ -19,6 +19,21 @@ const expectNoSeriousOrCriticalAccessibilityViolations = async (page: Page) => {
 
 const navigate = (page: Page, url: string) =>
   page.goto(url, { waitUntil: 'domcontentloaded' });
+
+const expectPressedScale = async (page: Page, target: Locator) => {
+  await target.hover();
+  await page.mouse.down();
+
+  try {
+    await expect.poll(() => target.evaluate((element) => {
+      const transform = getComputedStyle(element).transform;
+      return Number(new DOMMatrixReadOnly(transform === 'none' ? undefined : transform).a.toFixed(2));
+    })).toBe(0.97);
+  } finally {
+    await page.mouse.move(0, 0);
+    await page.mouse.up();
+  }
+};
 
 const normalMotionScenes = 'editorial-entrance image-drift scroll-progress';
 
@@ -347,6 +362,65 @@ test('selected work reel and gallery links remain usable without JavaScript hydr
   } finally {
     await context.close();
   }
+});
+
+test('public calls to action expose restrained physical feedback', async ({ page }) => {
+  await page.goto('/');
+  const galleryLink = page.locator('.skiper-link').first();
+  await expect(galleryLink).toHaveCSS('transition-duration', '0.16s');
+  await expectPressedScale(page, galleryLink);
+
+  await page.goto('/contact');
+  const inquiryButton = page.locator('.inquiry-actions button');
+  await expect(inquiryButton).toHaveCSS('transition-duration', '0.16s');
+  await expectPressedScale(page, inquiryButton);
+});
+
+test('reduced motion keeps call-to-action feedback non-spatial', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+
+  const galleryLink = page.locator('.skiper-link').first();
+  const galleryTransitionProperties = await galleryLink.evaluate((element) =>
+    getComputedStyle(element).transitionProperty.split(',').map((property) => property.trim()),
+  );
+  expect(galleryTransitionProperties).toContain('opacity');
+  expect(galleryTransitionProperties).not.toContain('transform');
+  await expect(galleryLink.locator('svg')).toHaveCSS('transform', 'none');
+  expect(await galleryLink.evaluate((element) => {
+    const style = getComputedStyle(element, '::after');
+    return {
+      opacity: style.opacity,
+      transform: style.transform,
+      transitionProperty: style.transitionProperty,
+    };
+  })).toEqual({ opacity: '0', transform: 'none', transitionProperty: 'opacity' });
+
+  await galleryLink.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(200);
+  await expect(galleryLink).toHaveCSS('transform', 'none');
+  expect(Number(await galleryLink.evaluate((element) => getComputedStyle(element).opacity)))
+    .toBeLessThan(1);
+  await page.mouse.move(0, 0);
+  await page.mouse.up();
+
+  await page.goto('/contact');
+  const inquiryButton = page.locator('.inquiry-actions button');
+  const buttonTransitionProperties = await inquiryButton.evaluate((element) =>
+    getComputedStyle(element).transitionProperty.split(',').map((property) => property.trim()),
+  );
+  expect(buttonTransitionProperties).toContain('opacity');
+  expect(buttonTransitionProperties).not.toContain('transform');
+
+  await inquiryButton.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(200);
+  await expect(inquiryButton).toHaveCSS('transform', 'none');
+  expect(Number(await inquiryButton.evaluate((element) => getComputedStyle(element).opacity)))
+    .toBeLessThan(1);
+  await page.mouse.move(0, 0);
+  await page.mouse.up();
 });
 
 test('public pages contain no prototype language and contact collects event details', async ({ page }) => {

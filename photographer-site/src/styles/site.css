@@ -656,7 +656,6 @@ textarea:focus-visible {
   border: 1px solid var(--ink);
   font-weight: 650;
   text-decoration: none;
-  transition: background-color 180ms ease, color 180ms ease;
 }
 
 .email-action:hover,
@@ -750,6 +749,33 @@ textarea:focus-visible {
   background: var(--ink);
   color: var(--paper);
   cursor: pointer;
+}
+
+.email-action,
+.inquiry-actions button {
+  transition-property: background-color, color, transform;
+  transition-duration: var(--motion-fast);
+  transition-timing-function: ease, ease, var(--motion-ease-out);
+}
+
+.email-action:active,
+.inquiry-actions button:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .email-action,
+  .inquiry-actions button {
+    transition-property: background-color, color, opacity;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: ease;
+  }
+
+  .email-action:active,
+  .inquiry-actions button:active {
+    opacity: 0.78;
+    transform: none;
+  }
 }
 
 .inquiry-actions p {
