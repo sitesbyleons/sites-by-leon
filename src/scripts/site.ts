@@ -22,7 +22,7 @@ const initializeScrollMotion = () => {
   }
 
   document.documentElement.dataset.motion = 'gsap-scrolltrigger';
-  document.documentElement.dataset.motionScenes = 'hero-depth concept-3d pricing-3d';
+  document.documentElement.dataset.motionScenes = 'hero-depth concept-3d pricing-stagger';
 
   const batchedRevealItems = revealItems.filter(
     (item) => !item.matches('.process-list li, .portfolio-story'),
@@ -49,7 +49,7 @@ const initializeScrollMotion = () => {
     if (!browser) return;
 
     const progress = browser.querySelector<HTMLElement>('.concept-browser__progress');
-    const leadImage = browser.querySelector<HTMLImageElement>('.concept-canvas img');
+    const leadFigure = browser.querySelector<HTMLImageElement>('.concept-canvas img')?.parentElement;
 
     if (progress) {
       gsap.fromTo(
@@ -68,9 +68,9 @@ const initializeScrollMotion = () => {
       );
     }
 
-    if (leadImage && window.innerWidth > 768) {
+    if (leadFigure && window.innerWidth > 768) {
       gsap.fromTo(
-        leadImage,
+        leadFigure,
         { yPercent: -1.5, scale: 1.025 },
         {
           yPercent: 1.5,

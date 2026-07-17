@@ -2421,4 +2421,10 @@ h2 em {
     animation-delay: 0ms;
     animation-name: coming-fade-only;
   }
+
+  .button:active,
+  .hero-gallery__image:hover img,
+  .concept-canvas figure:hover img {
+    transform: none;
+  }
 }

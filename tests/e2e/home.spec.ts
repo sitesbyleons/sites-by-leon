@@ -66,7 +66,7 @@ test('loads GSAP ScrollTrigger with visible 2D and 3D depth scenes', async ({ pa
 
   await expect(page.locator('script[src*="cdn.jsdelivr.net/npm/gsap"]')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'gsap-scrolltrigger');
-  await expect(page.locator('html')).toHaveAttribute('data-motion-scenes', 'hero-depth concept-3d pricing-3d');
+  await expect(page.locator('html')).toHaveAttribute('data-motion-scenes', 'hero-depth concept-3d pricing-stagger');
   await expect(page.locator('[data-motion-depth="concept"]')).toHaveCount(3);
   await expect(page.locator('.concept-browser__progress')).toHaveCount(3);
 
@@ -74,9 +74,9 @@ test('loads GSAP ScrollTrigger with visible 2D and 3D depth scenes', async ({ pa
   const initialTransform = await firstConcept.evaluate((element) => getComputedStyle(element).transform);
   expect(initialTransform).toContain('matrix3d');
   await firstConcept.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(450);
-  const progressedTransform = await firstConcept.evaluate((element) => getComputedStyle(element).transform);
-  expect(progressedTransform).not.toBe(initialTransform);
+  await expect
+    .poll(() => firstConcept.evaluate((element) => getComputedStyle(element).transform))
+    .not.toBe(initialTransform);
 });
 
 test('uses restrained desktop depth and readable reveal ranges', async ({ page }) => {
@@ -139,22 +139,25 @@ test('uses restrained desktop depth and readable reveal ranges', async ({ page }
 
   const heroHeight = await page.locator('.hero').evaluate((hero) => (hero as HTMLElement).offsetHeight);
   await page.evaluate((scrollTop) => window.scrollTo(0, scrollTop), heroHeight);
-  await page.waitForTimeout(1_000);
-  const heroEndScales = await page.locator('.hero-gallery__image').evaluateAll((images) =>
-    images.map((image) => {
-      const transform = getComputedStyle(image).transform;
-      const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
-      return Math.hypot(matrix.m11, matrix.m12);
-    }),
-  );
-  for (const scale of heroEndScales) expect(scale).toBeCloseTo(1.015, 2);
+  for (const image of await page.locator('.hero-gallery__image').all()) {
+    await expect
+      .poll(() =>
+        image.evaluate((element) => {
+          const transform = getComputedStyle(element).transform;
+          const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+          return Math.hypot(matrix.m11, matrix.m12);
+        }),
+      )
+      .toBeCloseTo(1.015, 2);
+  }
 });
 
-test('uses a restrained mobile concept entrance', async ({ page }) => {
+test('settles the mobile concept entrance once across re-entry', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
-  const conceptStart = await page.locator('[data-motion-depth="concept"]').first().evaluate((element) => {
+  const concept = page.locator('[data-motion-depth="concept"]').first();
+  const conceptStart = await concept.evaluate((element) => {
     const transform = (element as HTMLElement).style.transform;
     return {
       y: Number(transform.match(/translate(?:3d)?\([^,]+,\s*(-?[\d.]+)px/)?.[1]),
@@ -163,6 +166,40 @@ test('uses a restrained mobile concept entrance', async ({ page }) => {
     };
   });
   expect(conceptStart).toEqual({ y: 24, rotation: -0.6, scale: 0.985 });
+
+  const poseError = () =>
+    concept.evaluate((element) => {
+      const transform = getComputedStyle(element).transform;
+      const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+      const scale = Math.hypot(matrix.m11, matrix.m12);
+      const rotation = (Math.atan2(matrix.m12, matrix.m11) * 180) / Math.PI;
+      return Math.max(Math.abs(matrix.m42), Math.abs(rotation), Math.abs(scale - 1));
+    });
+
+  await concept.scrollIntoViewIfNeeded();
+  await expect.poll(poseError).toBeLessThan(0.01);
+  await page.locator('.pricing').scrollIntoViewIfNeeded();
+  await concept.scrollIntoViewIfNeeded();
+  await expect.poll(poseError).toBeLessThan(0.01);
+});
+
+test('keeps mobile pricing horizontally scrollable with snap points', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+
+  const pricingGrid = page.locator('.pricing-grid');
+  await expect(pricingGrid).toHaveCSS('scroll-snap-type', 'x mandatory');
+  await expect(page.locator('.pricing-card').first()).toHaveCSS('scroll-snap-align', 'start');
+  const dimensions = await pricingGrid.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.clientWidth);
+
+  await pricingGrid.scrollIntoViewIfNeeded();
+  await pricingGrid.hover();
+  await page.mouse.wheel(600, 0);
+  await expect.poll(() => pricingGrid.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
 });
 
 test('uses tokenized press feedback and fine-pointer image hover', async ({ page }) => {
@@ -222,6 +259,43 @@ test('uses tokenized press feedback and fine-pointer image hover', async ({ page
       }),
     )
     .toBeCloseTo(1.018, 2);
+});
+
+test('keeps concept image hover independent from figure scroll drift', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  const browser = page.locator('.website-concept--fieldwork-commercial [data-motion-depth="concept"]');
+  const figure = browser.locator('.concept-canvas figure').first();
+  const image = figure.locator('img');
+  const readTransform = (selector: typeof figure) =>
+    selector.evaluate((element) => {
+      const transform = getComputedStyle(element).transform;
+      const matrix = new DOMMatrixReadOnly(transform === 'none' ? undefined : transform);
+      return {
+        scale: Math.hypot(matrix.m11, matrix.m12),
+        transform,
+        y: matrix.m42,
+      };
+    });
+
+  const figureStart = await readTransform(figure);
+  const imageStart = await readTransform(image);
+  expect(figureStart.scale).toBeCloseTo(1.025, 2);
+  expect(Math.abs(figureStart.y)).toBeGreaterThan(0);
+  expect(imageStart.scale).toBeCloseTo(1, 2);
+
+  await browser.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    window.scrollTo(0, window.scrollY + bounds.top + (bounds.height - window.innerHeight) / 2);
+  });
+  await expect.poll(async () => Math.abs((await readTransform(figure)).y)).toBeLessThan(0.75);
+
+  await image.hover();
+  await expect.poll(async () => (await readTransform(image)).scale).toBeCloseTo(1.018, 2);
+  const figureDuringHover = await readTransform(figure);
+  expect(figureDuringHover.transform).not.toBe('none');
+  expect(figureDuringHover.scale).toBeCloseTo(1.025, 2);
 });
 
 test('keeps interface language focused on what clients need', async ({ page }) => {
@@ -435,4 +509,34 @@ test('keeps content visible without spatial motion when reduced motion is reques
   await expect(page.locator('.services [data-reveal]').first()).toHaveCSS('transform', 'none');
   await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+});
+
+test('keeps reduced-motion press and image hover feedback spatially still', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+
+  const settledTransform = (selector: string) =>
+    page.locator(selector).first().evaluate(async (element) => {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined)));
+      return getComputedStyle(element).transform;
+    });
+
+  const button = page.locator('.button').first();
+  await button.hover();
+  await button.evaluate((element) =>
+    Promise.all(element.getAnimations().map((animation) => animation.finished.catch(() => undefined))),
+  );
+  await page.mouse.down();
+  expect(await settledTransform('.button')).toBe('none');
+  await page.mouse.up();
+
+  const heroImage = page.locator('.hero-gallery__image img').first();
+  await heroImage.hover();
+  expect(await settledTransform('.hero-gallery__image img')).toBe('none');
+
+  const conceptImage = page.locator('.website-concept--fieldwork-commercial .concept-canvas figure img').first();
+  await conceptImage.hover();
+  expect(await settledTransform('.website-concept--fieldwork-commercial .concept-canvas figure img')).toBe('none');
 });
