@@ -21,19 +21,62 @@ const navigate = (page: Page, url: string) =>
   page.goto(url, { waitUntil: 'domcontentloaded' });
 
 const expectPressedScale = async (page: Page, target: Locator) => {
+  const initialBox = await target.boundingBox();
+  if (!initialBox) throw new Error('Expected a rendered call-to-action bounding box.');
+
   await target.hover();
   await page.mouse.down();
 
   try {
-    await expect.poll(() => target.evaluate((element) => {
-      const transform = getComputedStyle(element).transform;
-      return Number(new DOMMatrixReadOnly(transform === 'none' ? undefined : transform).a.toFixed(2));
-    })).toBe(0.97);
+    await expect.poll(async () => {
+      const scale = await target.evaluate((element) => {
+        const transform = getComputedStyle(element).transform;
+        return Number(new DOMMatrixReadOnly(transform === 'none' ? undefined : transform).a.toFixed(2));
+      });
+      const pressedBox = await target.boundingBox();
+      if (!pressedBox) return null;
+
+      return {
+        heightRatio: Number((pressedBox.height / initialBox.height).toFixed(2)),
+        scale,
+        widthRatio: Number((pressedBox.width / initialBox.width).toFixed(2)),
+      };
+    }).toEqual({ heightRatio: 0.97, scale: 0.97, widthRatio: 0.97 });
   } finally {
     await page.mouse.move(0, 0);
     await page.mouse.up();
   }
 };
+
+const expectReducedPressFeedback = async (page: Page, target: Locator) => {
+  await target.hover();
+  await page.mouse.down();
+
+  try {
+    await expect.poll(() => target.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        hasOpacityFeedback: Number(style.opacity) < 1,
+        transform: style.transform,
+      };
+    })).toEqual({ hasOpacityFeedback: true, transform: 'none' });
+  } finally {
+    await page.mouse.move(0, 0);
+    await page.mouse.up();
+  }
+};
+
+const readReducedSkiperFeedback = (target: Locator) => target.evaluate((element) => {
+  const after = getComputedStyle(element, '::after');
+  const icon = getComputedStyle(element.querySelector('svg')!);
+
+  return {
+    afterOpacity: after.opacity,
+    afterTransform: after.transform,
+    iconOpacity: icon.opacity,
+    iconTransform: icon.transform,
+  };
+});
 
 const normalMotionScenes = 'editorial-entrance image-drift scroll-progress';
 
@@ -310,17 +353,17 @@ test('selected work image drift responds to scroll with JavaScript enabled', asy
   const firstProject = page.locator('[data-portfolio-item]').first();
   await expect(firstProject).toBeVisible();
   await firstProject.scrollIntoViewIfNeeded();
+  const reelIsland = page.locator('astro-island:has([data-portfolio-item])');
+  await expect(reelIsland).not.toHaveAttribute('ssr', '');
   const image = firstProject.locator('.work-project__image-drift').first();
   await expect.poll(() => image.evaluate((element) => getComputedStyle(element).transform)).not.toBe('none');
-  await page.waitForTimeout(700);
   const before = await image.evaluate((element) => getComputedStyle(element).transform);
   await firstProject.evaluate((element) => {
     const box = element.getBoundingClientRect();
     window.scrollTo(0, window.scrollY + box.top + box.height * 0.75);
   });
-  await page.waitForTimeout(700);
-  const after = await image.evaluate((element) => getComputedStyle(element).transform);
-  expect(after).not.toBe(before);
+  await expect.poll(() => image.evaluate((element) => getComputedStyle(element).transform))
+    .not.toBe(before);
 });
 
 test('selected work reel and gallery links remain usable without JavaScript hydration', async ({ browser }) => {
@@ -371,6 +414,14 @@ test('public calls to action expose restrained physical feedback', async ({ page
   await expectPressedScale(page, galleryLink);
 
   await page.goto('/contact');
+  const emailLink = page.locator('.contact-email a');
+  expect(await emailLink.evaluate((element) => getComputedStyle(element).display))
+    .toMatch(/^inline-(?:block|flex)$/);
+  await expect(emailLink).toHaveCSS('border-top-width', '0px');
+  await expect(emailLink).toHaveCSS('padding-top', '0px');
+  await expect(emailLink).toHaveCSS('transition-duration', '0.16s');
+  await expectPressedScale(page, emailLink);
+
   const inquiryButton = page.locator('.inquiry-actions button');
   await expect(inquiryButton).toHaveCSS('transition-duration', '0.16s');
   await expectPressedScale(page, inquiryButton);
@@ -386,41 +437,68 @@ test('reduced motion keeps call-to-action feedback non-spatial', async ({ page }
   );
   expect(galleryTransitionProperties).toContain('opacity');
   expect(galleryTransitionProperties).not.toContain('transform');
-  await expect(galleryLink.locator('svg')).toHaveCSS('transform', 'none');
-  expect(await galleryLink.evaluate((element) => {
-    const style = getComputedStyle(element, '::after');
-    return {
-      opacity: style.opacity,
-      transform: style.transform,
-      transitionProperty: style.transitionProperty,
-    };
-  })).toEqual({ opacity: '0', transform: 'none', transitionProperty: 'opacity' });
-
   await galleryLink.hover();
-  await page.mouse.down();
-  await page.waitForTimeout(200);
-  await expect(galleryLink).toHaveCSS('transform', 'none');
-  expect(Number(await galleryLink.evaluate((element) => getComputedStyle(element).opacity)))
-    .toBeLessThan(1);
-  await page.mouse.move(0, 0);
-  await page.mouse.up();
+  await expect.poll(() => readReducedSkiperFeedback(galleryLink)).toEqual({
+    afterOpacity: '1',
+    afterTransform: 'none',
+    iconOpacity: '1',
+    iconTransform: 'none',
+  });
+  await expectReducedPressFeedback(page, galleryLink);
 
   await page.goto('/contact');
+  const emailLink = page.locator('.contact-email a');
+  const emailTransitionProperties = await emailLink.evaluate((element) =>
+    getComputedStyle(element).transitionProperty.split(',').map((property) => property.trim()),
+  );
+  expect(emailTransitionProperties).toContain('opacity');
+  expect(emailTransitionProperties).not.toContain('transform');
+  await expectReducedPressFeedback(page, emailLink);
+
   const inquiryButton = page.locator('.inquiry-actions button');
   const buttonTransitionProperties = await inquiryButton.evaluate((element) =>
     getComputedStyle(element).transitionProperty.split(',').map((property) => property.trim()),
   );
   expect(buttonTransitionProperties).toContain('opacity');
   expect(buttonTransitionProperties).not.toContain('transform');
+  await expectReducedPressFeedback(page, inquiryButton);
+});
 
-  await inquiryButton.hover();
-  await page.mouse.down();
-  await page.waitForTimeout(200);
-  await expect(inquiryButton).toHaveCSS('transform', 'none');
-  expect(Number(await inquiryButton.evaluate((element) => getComputedStyle(element).opacity)))
-    .toBeLessThan(1);
-  await page.mouse.move(0, 0);
-  await page.mouse.up();
+test('reduced motion gates hover opacity to fine pointers without hiding focus feedback', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: 'http://127.0.0.1:4344',
+    hasTouch: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+
+  try {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    expect(await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches))
+      .toBe(false);
+
+    const galleryLink = page.locator('.skiper-link').first();
+    await galleryLink.hover({ force: true });
+    await expect.poll(() => readReducedSkiperFeedback(galleryLink)).toEqual({
+      afterOpacity: '0',
+      afterTransform: 'none',
+      iconOpacity: '0.72',
+      iconTransform: 'none',
+    });
+
+    await page.keyboard.press('Tab');
+    await galleryLink.focus();
+    expect(await galleryLink.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+    await expect.poll(() => readReducedSkiperFeedback(galleryLink)).toEqual({
+      afterOpacity: '1',
+      afterTransform: 'none',
+      iconOpacity: '1',
+      iconTransform: 'none',
+    });
+  } finally {
+    await context.close();
+  }
 });
 
 test('public pages contain no prototype language and contact collects event details', async ({ page }) => {

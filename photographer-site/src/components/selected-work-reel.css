@@ -477,7 +477,6 @@
     transition: opacity var(--motion-fast) ease;
   }
 
-  .skiper-link:hover::after,
   .skiper-link:focus-visible::after {
     opacity: 1;
     transform: none;
@@ -488,8 +487,24 @@
     transition: opacity var(--motion-fast) ease;
   }
 
-  .skiper-link:hover svg,
   .skiper-link:focus-visible svg {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
+  .work-project__media:hover .work-project__light {
+    opacity: 1;
+  }
+
+  .skiper-link:hover::after {
+    opacity: 1;
+    transform: none;
+  }
+
+  .skiper-link:hover svg {
+    opacity: 1;
     transform: none;
   }
 }

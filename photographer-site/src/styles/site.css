@@ -650,20 +650,6 @@ textarea:focus-visible {
   color: var(--muted);
 }
 
-.email-action {
-  margin-top: 1rem;
-  padding: 0.85rem 1.15rem;
-  border: 1px solid var(--ink);
-  font-weight: 650;
-  text-decoration: none;
-}
-
-.email-action:hover,
-.email-action:focus-visible {
-  background: var(--ink);
-  color: var(--paper);
-}
-
 .contact-page > .contact-email {
   color: var(--ink);
   font-family: var(--font-mono);
@@ -671,6 +657,7 @@ textarea:focus-visible {
 }
 
 .contact-email a {
+  display: inline-block;
   color: inherit;
 }
 
@@ -751,27 +738,27 @@ textarea:focus-visible {
   cursor: pointer;
 }
 
-.email-action,
+.contact-email a,
 .inquiry-actions button {
   transition-property: background-color, color, transform;
   transition-duration: var(--motion-fast);
   transition-timing-function: ease, ease, var(--motion-ease-out);
 }
 
-.email-action:active,
+.contact-email a:active,
 .inquiry-actions button:active {
   transform: scale(0.97);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .email-action,
+  .contact-email a,
   .inquiry-actions button {
     transition-property: background-color, color, opacity;
     transition-duration: var(--motion-fast);
     transition-timing-function: ease;
   }
 
-  .email-action:active,
+  .contact-email a:active,
   .inquiry-actions button:active {
     opacity: 0.78;
     transform: none;
