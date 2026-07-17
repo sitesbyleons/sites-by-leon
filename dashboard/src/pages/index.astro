@@ -15,11 +15,9 @@ const marketingSite = import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://site
     </a>
 
     <section class="portal-landing__copy">
-      <p class="eyebrow">Private client space</p>
-      <h1>Your website, <em>without the guesswork.</em></h1>
-      <p>
-        Follow the build, send updates, and manage your monthly hosting from one calm place.
-      </p>
+      <p class="eyebrow">Client dashboard</p>
+      <h1>Manage <em>your website.</em></h1>
+      <p>View progress, request changes, and manage billing.</p>
       <div class="portal-actions">
         {isPreview ? (
           <a class="button button--blue" href="/dashboard?preview=true">Open your dashboard</a>
@@ -30,7 +28,7 @@ const marketingSite = import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://site
           </>
         )}
       </div>
-      <a class="text-link portal-help" href="mailto:sites.by.leon@gmail.com">Already a client and need an invitation?</a>
+      <a class="text-link portal-help" href="mailto:sites.by.leon@gmail.com">Email Leon for access.</a>
     </section>
 
     <aside class="portal-preview" aria-label="Dashboard preview">
@@ -50,9 +48,9 @@ const marketingSite = import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://site
     </aside>
 
     <footer class="portal-landing__footer">
-      <span>Designed for photographers</span>
-      <span>Managed by Leon</span>
-      <span>Simple monthly hosting</span>
+      <span>Website progress</span>
+      <span>Support requests</span>
+      <span>Hosting and billing</span>
     </footer>
   </main>
 </DashboardLayout>

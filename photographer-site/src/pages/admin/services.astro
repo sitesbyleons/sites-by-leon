@@ -12,7 +12,7 @@ const displayPrice = (type: string, cents: number | null) => type === 'custom' ?
 ---
 
 <StudioAdminLayout title="Services" active="services" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
-  <header class="studio-section-heading"><div><small>Offerings</small><h2>Your services</h2></div><p>Keep only the packages clients should ask about.</p></header>
+  <header class="studio-section-heading"><div><small>Services</small><h2>Your services</h2></div><p>List the packages clients can ask about.</p></header>
   <section class="studio-stack">
     {data.services.length ? data.services.map((service) => (
       <article class="studio-item">

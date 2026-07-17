@@ -49,10 +49,10 @@ export const concepts: readonly Concept[] = [
   {
     slug: 'vow-and-light',
     name: 'Vow & Light',
-    focus: 'Editorial wedding photography',
+    focus: 'Wedding photography',
     label: 'Concept Project',
     domain: 'vowandlight.photo',
-    description: 'Editorial stories with room to breathe.',
+    description: 'Wedding galleries and inquiry details.',
     images: [
       { src: '/images/cinematic/wedding-courthouse.webp', alt: 'Bride and groom holding hands during an outdoor ceremony' },
       { src: '/images/cinematic/wedding-window.webp', alt: 'Newlyweds kissing as flower petals fall around their wedding party' },
@@ -62,10 +62,10 @@ export const concepts: readonly Concept[] = [
   {
     slug: 'northline-portraits',
     name: 'Northline Portraits',
-    focus: 'Bold portrait studio',
+    focus: 'Portrait studio',
     label: 'Concept Project',
     domain: 'northlineportraits.com',
-    description: 'Bold portraits. Clear booking.',
+    description: 'Portrait galleries and session booking.',
     images: [
       { src: '/images/cinematic/portrait-oxblood.webp', alt: 'Low-key studio portrait of a woman against a black background' },
       { src: '/images/cinematic/portrait-ceramicist.webp', alt: 'Red-haired creative seated at a studio table in colored light' },
@@ -75,10 +75,10 @@ export const concepts: readonly Concept[] = [
   {
     slug: 'fieldwork-commercial',
     name: 'Fieldwork Commercial',
-    focus: 'Minimal commercial photography',
+    focus: 'Commercial photography',
     label: 'Concept Project',
     domain: 'fieldwork.studio',
-    description: 'Projects, briefs, and client payments.',
+    description: 'Project pages, briefs, and client payments.',
     images: [
       { src: '/images/cinematic/commercial-fragrance.webp', alt: 'Pink glass fragrance bottle in warm directional light' },
       { src: '/images/cinematic/commercial-audio.webp', alt: 'Black wireless headphones photographed on a white background' },
@@ -92,63 +92,63 @@ export const plans: readonly Plan[] = [
     name: 'Essential',
     monthlyPrice: 25,
     buildFee: 0,
-    description: 'A sharp one-page start for a new photography business.',
-    features: ['Template one-page site', 'Custom domain', 'Payment system', 'Hosting and care'],
+    description: 'A one-page site for a new photography business.',
+    features: ['One-page template', 'Domain setup', 'Payment setup', 'Hosting and updates'],
   },
   {
     name: 'Studio',
     monthlyPrice: 30,
     buildFee: 0,
-    description: 'More pages and galleries for a growing body of work.',
-    features: ['Template multi-page site', 'Custom domain', 'Payment system', 'Galleries and inquiries'],
+    description: 'A multi-page site with galleries and inquiries.',
+    features: ['Multi-page template', 'Domain setup', 'Payment setup', 'Galleries and inquiries'],
     featured: true,
   },
   {
     name: 'Signature',
     monthlyPrice: 40,
     buildFee: 0,
-    description: 'A custom direction shaped around your photography and brand.',
-    features: ['Custom-made site', 'Custom domain', 'Payment system', 'Hosting and priority care'],
+    description: 'A custom site based on your photography and brand.',
+    features: ['Custom site', 'Domain setup', 'Payment setup', 'Hosting and direct support'],
   },
 ] as const;
 
 export const services: readonly Service[] = [
   {
     index: '01',
-    title: 'Designed around your work',
-    description: 'Every layout is shaped around your images, voice, audience, and photography focus.',
+    title: 'Website design',
+    description: 'The pages and image layout are based on your photography business.',
   },
   {
     index: '02',
-    title: 'Hosted and maintained',
-    description: 'Launch, routine technical care, and dependable hosting stay off your plate.',
+    title: 'Hosting and updates',
+    description: 'Leon publishes the site, hosts it, and handles routine updates.',
   },
   {
     index: '03',
-    title: 'A real person to contact',
-    description: 'When you want an update or have a question, you talk directly with Leon.',
+    title: 'Direct support',
+    description: 'Email Leon when you need a change or have a question.',
   },
 ] as const;
 
 export const processSteps: readonly ProcessStep[] = [
   {
     index: '01',
-    title: 'Start with a conversation',
-    description: 'Tell me what you photograph, what you need, and where your current site falls short.',
+    title: 'Tell Leon what you need',
+    description: 'Share what you photograph and what the website needs to do.',
   },
   {
     index: '02',
-    title: 'Shape the direction',
-    description: 'We align on the pages, personality, and images that will make the site feel like yours.',
+    title: 'Choose the pages and photos',
+    description: 'Choose the pages, images, colors, and type for the site.',
   },
   {
     index: '03',
-    title: 'Review the build',
-    description: 'You see the site before launch and we refine the details together.',
+    title: 'Review the site',
+    description: 'Review the website and send Leon any changes before launch.',
   },
   {
     index: '04',
-    title: 'Launch without the headache',
-    description: 'I publish the site, handle the hosting, and stay available for ongoing care.',
+    title: 'Publish the site',
+    description: 'Leon publishes the site, manages hosting, and handles future updates.',
   },
 ] as const;

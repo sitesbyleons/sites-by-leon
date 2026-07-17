@@ -93,8 +93,8 @@ const periodEnd = dashboardData.subscription?.current_period_end
     <main class="client-main">
       <section class="client-intro" id="website">
         <p>Client dashboard</p>
-        <h1>{hasWorkspace ? state.workspaceName : 'Welcome to Sites By Leon.'}</h1>
-        <span>{hasWorkspace ? state.nextStep : 'Your account is ready. Leon will connect your website here.'}</span>
+        <h1>{hasWorkspace ? state.workspaceName : 'Sites By Leon'}</h1>
+        <span>{hasWorkspace ? state.nextStep : 'Leon will add your website after setup.'}</span>
       </section>
 
       {dashboardData.error && <p class="simple-notice" role="status">{dashboardData.error}</p>}
@@ -102,9 +102,9 @@ const periodEnd = dashboardData.subscription?.current_period_end
       {!hasWorkspace ? (
         <section class="onboarding-card">
           <div>
-            <span class="simple-label">Account ready</span>
-            <h2>Your website space comes next.</h2>
-            <p>Leon will connect your project after your first conversation. You do not need to create an organization or configure anything.</p>
+            <span class="simple-label">No website connected</span>
+            <h2>Contact Leon to get started.</h2>
+            <p>Leon will create the project and add it to your account.</p>
           </div>
           <div class="onboarding-card__actions">
             <a class="simple-button" href="mailto:sites.by.leon@gmail.com">Contact Leon</a>
@@ -134,7 +134,7 @@ const periodEnd = dashboardData.subscription?.current_period_end
           <section class="client-two-column">
             <article class="simple-panel" id="support">
               <span class="simple-label">Support ticket</span>
-              <h2>Ask for an update.</h2>
+              <h2>Request a change</h2>
               <form data-content-request>
                 <label>Subject<input name="subject" minlength="5" maxlength="120" required placeholder="What needs changing?" /></label>
                 <label>Details<textarea name="details" minlength="20" maxlength="2000" required placeholder="Tell Leon what to update and where."></textarea></label>
@@ -166,7 +166,7 @@ const periodEnd = dashboardData.subscription?.current_period_end
                   ))}
                 </div>
               )}
-              <small>Payments are handled securely by Stripe.</small>
+              <small>Stripe processes payments.</small>
             </article>
           </section>
         </>

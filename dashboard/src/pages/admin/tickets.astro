@@ -67,7 +67,7 @@ const date = (value: string) => new Intl.DateTimeFormat('en-US', { month: 'short
 const pageHref = (target: number) => `/admin/tickets?status=${encodeURIComponent(status)}&sort=${encodeURIComponent(sort)}&page=${target}`;
 ---
 
-<AdminFrame active="tickets" title="Tickets" eyebrow="Support" description="Separate what needs action from what is already handled." isPreview={isPreview} error={session.error}>
+<AdminFrame active="tickets" title="Tickets" eyebrow="Support" description="View open and closed support tickets." isPreview={isPreview} error={session.error}>
   <form class="admin-tools" method="get" aria-label="Sort and filter tickets">
     {isPreview && <input type="hidden" name="preview" value="true" />}
     <label><span>Status</span><select name="status"><option value="open" selected={status === 'open'}>Open</option><option value="new" selected={status === 'new'}>New</option><option value="planned" selected={status === 'planned'}>Planned</option><option value="in_progress" selected={status === 'in_progress'}>In progress</option><option value="completed" selected={status === 'completed'}>Completed</option><option value="declined" selected={status === 'declined'}>Declined</option><option value="all" selected={status === 'all'}>All tickets</option></select></label>

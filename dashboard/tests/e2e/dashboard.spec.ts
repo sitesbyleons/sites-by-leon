@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+test('landing page explains the client dashboard', async ({ page }) => {
+  await page.goto('/?preview=true');
+  await expect(page.getByRole('heading', { name: 'Manage your website.' })).toBeVisible();
+  await expect(page.getByText('View progress, request changes, and manage billing.', { exact: true })).toBeVisible();
+});
+
 test('shows project progress in the simple website summary', async ({ page }) => {
   await page.goto('/dashboard?preview=true');
   await expect(page.getByRole('heading', { name: 'In review' })).toBeVisible();
@@ -24,10 +30,12 @@ test('keeps the preview dashboard within a mobile viewport', async ({ page }) =>
 test('support and billing are real dashboard pages', async ({ page }) => {
   await page.goto('/dashboard/support?preview=true');
   await expect(page.getByRole('heading', { name: 'Support' })).toBeVisible();
+  await expect(page.getByText('Send a support request to Leon.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Send ticket' })).toBeVisible();
 
   await page.goto('/dashboard/billing?preview=true');
   await expect(page.getByRole('heading', { name: 'Billing' })).toBeVisible();
+  await expect(page.getByText('View your plan and manage billing with Stripe.', { exact: true })).toBeVisible();
   await expect(page.getByText('Studio', { exact: true })).toBeVisible();
   await expect(page.locator('form[action="/api/billing/portal"]')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Manage subscription' })).toBeVisible();

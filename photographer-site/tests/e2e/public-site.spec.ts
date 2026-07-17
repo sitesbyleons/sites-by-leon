@@ -199,7 +199,7 @@ test('server-side preview pause redirects public pages and leaves health availab
   const response = await navigate(page, 'http://127.0.0.1:4345/');
   expect(response?.status()).toBe(200);
   await expect(page).toHaveURL('http://127.0.0.1:4345/maintenance');
-  await expect(page.getByRole('heading', { name: 'This site is taking a short pause.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This site is temporarily unavailable.' })).toBeVisible();
 
   const health = await request.get('http://127.0.0.1:4345/api/health');
   expect(health.status()).toBe(200);
@@ -231,6 +231,7 @@ test('home is an image-first editorial sports portfolio', async ({ page }) => {
     page.getByText('Sports photography for teams and athletes.', { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Selected work' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Book coverage.' })).toBeVisible();
   await expect(page.locator('.service-preview p')).toHaveText(
     'Game Coverage, Season Coverage, and Athlete Session.',
   );

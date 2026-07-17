@@ -44,10 +44,10 @@ describe('launch content', () => {
   });
 
   it('includes domains and payments in every plan while reserving custom design for Signature', () => {
-    expect(plans.every((plan) => plan.features.includes('Custom domain'))).toBe(true);
-    expect(plans.every((plan) => plan.features.includes('Payment system'))).toBe(true);
+    expect(plans.every((plan) => plan.features.includes('Domain setup'))).toBe(true);
+    expect(plans.every((plan) => plan.features.includes('Payment setup'))).toBe(true);
     expect(plans.slice(0, 2).every((plan) => plan.features.some((feature) => /template/i.test(feature)))).toBe(true);
-    expect(plans[2].features).toContain('Custom-made site');
+    expect(plans[2].features).toContain('Custom site');
   });
 
   it('uses the approved contact address', () => {

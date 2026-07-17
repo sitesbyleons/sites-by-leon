@@ -20,7 +20,7 @@ if (access.kind === 'redirect') return Astro.redirect('/sign-in?redirect_url=%2F
       <div class="client-account">{!isPreview && <UserButton />}</div>
     </header>
     <main class="client-main client-main--page">
-      <section class="client-intro"><p>Client dashboard</p><h1>Support</h1><span>Send Leon the details and they will be saved as a ticket.</span></section>
+      <section class="client-intro"><p>Client dashboard</p><h1>Support</h1><span>Send a support request to Leon.</span></section>
       <article class="simple-panel client-page-panel">
         <form data-content-request>
           <label>Subject<input name="subject" minlength="5" maxlength="120" required placeholder="What needs changing?" /></label>

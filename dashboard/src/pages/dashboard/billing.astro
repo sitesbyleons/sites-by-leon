@@ -37,7 +37,7 @@ const checkoutReady = canStartCheckout({
       <div class="client-account">{!isPreview && <UserButton />}</div>
     </header>
     <main class="client-main client-main--page">
-      <section class="client-intro"><p>Client dashboard</p><h1>Billing</h1><span>View your hosting plan and open Stripe billing.</span></section>
+      <section class="client-intro"><p>Client dashboard</p><h1>Billing</h1><span>View your plan and manage billing with Stripe.</span></section>
       <article class="simple-panel client-page-panel">
         {data.error && <p class="simple-notice" role="status">{data.error}</p>}
         {manageableSubscription ? (

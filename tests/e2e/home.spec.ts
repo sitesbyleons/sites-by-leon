@@ -1,11 +1,11 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-test('hero explains the product and reaches contact', async ({ page }) => {
+test('hero states the offer and reaches contact', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByText('Websites + hosting for photographers', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Show off your photography. I’ll handle the website.');
+  await expect(page.getByText('Websites and hosting for photographers', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Websites for photographers. Hosting included.');
   await page.locator('.site-header').getByRole('link', { name: 'Contact', exact: true }).click();
   await expect(page.locator('#contact')).toBeInViewport();
 });
@@ -24,12 +24,12 @@ test('uses a varied cinematic image library inside complete website concepts', a
   await expect(page.locator('.price-card')).toHaveCount(0);
 });
 
-test('website concepts demonstrate the photographer client journey', async ({ page }) => {
+test('website examples show distinct photography businesses', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { level: 2, name: 'Made to show your work.' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Website examples for photographers.' })).toBeVisible();
   await expect(page.locator('.concept-capabilities')).toHaveCount(0);
-  await expect(page.getByText('Check your date', { exact: true })).toBeVisible();
+  await expect(page.getByText('Check availability', { exact: true })).toBeVisible();
   await expect(page.getByText('Book a session', { exact: true })).toBeVisible();
   await expect(page.getByText('Deposit received', { exact: true })).toBeVisible();
 });
@@ -382,10 +382,10 @@ test('shows three side-by-side monthly plans from $25 to $40 with domains and pa
   await expect(cards.filter({ hasText: 'Essential' })).toContainText('$25');
   await expect(cards.filter({ hasText: 'Studio' })).toContainText('$30');
   await expect(cards.filter({ hasText: 'Signature' })).toContainText('$40');
-  await expect(cards.getByText('Custom domain', { exact: true })).toHaveCount(3);
-  await expect(cards.getByText('Payment system', { exact: true })).toHaveCount(3);
+  await expect(cards.getByText('Domain setup', { exact: true })).toHaveCount(3);
+  await expect(cards.getByText('Payment setup', { exact: true })).toHaveCount(3);
   await expect(cards.getByText(/template/i)).toHaveCount(2);
-  await expect(cards.getByText('Custom-made site', { exact: true })).toHaveCount(1);
+  await expect(cards.getByText('Custom site', { exact: true })).toHaveCount(1);
   const cardPositions = await cards.evaluateAll((items) =>
     items.map((item) => ({ x: (item as HTMLElement).offsetLeft, y: (item as HTMLElement).offsetTop })),
   );
@@ -407,10 +407,10 @@ test('keeps contact direct and email-only', async ({ page }) => {
 test('publishes correct metadata for the full marketing preview', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page).toHaveTitle('Sites By Leon — Website design and hosting');
+  await expect(page).toHaveTitle('Sites By Leon - Websites and hosting for photographers');
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     'content',
-    'Affordable websites and hosting built for photographers, with portfolios, inquiries, payments, and ongoing support handled.',
+    'Websites and hosting for photographers, with portfolio pages, inquiries, payments, updates, and direct support.',
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
@@ -418,7 +418,7 @@ test('publishes correct metadata for the full marketing preview', async ({ page 
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     'content',
-    'Sites By Leon — Website design and hosting',
+    'Sites By Leon - Websites and hosting for photographers',
   );
   await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
     'content',
@@ -534,9 +534,9 @@ for (const viewport of [
 
 test('publishes the privacy and terms pages', async ({ page }) => {
   await page.goto('/privacy');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('privacy notice');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy notice.');
   await page.goto('/terms');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('service terms');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Website and service terms.');
 });
 
 test('has no serious or critical accessibility violations', async ({ page }) => {

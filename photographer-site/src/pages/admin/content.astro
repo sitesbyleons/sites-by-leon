@@ -11,7 +11,7 @@ const settings = data.settings;
 ---
 
 <StudioAdminLayout title="Homepage" active="content" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
-  <header class="studio-section-heading"><div><small>Homepage</small><h2>Text and style</h2></div><p>Change the essentials without rebuilding the page.</p></header>
+  <header class="studio-section-heading"><div><small>Homepage</small><h2>Text and style</h2></div><p>Edit the homepage text, colors, and fonts.</p></header>
   <section class="studio-panel">
     <form class="studio-form" data-studio-form data-resource="settings">
       <label><span>Site name</span><input name="site_title" value={settings?.site_title ?? ''} minlength="2" maxlength="100" required /></label>

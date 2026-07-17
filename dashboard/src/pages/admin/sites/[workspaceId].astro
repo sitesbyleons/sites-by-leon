@@ -30,7 +30,7 @@ const billingLabel = connection.billing_mode === 'automatic'
   : 'manual';
 ---
 
-<AdminFrame active="sites" title={workspace.name} eyebrow="Website settings" description="Domains, hosting, and site access in one place." isPreview={isPreview} error={session.error}>
+<AdminFrame active="sites" title={workspace.name} eyebrow="Website settings" description="Domains, hosting, and site access." isPreview={isPreview} error={session.error}>
   <div class="provision-back"><a href={`/admin/sites${preview}`}>← Back to sites</a></div>
 
   <section class="site-detail-summary">

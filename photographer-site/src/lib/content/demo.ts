@@ -209,7 +209,7 @@ export const demoPortfolio = {
       name: 'Athlete Session',
       startingPrice: 'From $600',
       description: 'Action photography and athlete portraits.',
-      features: ['Training coverage', 'Portrait session', 'Recruiting-ready selects'],
+      features: ['Training coverage', 'Portrait session', 'Edited action and portrait images'],
       ctaLabel: 'Ask about this package',
     },
   ],
