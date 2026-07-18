@@ -122,10 +122,13 @@ describe('fully self-hosted production stack', () => {
     expect(fs.existsSync(configurePath)).toBe(true);
     const configure = fs.existsSync(configurePath) ? fs.readFileSync(configurePath, 'utf8') : '';
 
-    expect(configure).toContain('connect: true');
+    expect(configure).toContain('stripe.v2.core.eventDestinations.create');
+    expect(configure).toContain("events_from: ['@accounts']");
+    expect(configure).toContain("'webhook_endpoint.signing_secret'");
+    expect(configure).not.toContain('stripe.webhookEndpoints.create');
     expect(configure).toContain("'@accounts'");
     expect(configure).toContain("'other_accounts'");
-    expect(configure).toContain('const secret = created.secret');
+    expect(configure).toContain('const secret = created.webhook_endpoint?.signing_secret');
     expect(configure).toContain('STRIPE_BILLING_PORTAL_CONFIGURATION');
     expect(configure).toContain('STRIPE_CONNECT_WEBHOOK_SECRET');
     expect(configure).toContain('renameSync');

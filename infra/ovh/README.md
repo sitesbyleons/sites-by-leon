@@ -135,7 +135,7 @@ STRIPE_EXPECTED_MODE=test infra/ovh/scripts/configure-stripe-resources.mjs platf
 STRIPE_EXPECTED_MODE=test infra/ovh/scripts/configure-stripe-resources.mjs connect infra/ovh/secrets/northline.env
 ```
 
-The command refuses non-regular files, files not owned by the current user, and permissions other than `600`. A replacement Connect signing secret is written with an atomic rename before the old destination is disabled. Run the verifier immediately afterward.
+Before configuring live Connect destinations, register the Stripe account as a platform, add its business details, and complete the platform profile in the Stripe Dashboard. Without that account-side activation, Stripe normalizes connected-account destination requests to account-only destinations and the command rolls them back. The command refuses non-regular files, files not owned by the current user, and permissions other than `600`. A replacement Connect signing secret is written with an atomic rename before the old destination is disabled. Run the verifier immediately afterward.
 
 ## Backups
 

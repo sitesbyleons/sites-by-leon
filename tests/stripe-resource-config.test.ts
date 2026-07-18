@@ -118,29 +118,24 @@ describe('Stripe resource configuration', () => {
       events_from: ['@accounts'], enabled_events: ['v2.core.account.updated'], webhook_endpoint: { url: thinUrl },
     };
     const create = vi.fn(async () => ({
-      id: 'we_new', status: 'enabled', livemode: true, connect: true,
-      enabled_events: [], url: snapshotUrl, secret: 'whsec_new',
+      id: 'ed_new', status: 'enabled', livemode: true, event_payload: 'snapshot',
+      events_from: ['@accounts'], enabled_events: [
+        'account.updated', 'account.application.deauthorized', 'invoice.paid',
+        'invoice.payment_failed', 'invoice.voided', 'invoice.marked_uncollectible',
+      ], webhook_endpoint: { url: snapshotUrl, signing_secret: 'whsec_new' },
     }));
-    const disable = vi.fn(async (id: string, input: unknown) => {
-      expect(input).toEqual({ disabled: true });
+    const disable = vi.fn(async (id: string) => {
       if (id === 'ed_old') {
         expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_new');
       }
       return { id, status: 'disabled' };
     });
     const update = vi.fn(async (id: string, input: Record<string, unknown>) => ({ id, ...input }));
-    const retrieve = vi.fn(async (id: string) => ({
-      id, status: 'enabled', livemode: true, event_payload: 'snapshot',
-      events_from: ['other_accounts'], enabled_events: [
-        'account.updated', 'account.application.deauthorized', 'invoice.paid',
-        'invoice.payment_failed', 'invoice.voided', 'invoice.marked_uncollectible',
-      ], webhook_endpoint: { url: snapshotUrl },
-    }));
     const stripe = {
-      webhookEndpoints: { create, update: disable },
       v2: { core: { eventDestinations: {
         list: vi.fn(() => destinations([oldSnapshot, thin])),
-        retrieve,
+        create,
+        disable,
         update,
       } } },
     };
@@ -152,11 +147,13 @@ describe('Stripe resource configuration', () => {
     });
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
-      connect: true,
-      url: snapshotUrl,
+      event_payload: 'snapshot',
+      events_from: ['@accounts'],
+      include: ['webhook_endpoint.signing_secret', 'webhook_endpoint.url'],
+      type: 'webhook_endpoint',
+      webhook_endpoint: { url: snapshotUrl },
     }));
-    expect(disable).toHaveBeenCalledWith('ed_old', { disabled: true });
-    expect(retrieve).toHaveBeenCalledWith('we_new', { include: ['webhook_endpoint.url'] });
+    expect(disable).toHaveBeenCalledWith('ed_old');
     expect(update).toHaveBeenCalledWith('ed_thin', expect.objectContaining({
       enabled_events: expect.arrayContaining([
         'v2.core.account.updated',
@@ -165,7 +162,7 @@ describe('Stripe resource configuration', () => {
       ]),
     }));
     expect(result).toEqual({
-      snapshot_destination: 'we_new',
+      snapshot_destination: 'ed_new',
       snapshot_replaced: true,
       thin_destination: 'ed_thin',
       thin_updated: true,
@@ -185,17 +182,16 @@ describe('Stripe resource configuration', () => {
       events_from: ['@accounts'], enabled_events: ['v2.core.account.updated'], webhook_endpoint: { url: thinUrl },
     };
     const create = vi.fn(async () => ({
-      id: 'we_wrong', status: 'enabled', livemode: true, secret: 'whsec_wrong', url: snapshotUrl,
+      id: 'ed_wrong', status: 'enabled', livemode: true, event_payload: 'snapshot',
+      events_from: ['@self'], enabled_events: ['account.updated'],
+      webhook_endpoint: { url: snapshotUrl, signing_secret: 'whsec_wrong' },
     }));
     const disable = vi.fn(async (id: string) => ({ id, status: 'disabled' }));
     const stripe = {
-      webhookEndpoints: { create, update: disable },
       v2: { core: { eventDestinations: {
         list: vi.fn(() => destinations([oldSnapshot, thin])),
-        retrieve: vi.fn(async () => ({
-          id: 'we_wrong', status: 'enabled', livemode: true, event_payload: 'snapshot',
-          events_from: ['@self'], enabled_events: ['account.updated'], webhook_endpoint: { url: snapshotUrl },
-        })),
+        create,
+        disable,
         update: vi.fn(),
       } } },
     };
@@ -204,12 +200,12 @@ describe('Stripe resource configuration', () => {
       STRIPE_EXPECTED_MODE: 'live',
       STRIPE_CONNECT_WEBHOOK_URL: snapshotUrl,
       STRIPE_CONNECT_V2_WEBHOOK_URL: thinUrl,
-    })).rejects.toThrow(/connected accounts/);
+    })).rejects.toThrow(/Register and activate the Connect platform profile/);
 
     expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old');
     expect(disable).toHaveBeenCalledTimes(1);
-    expect(disable).toHaveBeenCalledWith('we_wrong', { disabled: true });
-    expect(disable).not.toHaveBeenCalledWith('we_old', expect.anything());
+    expect(disable).toHaveBeenCalledWith('ed_wrong');
+    expect(disable).not.toHaveBeenCalledWith('we_old');
   });
 
   it('accepts the legacy connected-account origin while using the current API enum for new destinations', async () => {
@@ -217,7 +213,6 @@ describe('Stripe resource configuration', () => {
     const snapshotUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect';
     const thinUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect-v2';
     const stripe = {
-      webhookEndpoints: { create: vi.fn(), update: vi.fn() },
       v2: { core: { eventDestinations: {
         list: vi.fn(() => destinations([
           {
@@ -236,7 +231,7 @@ describe('Stripe resource configuration', () => {
             ], webhook_endpoint: { url: thinUrl },
           },
         ])),
-        retrieve: vi.fn(), update: vi.fn(),
+        create: vi.fn(), disable: vi.fn(), update: vi.fn(),
       } } },
     };
 
@@ -250,16 +245,15 @@ describe('Stripe resource configuration', () => {
       thin_destination: 'ed_thin',
       thin_updated: false,
     });
-    expect(stripe.webhookEndpoints.create).not.toHaveBeenCalled();
+    expect(stripe.v2.core.eventDestinations.create).not.toHaveBeenCalled();
   });
 
   it('fails closed before Stripe mutation when the env file cannot safely store a secret', async () => {
     const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=one\nSTRIPE_CONNECT_WEBHOOK_SECRET=two\n');
     const create = vi.fn();
     const stripe = {
-      webhookEndpoints: { create, update: vi.fn() },
       v2: { core: { eventDestinations: {
-        list: vi.fn(() => destinations([])), update: vi.fn(),
+        list: vi.fn(() => destinations([])), create, disable: vi.fn(), update: vi.fn(),
       } } },
     };
 

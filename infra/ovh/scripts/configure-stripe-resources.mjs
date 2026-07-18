@@ -216,36 +216,36 @@ export const configureConnect = async (stripe, envFile, environment = process.en
   let snapshot = oldSnapshot;
   let snapshotReplaced = false;
   if (!isExpectedSnapshot(oldSnapshot, livemode)) {
-    const created = await stripe.webhookEndpoints.create({
+    const created = await stripe.v2.core.eventDestinations.create({
+      name: 'Connected-account invoice events',
       description: 'Connected-account invoice events for the tenant-aware photographer runtime.',
-      connect: true,
       enabled_events: snapshotEvents,
-      url: snapshotUrl,
+      event_payload: 'snapshot',
+      events_from: ['@accounts'],
+      include: ['webhook_endpoint.signing_secret', 'webhook_endpoint.url'],
+      type: 'webhook_endpoint',
+      webhook_endpoint: { url: snapshotUrl },
     });
-    const secret = created.secret;
-    let verifiedCreated;
+    const secret = created.webhook_endpoint?.signing_secret;
     try {
       assertResourceMode(created, livemode, 'Connect snapshot destination');
       assertConfiguration(created.status === 'enabled', 'New Connect snapshot destination is not enabled.');
-      verifiedCreated = await stripe.v2.core.eventDestinations.retrieve(created.id, {
-        include: ['webhook_endpoint.url'],
-      });
-      assertConfiguration(isExpectedSnapshot(verifiedCreated, livemode),
-        'New Connect snapshot destination does not receive events from connected accounts.');
-      assertConfiguration(verifiedCreated.webhook_endpoint?.url === snapshotUrl,
+      assertConfiguration(isExpectedSnapshot(created, livemode),
+        'Stripe did not create a connected-account destination. Register and activate the Connect platform profile in the Stripe Dashboard before retrying.');
+      assertConfiguration(created.webhook_endpoint?.url === snapshotUrl,
         'New Connect snapshot destination has the wrong URL.');
-      assertConfiguration(includesAll(verifiedCreated.enabled_events, snapshotEvents),
+      assertConfiguration(includesAll(created.enabled_events, snapshotEvents),
         'New Connect snapshot destination is missing required events.');
       assertConfiguration(Boolean(secret), 'Stripe did not return the new Connect signing secret.');
       setEnvValue(envFile, 'STRIPE_CONNECT_WEBHOOK_SECRET', secret);
     } catch (error) {
-      await stripe.webhookEndpoints.update(created.id, { disabled: true }).catch(() => undefined);
+      await stripe.v2.core.eventDestinations.disable(created.id).catch(() => undefined);
       throw error;
     }
 
     environment.STRIPE_CONNECT_WEBHOOK_SECRET = secret;
-    if (oldSnapshot) await stripe.webhookEndpoints.update(oldSnapshot.id, { disabled: true });
-    snapshot = verifiedCreated;
+    if (oldSnapshot) await stripe.v2.core.eventDestinations.disable(oldSnapshot.id);
+    snapshot = created;
     snapshotReplaced = true;
   } else if (!includesAll(snapshot.enabled_events, snapshotEvents)) {
     snapshot = await stripe.v2.core.eventDestinations.update(snapshot.id, {
