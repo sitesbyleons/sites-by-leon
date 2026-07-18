@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -5,6 +7,8 @@ import {
   connectAccountLinkParams,
   connectAccountStatus,
 } from '../src/lib/stripe-connect';
+
+const read = (path: string) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const account = (overrides: Record<string, unknown> = {}) => ({
   id: 'acct_test',
@@ -71,5 +75,19 @@ describe('Accounts v2 Connect setup', () => {
 
   it('marks closed accounts disabled', () => {
     expect(connectAccountStatus(account({ closed: true }) as never).onboarding_status).toBe('disabled');
+  });
+});
+
+describe('Connect webhook event ledger', () => {
+  it('uses checked finalization for both webhook formats', () => {
+    for (const routePath of [
+      'src/pages/api/webhooks/stripe-connect.ts',
+      'src/pages/api/webhooks/stripe-connect-v2.ts',
+    ]) {
+      const route = read(routePath);
+      expect(route).toContain("from '@leon/platform-core/stripe-events'");
+      expect(route).toContain('await markStripeEvent');
+      expect(route).not.toContain("from('stripe_events').update");
+    }
   });
 });

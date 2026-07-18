@@ -6,6 +6,7 @@ import {
   createPostgresHostingQueryExecutor,
   type HostingPlanKey,
 } from '@leon/platform-core/hosting-access';
+import { markStripeEvent } from '@leon/platform-core/stripe-events';
 import { createPlatformDatabase } from '../../../lib/database';
 
 const subscriptionEvents = new Set([
@@ -53,12 +54,10 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const acknowledgeIgnored = async (reason: string) => {
-    const ignored = await database.from('stripe_events').update({
+    await markStripeEvent(database, event.id, {
       status: 'processed',
-      processed_at: new Date().toISOString(),
-      last_error: reason,
-    }).eq('event_id', event.id);
-    if (ignored.error) throw new Error(ignored.error.message);
+      lastError: reason,
+    });
     return Response.json({ received: true, ignored: true });
   };
 
@@ -142,15 +141,14 @@ export const POST: APIRoute = async ({ request }) => {
           }
           await stripe.subscriptions.cancel(subscription.id, { invoice_now: false, prorate: false });
         }
-        await database.from('stripe_events').update({
+        await markStripeEvent(database, event.id, {
           status: 'processed',
-          processed_at: new Date().toISOString(),
-          last_error: duplicateActive
+          lastError: duplicateActive
             ? duplicateRefunded
               ? 'A duplicate active subscription was refunded and canceled automatically.'
               : 'A duplicate active subscription was canceled; no refundable payment was found.'
             : null,
-        }).eq('event_id', event.id);
+        });
         return Response.json({ received: true, subscription_conflict: true, duplicate_canceled: duplicateActive, duplicate_refunded: duplicateRefunded });
       }
       if (synchronized.data.outcome !== 'archived') {
@@ -174,18 +172,16 @@ export const POST: APIRoute = async ({ request }) => {
 
     }
 
-    await database.from('stripe_events').update({
+    await markStripeEvent(database, event.id, {
       status: 'processed',
-      processed_at: new Date().toISOString(),
-      last_error: null,
-    }).eq('event_id', event.id);
+      lastError: null,
+    });
     return Response.json({ received: true });
   } catch {
-    await database.from('stripe_events').update({
+    await markStripeEvent(database, event.id, {
       status: 'failed',
-      last_error: 'Webhook processing failed and will be retried.',
-      last_attempt_at: new Date().toISOString(),
-    }).eq('event_id', event.id);
+      lastError: 'Webhook processing failed and will be retried.',
+    }).catch(() => undefined);
     return Response.json({ message: 'Webhook processing failed and will be retried.' }, { status: 500 });
   }
 };

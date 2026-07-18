@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
+import { markStripeEvent } from '@leon/platform-core/stripe-events';
 import { createStudioDatabase } from '../../../lib/database';
 import { connectAccountIncludes, connectAccountStatus } from '../../../lib/stripe-connect';
 
@@ -52,18 +53,16 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    await database.from('stripe_events').update({
+    await markStripeEvent(database, event.id, {
       status: 'processed',
-      processed_at: new Date().toISOString(),
-      last_error: null,
-    }).eq('event_id', event.id);
+      lastError: null,
+    });
     return Response.json({ received: true });
   } catch {
-    await database.from('stripe_events').update({
+    await markStripeEvent(database, event.id, {
       status: 'failed',
-      last_error: 'Accounts v2 webhook processing failed and will be retried.',
-      last_attempt_at: new Date().toISOString(),
-    }).eq('event_id', event.id);
+      lastError: 'Accounts v2 webhook processing failed and will be retried.',
+    }).catch(() => undefined);
     return Response.json({ message: 'Webhook processing failed and will be retried.' }, { status: 500 });
   }
 };

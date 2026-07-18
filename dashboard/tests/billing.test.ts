@@ -128,4 +128,11 @@ describe('subscription webhook isolation', () => {
     expect(webhook).toContain(".eq('stripe_session_id', completedSessionId)");
     expect(webhook).not.toContain("delete().eq('workspace_id', workspaceId);");
   });
+
+  it('uses checked event finalization for processed and failed outcomes', () => {
+    const webhook = read('src/pages/api/webhooks/stripe.ts');
+    expect(webhook).toContain("from '@leon/platform-core/stripe-events'");
+    expect(webhook).toContain('await markStripeEvent');
+    expect(webhook).not.toContain("from('stripe_events').update");
+  });
 });

@@ -10,7 +10,8 @@
     "./image-storage": "./src/image-storage.ts",
     "./request-security": "./src/request-security.ts",
     "./site-domains": "./src/site-domains.ts",
-    "./site-lifecycle": "./src/site-lifecycle.ts"
+    "./site-lifecycle": "./src/site-lifecycle.ts",
+    "./stripe-events": "./src/stripe-events.ts"
   },
   "dependencies": {
     "postgres": "3.4.9"
