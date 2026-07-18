@@ -35,6 +35,11 @@ BACKUP_MIN_FREE_BYTES=${BACKUP_MIN_FREE_BYTES:-10737418240}
 BACKUP_HEALTHCHECK_SCRIPT=${BACKUP_HEALTHCHECK_SCRIPT:-/usr/local/libexec/leon-platform/healthcheck.sh}
 BACKUP_HEALTHCHECK_ATTEMPTS=${BACKUP_HEALTHCHECK_ATTEMPTS:-12}
 BACKUP_HEALTHCHECK_INTERVAL_SECONDS=${BACKUP_HEALTHCHECK_INTERVAL_SECONDS:-5}
+BACKUP_HOSTNAME=${BACKUP_HOSTNAME:-$(hostname)}
+if [[ ! ${BACKUP_HOSTNAME} =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "BACKUP_HOSTNAME must be a non-empty hostname." >&2
+  exit 1
+fi
 if [[ ! ${BACKUP_MIN_FREE_BYTES} =~ ^[0-9]+$ ]]; then
   echo "BACKUP_MIN_FREE_BYTES must be a whole number of bytes." >&2
   exit 1
@@ -223,6 +228,6 @@ restic snapshots >/dev/null 2>&1 || restic init
 backup_paths=("${dump}" "${staged_uploads}")
 [[ -d "${SOURCE_ROOT}" ]] && backup_paths+=("${SOURCE_ROOT}")
 [[ -d /opt/leon-platform/secrets ]] && backup_paths+=(/opt/leon-platform/secrets)
-restic backup --exclude "${RESTIC_PASSWORD_FILE}" "${backup_paths[@]}"
-restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+restic backup --host "${BACKUP_HOSTNAME}" --exclude "${RESTIC_PASSWORD_FILE}" "${backup_paths[@]}"
+restic forget --group-by host --host "${BACKUP_HOSTNAME}" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
 echo "Encrypted database and application backup completed."

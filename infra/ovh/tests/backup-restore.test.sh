@@ -19,7 +19,7 @@ case "${1:-}" in
   check)
     ;;
   snapshots)
-    printf '[{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","time":"2026-07-18T05:00:00Z"}]\n'
+    printf '[{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","time":"2026-07-18T04:00:00Z"},{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","time":"2026-07-18T05:00:00Z"}]\n'
     ;;
   restore)
     target=
@@ -50,7 +50,9 @@ cat > "${FIXTURE}/bin/jq" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 filter=${2:-}
-if [[ ${filter} == *'.id'* ]]; then
+if [[ ${filter} == *'length == 1'* ]]; then
+  exit 4
+elif [[ ${filter} == *'.id'* ]]; then
   printf 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n'
 elif [[ ${filter} == *'.time'* ]]; then
   printf '2026-07-18T05:00:00Z\n'
@@ -84,6 +86,7 @@ run_drill() {
     UPLOAD_ROOT="${FIXTURE}/uploads" \
     BACKUP_ROOT="${FIXTURE}/backups" \
     BACKUP_STAGING_ROOT="${FIXTURE}/staging-current" \
+    BACKUP_HOSTNAME=test-host \
     RESTORE_DRILL_ROOT="${FIXTURE}/restore-drills" \
     MOCK_COMMAND_LOG="${FIXTURE}/commands.log" \
     MOCK_PG_RESTORE_FAIL="${MOCK_PG_RESTORE_FAIL:-false}" \
@@ -108,7 +111,7 @@ if grep -q 'RESTORED_SECRET_CANARY' "${FIXTURE}/output" "${FIXTURE}/error"; then
   exit 1
 fi
 grep -qx 'check' "${FIXTURE}/commands.log"
-grep -q '^snapshots --latest 1 --json$' "${FIXTURE}/commands.log"
+grep -q '^snapshots --host test-host --json$' "${FIXTURE}/commands.log"
 grep -q '^restore .* --target ' "${FIXTURE}/commands.log"
 grep -qx 'pg_restore verified' "${FIXTURE}/commands.log"
 assert_restore_root_empty

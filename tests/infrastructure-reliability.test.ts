@@ -81,7 +81,8 @@ describe('OVH infrastructure reliability', () => {
     const readme = read('infra/ovh/README.md');
 
     expect(drill).toContain('restic check');
-    expect(drill).toContain('restic snapshots --latest 1 --json');
+    expect(drill).toContain('restic snapshots --host "${BACKUP_HOSTNAME}" --json');
+    expect(drill).toContain('max_by(.time)');
     expect(drill).toContain('mktemp -d');
     expect(drill).toContain('chmod 0700');
     expect(drill).toContain('trap cleanup EXIT');
@@ -142,8 +143,14 @@ describe('OVH infrastructure reliability', () => {
   it('excludes the configured Restic password file from every encrypted snapshot', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
 
-    expect(backup).toContain('restic backup --exclude "${RESTIC_PASSWORD_FILE}"');
+    expect(backup).toContain('--exclude "${RESTIC_PASSWORD_FILE}"');
     expect(backup).not.toContain('restic backup --exclude /opt/leon-platform/secrets/restic-password');
+  });
+
+  it('applies retention across changing dump and release paths', () => {
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+
+    expect(backup).toContain('restic forget --group-by host');
   });
 
   it('refuses to stage uploads when the backup filesystem lacks safe headroom', () => {

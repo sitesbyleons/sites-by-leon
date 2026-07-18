@@ -65,7 +65,7 @@ if [[ "${RESTIC_REPOSITORY}" == s3:* ]]; then
   : "${AWS_SECRET_ACCESS_KEY:?Set the OVH S3 secret key.}"
 fi
 
-for command_name in cmp find flock install jq mktemp pg_restore readlink restic sort stat; do
+for command_name in cmp find flock hostname install jq mktemp pg_restore readlink restic sort stat; do
   if ! command -v "${command_name}" >/dev/null 2>&1; then
     echo "Required command is unavailable: ${command_name}." >&2
     exit 1
@@ -119,9 +119,14 @@ chmod 0700 "${restore_target}"
 
 # No restored secret values are printed.
 restic check >/dev/null
-snapshot_json=$(restic snapshots --latest 1 --json)
-snapshot_id=$(jq -er 'if type == "array" and length == 1 then .[0].id else empty end | select(type == "string" and test("^[0-9a-f]{64}$"))' <<<"${snapshot_json}")
-snapshot_time=$(jq -er 'if type == "array" and length == 1 then .[0].time else empty end | select(type == "string" and length > 0)' <<<"${snapshot_json}")
+BACKUP_HOSTNAME=${BACKUP_HOSTNAME:-$(hostname)}
+if [[ ! ${BACKUP_HOSTNAME} =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "BACKUP_HOSTNAME must be a non-empty hostname." >&2
+  exit 1
+fi
+snapshot_json=$(restic snapshots --host "${BACKUP_HOSTNAME}" --json)
+snapshot_id=$(jq -er 'if type == "array" and length > 0 then max_by(.time).id else empty end | select(type == "string" and test("^[0-9a-f]{64}$"))' <<<"${snapshot_json}")
+snapshot_time=$(jq -er 'if type == "array" and length > 0 then max_by(.time).time else empty end | select(type == "string" and length > 0)' <<<"${snapshot_json}")
 restic restore "${snapshot_id}" --target "${restore_target}" >/dev/null
 
 restored_backup_root="${restore_target}${BACKUP_ROOT}"
