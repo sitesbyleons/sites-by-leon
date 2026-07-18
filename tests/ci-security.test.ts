@@ -7,6 +7,14 @@ const workflow = fs.readFileSync(
   'utf8',
 );
 
+const workflowStep = (name: string) => {
+  const marker = `      - name: ${name}`;
+  const start = workflow.indexOf(marker);
+  if (start < 0) return '';
+  const next = workflow.indexOf('\n      - name:', start + marker.length);
+  return workflow.slice(start, next < 0 ? undefined : next);
+};
+
 describe('CI security', () => {
   it('pins every third-party action to a full commit SHA', () => {
     const actions = Array.from(workflow.matchAll(/^\s*uses:\s*([^\s#]+)/gm), ([, action]) => action);
@@ -23,6 +31,9 @@ describe('CI security', () => {
     expect(jobEnvironment).not.toContain('CLERK');
     expect(workflow).toContain('PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.PUBLIC_CLERK_PUBLISHABLE_KEY }}');
     expect(workflow).toContain('CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}');
+    for (const name of ['Run dashboard browser tests', 'Run photographer site browser tests']) {
+      expect(workflowStep(name), name).not.toContain('CLERK');
+    }
   });
 
   it('runs secret-sync and backup-restore regressions without credentials', () => {

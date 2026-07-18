@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
 
+import { useCspGuard } from '../../../tests/e2e/csp-guard';
+
+useCspGuard(test);
+
 const pages = [
   ['/admin', 'Overview'],
   ['/admin/content', 'Homepage'],

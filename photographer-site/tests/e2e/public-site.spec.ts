@@ -4,6 +4,9 @@ import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 import { demoPortfolio } from '../../src/lib/content/demo';
+import { useCspGuard } from '../../../tests/e2e/csp-guard';
+
+useCspGuard(test);
 
 const packageMetadata = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),

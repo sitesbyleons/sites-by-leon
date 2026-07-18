@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+import { useCspGuard } from '../../../tests/e2e/csp-guard';
+
+useCspGuard(test);
+
 test('landing page explains the client dashboard', async ({ page }) => {
   await page.goto('/?preview=true');
   await expect(page.getByRole('heading', { name: 'Manage your website.' })).toBeVisible();

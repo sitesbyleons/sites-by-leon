@@ -1,6 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+import { useCspGuard } from './csp-guard';
+
+useCspGuard(test);
+
 test('hero states the offer and reaches contact', async ({ page }) => {
   await page.goto('/');
 

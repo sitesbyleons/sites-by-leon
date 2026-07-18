@@ -96,9 +96,6 @@ jobs:
         run: pnpm --dir dashboard build
 
       - name: Run dashboard browser tests
-        env:
-          PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         run: pnpm --dir dashboard test:e2e
 
       - name: Run dashboard production CSP tests
@@ -144,9 +141,6 @@ jobs:
         run: pnpm --dir photographer-site build
 
       - name: Run photographer site browser tests
-        env:
-          PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
         run: pnpm --dir photographer-site test:e2e
 
       - name: Run photographer production CSP tests
