@@ -370,4 +370,18 @@ describe('Leon PostgreSQL data client', () => {
     await expect(userCanManageWorkspace(client, 'admin-1', 'ws-1')).resolves.toBe(true);
     await expect(userCanManageWorkspace(client, 'stranger', 'ws-1')).resolves.toBe(false);
   });
+
+  it('can restrict authorization to workspace membership without querying platform admins', async () => {
+    const queries: string[] = [];
+    const client = createDataClient(async (text) => {
+      queries.push(text);
+      return [];
+    });
+
+    await expect(userCanManageWorkspace(client, 'admin-1', 'ws-1', { allowPlatformAdmin: false }))
+      .resolves.toBe(false);
+    expect(queries).toHaveLength(1);
+    expect(queries[0]).toContain('"workspace_members"');
+    expect(queries[0]).not.toContain('"app_admins"');
+  });
 });

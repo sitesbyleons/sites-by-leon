@@ -128,7 +128,7 @@ describe('Stripe resource configuration', () => {
       }
       return { id, status: 'disabled' };
     });
-    const update = vi.fn(async (id: string, input: unknown) => ({ id, ...input }));
+    const update = vi.fn(async (id: string, input: Record<string, unknown>) => ({ id, ...input }));
     const retrieve = vi.fn(async (id: string) => ({
       id, status: 'enabled', livemode: true, event_payload: 'snapshot',
       events_from: ['other_accounts'], enabled_events: [

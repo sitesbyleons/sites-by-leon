@@ -331,18 +331,31 @@ describe('OVH infrastructure reliability', () => {
     const postgresEnv = read('infra/ovh/secrets/postgres.env.example');
 
     expect(schema).toContain('create role leon_runtime nologin nosuperuser nocreatedb nocreaterole noreplication');
+    expect(schema).toContain('create role leon_photographer_runtime nologin nosuperuser nocreatedb nocreaterole noreplication');
     expect(schema).toContain('revoke create on schema public from public');
     expect(schema).toContain('grant select, insert, update, delete on all tables in schema public to leon_runtime');
-    expect(configureRole).toContain('POSTGRES_RUNTIME_PASSWORD must contain at least 32 characters.');
-    expect(configureRole).toContain('create role leon_web login nosuperuser nocreatedb nocreaterole noreplication');
-    expect(configureRole).toContain('grant leon_runtime to leon_web');
+    expect(schema).toContain('grant select on table client_workspaces, workspace_members, site_connections, site_domain_aliases to leon_photographer_runtime');
+    expect(schema).toContain('grant select, insert, update, delete on table');
+    expect(schema).toContain('studio_posts');
+    expect(schema).toContain('to leon_photographer_runtime');
+    expect(schema).toContain('revoke all privileges on table app_admins, subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime');
+    expect(configureRole).toContain('POSTGRES_DASHBOARD_PASSWORD must contain at least 32 characters.');
+    expect(configureRole).toContain('POSTGRES_PHOTOGRAPHER_PASSWORD must contain at least 32 characters.');
+    expect(configureRole).toContain('create role leon_dashboard login nosuperuser nocreatedb nocreaterole noreplication');
+    expect(configureRole).toContain('create role leon_photographer login nosuperuser nocreatedb nocreaterole noreplication');
+    expect(configureRole).toContain('grant leon_runtime to leon_dashboard');
+    expect(configureRole).toContain('grant leon_photographer_runtime to leon_photographer');
+    expect(configureRole).toContain('alter role leon_web nologin');
     expect(deploy).toContain('configure-runtime-role.sh');
-    expect(dashboardEnv).toMatch(/^DATABASE_URL=postgresql:\/\/leon_web:/m);
-    expect(photographerEnv).toMatch(/^DATABASE_URL=postgresql:\/\/leon_web:/m);
+    expect(deploy).toContain('DISABLE_LEGACY_RUNTIME_ROLE=true');
+    expect(dashboardEnv).toMatch(/^DATABASE_URL=postgresql:\/\/leon_dashboard:/m);
+    expect(photographerEnv).toMatch(/^DATABASE_URL=postgresql:\/\/leon_photographer:/m);
     expect(dashboardEnv).not.toMatch(/^POSTGRES_PASSWORD=/m);
     expect(photographerEnv).not.toMatch(/^POSTGRES_PASSWORD=/m);
     expect(postgresEnv).toMatch(/^POSTGRES_PASSWORD=/m);
-    expect(postgresEnv).toMatch(/^POSTGRES_RUNTIME_PASSWORD=/m);
+    expect(postgresEnv).toMatch(/^POSTGRES_DASHBOARD_PASSWORD=/m);
+    expect(postgresEnv).toMatch(/^POSTGRES_PHOTOGRAPHER_PASSWORD=/m);
+    expect(postgresEnv).not.toMatch(/^POSTGRES_RUNTIME_PASSWORD=/m);
   });
 
   it('reserves aggregate media capacity atomically before provisioning a customer', () => {

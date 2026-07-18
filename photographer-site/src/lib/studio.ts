@@ -285,7 +285,7 @@ export async function resolveManagedStudio(clerkUserId: string, workspaceId: str
     .select('id')
     .eq('id', workspaceId)
     .maybeSingle<{ id: string }>();
-  if (!workspace.data || !(await userCanManageWorkspace(client, clerkUserId, workspace.data.id))) {
+  if (!workspace.data || !(await userCanManageWorkspace(client, clerkUserId, workspace.data.id, { allowPlatformAdmin: false }))) {
     return { client: null, workspaceId: null };
   }
   return { client, workspaceId: workspace.data.id };

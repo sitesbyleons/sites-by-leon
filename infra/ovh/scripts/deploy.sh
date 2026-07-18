@@ -74,6 +74,9 @@ for attempt in $(seq 1 "${DEPLOY_HEALTHCHECK_ATTEMPTS:-24}"); do
   sleep "${DEPLOY_HEALTHCHECK_INTERVAL_SECONDS:-5}"
 done
 
+DISABLE_LEGACY_RUNTIME_ROLE=true SOURCE_ROOT="${SOURCE_ROOT}" \
+  /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/configure-runtime-role.sh"
+
 BUILD_CACHE_RETENTION_HOURS=${BUILD_CACHE_RETENTION_HOURS:-72}
 if [[ ${BUILD_CACHE_RETENTION_HOURS} =~ ^[1-9][0-9]*$ ]]; then
   docker builder prune --force --filter "until=${BUILD_CACHE_RETENTION_HOURS}h" >/dev/null

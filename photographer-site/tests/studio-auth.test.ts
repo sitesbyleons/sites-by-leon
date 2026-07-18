@@ -37,6 +37,11 @@ describe('studio owner authorization', () => {
     expect(decideStudioAdminAccess({ authenticated: true, authorized: true }, '/admin/services')).toEqual({ kind: 'admin' });
   });
 
+  it('authorizes editors from workspace membership without platform-admin database access', () => {
+    const studio = fs.readFileSync(new URL('../src/lib/studio.ts', import.meta.url), 'utf8');
+    expect(studio).toContain("userCanManageWorkspace(client, clerkUserId, workspace.data.id, { allowPlatformAdmin: false })");
+  });
+
   it('sanitizes Clerk return paths instead of accepting external redirects', () => {
     const signIn = fs.readFileSync(new URL('../src/pages/sign-in/[...signin].astro', import.meta.url), 'utf8');
     const signUp = fs.readFileSync(new URL('../src/pages/sign-up/[...signup].astro', import.meta.url), 'utf8');

@@ -534,7 +534,12 @@ export function createPostgresDataClient(
   return createDataClient(async (text, values) => [...await sql.unsafe(text, values)]);
 }
 
-export async function userCanManageWorkspace(client: DataClient, clerkUserId: string, workspaceId: string) {
+export async function userCanManageWorkspace(
+  client: DataClient,
+  clerkUserId: string,
+  workspaceId: string,
+  options: { allowPlatformAdmin?: boolean } = {},
+) {
   if (!clerkUserId || !workspaceId) return false;
   const membership = await client
     .from('workspace_members')
@@ -543,6 +548,7 @@ export async function userCanManageWorkspace(client: DataClient, clerkUserId: st
     .eq('clerk_user_id', clerkUserId)
     .maybeSingle<{ role: string }>();
   if (membership.data && ['owner', 'admin'].includes(membership.data.role)) return true;
+  if (options.allowPlatformAdmin === false) return false;
 
   const admin = await client
     .from('app_admins')

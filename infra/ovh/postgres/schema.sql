@@ -655,6 +655,9 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'leon_runtime') then
     create role leon_runtime nologin nosuperuser nocreatedb nocreaterole noreplication;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'leon_photographer_runtime') then
+    create role leon_photographer_runtime nologin nosuperuser nocreatedb nocreaterole noreplication;
+  end if;
 end $$;
 
 revoke create on schema public from public;
@@ -663,3 +666,29 @@ grant select, insert, update, delete on all tables in schema public to leon_runt
 grant usage, select on all sequences in schema public to leon_runtime;
 alter default privileges in schema public grant select, insert, update, delete on tables to leon_runtime;
 alter default privileges in schema public grant usage, select on sequences to leon_runtime;
+
+revoke leon_runtime from leon_photographer_runtime;
+revoke all privileges on all tables in schema public from leon_photographer_runtime;
+revoke all privileges on all sequences in schema public from leon_photographer_runtime;
+alter default privileges in schema public revoke all on tables from leon_photographer_runtime;
+alter default privileges in schema public revoke all on sequences from leon_photographer_runtime;
+grant usage on schema public to leon_photographer_runtime;
+grant select on table client_workspaces, workspace_members, site_connections, site_domain_aliases to leon_photographer_runtime;
+grant select, insert, update, delete on table
+  workspace_storage_usage,
+  workspace_uploads,
+  content_requests,
+  connected_payment_accounts,
+  connected_payment_account_history,
+  studio_settings,
+  studio_galleries,
+  studio_gallery_images,
+  studio_posts,
+  studio_services,
+  studio_clients,
+  studio_invoices,
+  studio_inquiries,
+  inquiry_rate_limits,
+  stripe_events
+to leon_photographer_runtime;
+revoke all privileges on table app_admins, subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime;
