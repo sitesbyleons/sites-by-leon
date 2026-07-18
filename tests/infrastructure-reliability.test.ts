@@ -358,6 +358,34 @@ describe('OVH infrastructure reliability', () => {
     expect(postgresEnv).not.toMatch(/^POSTGRES_RUNTIME_PASSWORD=/m);
   });
 
+  it('loads production secrets from a stable root and syncs only an explicit allowlist', () => {
+    const compose = read('infra/ovh/docker-compose.yml');
+    const deploy = read('infra/ovh/scripts/deploy.sh');
+    const preflight = read('infra/ovh/scripts/preflight-runtime-secrets.sh');
+    const sync = read('infra/ovh/scripts/sync-secrets.sh');
+    const envExample = read('infra/ovh/.env.example');
+
+    for (const file of ['postgres.env', 'dashboard.env', 'northline.env', 'domain-worker.env']) {
+      expect(compose).toContain(`\${SECRETS_ROOT:-./secrets}/${file}`);
+    }
+    expect(envExample).toMatch(/^SECRETS_ROOT=\/opt\/leon-platform\/secrets$/m);
+    expect(envExample).toMatch(/^CLOUDFLARE_TUNNEL_TOKEN_FILE=\/opt\/leon-platform\/secrets\/cloudflare-tunnel-token$/m);
+    expect(deploy).toContain('SECRETS_ROOT=${SECRETS_ROOT:-${PLATFORM_ROOT}/secrets}');
+    expect(deploy).toContain('COMPOSE_ENV_FILE=${COMPOSE_ENV_FILE:-${SECRETS_ROOT}/.env}');
+    expect(deploy).toContain('CLOUDFLARE_TUNNEL_TOKEN_FILE=${SECRETS_ROOT}/cloudflare-tunnel-token');
+    expect(deploy).toContain('preflight-runtime-secrets.sh');
+    expect(deploy).toContain('--env-file "${COMPOSE_ENV_FILE}"');
+    expect(preflight).toContain('must be a regular, non-symlink file');
+    expect(preflight).toContain('must have mode 600');
+    expect(preflight).toContain('must belong to the deployment user');
+    expect(sync).toContain('required_names=(.env postgres.env dashboard.env northline.env cloudflare-tunnel-token)');
+    expect(sync).toContain('optional_names=(domain-worker.env)');
+    expect(sync).toContain('StrictHostKeyChecking=yes');
+    expect(sync).toContain('install -m 600');
+    expect(sync).toContain('mv --');
+    expect(sync).not.toContain('set -x');
+  });
+
   it('reserves aggregate media capacity atomically before provisioning a customer', () => {
     const provisioning = read('platform-core/src/provisioning.ts');
     const dashboardEnv = read('infra/ovh/secrets/dashboard.env.example');

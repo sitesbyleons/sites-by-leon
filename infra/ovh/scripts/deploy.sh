@@ -10,14 +10,20 @@ flock -w "${MAINTENANCE_LOCK_TIMEOUT:-900}" 9 || {
 
 SOURCE_ROOT=${SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}
 PLATFORM_ROOT=${PLATFORM_ROOT:-/opt/leon-platform}
+SECRETS_ROOT=${SECRETS_ROOT:-${PLATFORM_ROOT}/secrets}
+COMPOSE_ENV_FILE=${COMPOSE_ENV_FILE:-${SECRETS_ROOT}/.env}
+CLOUDFLARE_TUNNEL_TOKEN_FILE=${SECRETS_ROOT}/cloudflare-tunnel-token
+export SECRETS_ROOT COMPOSE_ENV_FILE CLOUDFLARE_TUNNEL_TOKEN_FILE
 export RELEASE_SHA=${RELEASE_SHA:-$(basename "$(readlink -f "${SOURCE_ROOT}")")}
 
+SOURCE_ROOT="${SOURCE_ROOT}" SECRETS_ROOT="${SECRETS_ROOT}" COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE}" \
+  /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/preflight-runtime-secrets.sh"
 cd "${SOURCE_ROOT}/infra/ovh"
 
 read_env_setting() {
   local key=$1
   local value
-  value=$(sed -n "s/^${key}=//p" .env | tail -n 1 | tr -d '\r')
+  value=$(sed -n "s/^${key}=//p" "${COMPOSE_ENV_FILE}" | tail -n 1 | tr -d '\r')
   value=${value#\"}
   value=${value%\"}
   printf '%s' "${value}"
@@ -45,21 +51,21 @@ fi
 docker network inspect leon-edge >/dev/null 2>&1 || docker network create leon-edge >/dev/null
 
 if [[ ${domain_profile_enabled} != true ]]; then
-  docker compose --env-file .env --profile domains rm --stop --force domain-worker >/dev/null 2>&1 || true
+  docker compose --env-file "${COMPOSE_ENV_FILE}" --profile domains rm --stop --force domain-worker >/dev/null 2>&1 || true
 fi
 
-docker compose --env-file .env up -d database
-docker compose --env-file .env exec -T database sh -c \
+docker compose --env-file "${COMPOSE_ENV_FILE}" up -d database
+docker compose --env-file "${COMPOSE_ENV_FILE}" exec -T database sh -c \
   'until pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"; do sleep 1; done'
 build_services=(gateway dashboard photographer)
 if [[ ${domain_profile_enabled} == true ]]; then
   build_services+=(domain-worker)
 fi
-docker compose --env-file .env build "${build_services[@]}"
+docker compose --env-file "${COMPOSE_ENV_FILE}" build "${build_services[@]}"
 MAINTENANCE_LOCK_HELD=1 SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/migrate-database.sh"
 SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/configure-runtime-role.sh"
-docker compose --env-file .env up -d --no-build --remove-orphans
-docker compose ps
+docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --no-build --remove-orphans
+docker compose --env-file "${COMPOSE_ENV_FILE}" ps
 for attempt in $(seq 1 "${DEPLOY_HEALTHCHECK_ATTEMPTS:-24}"); do
   if COMPOSE_PROFILES="${compose_profiles}" \
     CUSTOM_DOMAIN_AUTOMATION_ENABLED="${domain_api_enabled}" \

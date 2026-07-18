@@ -37,6 +37,14 @@ Copy these ignored examples and replace every placeholder:
 8. Generate `/opt/leon-platform/secrets/restic-password` with `openssl rand -base64 48` and keep an offline copy.
 
 Set every secret file to mode `600`. The backup installer also refuses to source `backup.env` or read the Restic password unless each is a regular, root-owned file with no group or world permissions. `POSTGRES_PASSWORD` is the migration/backup credential and stays only in `postgres.env`. Use different `POSTGRES_DASHBOARD_PASSWORD` and `POSTGRES_PHOTOGRAPHER_PASSWORD` values in the matching `leon_dashboard` and `leon_photographer` database URLs; web containers must never use the database administrator login. The `northline.env` filename is retained for deployment compatibility, but it now configures the single shared photographer runtime rather than one Northline-only container.
+
+Production runtime secrets live in `/opt/leon-platform/secrets`, outside release archives. Synchronize the explicit owner-only allowlist before a deployment:
+
+```bash
+infra/ovh/scripts/sync-secrets.sh ubuntu@vps-aa71e2f6.vps.ovh.us ~/.ssh/leonsites_ovh
+```
+
+The sync command validates local ownership and mode `600`, uses the pinned host key, stages files under a private temporary directory, and atomically renames mode-`600` files into the stable root. It never copies `backup.env` or prints secret values.
 Generate `CONTACT_HASH_SALT` independently with `openssl rand -hex 32`; it is required for privacy-preserving inquiry rate limits.
 Each application uses at most four PostgreSQL connections by default. Set `DATABASE_POOL_MAX` to a value from 1 through 20 only when capacity planning shows that a different limit is safe. Set `PLATFORM_PROVISIONABLE_STORAGE_BYTES` in the dashboard environment to the amount of the media disk that customer quotas may reserve; provisioning rejects requests that would exceed it. Keep operating-system, database, deployment, backup staging, and free-space headroom outside that number.
 

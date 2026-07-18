@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPOSITORY_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 PREFLIGHT_SCRIPT=${REPOSITORY_ROOT}/infra/ovh/scripts/preflight-domain-worker.sh
+RUNTIME_PREFLIGHT_SCRIPT=${REPOSITORY_ROOT}/infra/ovh/scripts/preflight-runtime-secrets.sh
 DEPLOY_SCRIPT=${REPOSITORY_ROOT}/infra/ovh/scripts/deploy.sh
 VALID_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 OTHER_PASSWORD=fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
@@ -34,9 +35,16 @@ EOF
   cat > "${FIXTURE}/infra/ovh/secrets/postgres.env" <<EOF
 POSTGRES_DOMAIN_WORKER_PASSWORD=${VALID_PASSWORD}
 EOF
+  printf 'DASHBOARD_SECRET=%s\n' "${VALID_PASSWORD}" > "${FIXTURE}/infra/ovh/secrets/dashboard.env"
+  printf 'PHOTOGRAPHER_SECRET=%s\n' "${OTHER_PASSWORD}" > "${FIXTURE}/infra/ovh/secrets/northline.env"
+  printf '%s\n' "${VALID_TOKEN}" > "${FIXTURE}/infra/ovh/secrets/cloudflare-tunnel-token"
+  chmod 700 "${FIXTURE}/infra/ovh/secrets"
   chmod 600 \
     "${FIXTURE}/infra/ovh/secrets/domain-worker.env" \
-    "${FIXTURE}/infra/ovh/secrets/postgres.env"
+    "${FIXTURE}/infra/ovh/secrets/postgres.env" \
+    "${FIXTURE}/infra/ovh/secrets/dashboard.env" \
+    "${FIXTURE}/infra/ovh/secrets/northline.env" \
+    "${FIXTURE}/infra/ovh/secrets/cloudflare-tunnel-token"
 }
 
 pass() {
@@ -111,6 +119,7 @@ prepare_deploy_fixture() {
   mkdir -p "${FIXTURE}/infra/ovh/tests" "${FIXTURE}/bin"
   cp "${DEPLOY_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/deploy.sh"
   cp "${PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-domain-worker.sh"
+  cp "${RUNTIME_PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-runtime-secrets.sh"
   cat > "${FIXTURE}/bin/docker" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${DOCKER_CALL_LOG}"
@@ -120,11 +129,14 @@ EOF
 }
 
 run_deploy() {
+  chmod 600 "${FIXTURE}/infra/ovh/.env"
   DOCKER_CALL_LOG="${FIXTURE}/docker-calls" \
     HEALTHCHECK_ENV_LOG="${FIXTURE}/healthcheck-env" \
     MAINTENANCE_LOCK="${FIXTURE}/maintenance.lock" \
     SOURCE_ROOT="${FIXTURE}" \
     PLATFORM_ROOT="${FIXTURE}/platform" \
+    SECRETS_ROOT="${FIXTURE}/infra/ovh/secrets" \
+    COMPOSE_ENV_FILE="${FIXTURE}/infra/ovh/.env" \
     DEPLOY_HEALTHCHECK_ATTEMPTS=1 \
     DEPLOY_HEALTHCHECK_INTERVAL_SECONDS=0 \
     PATH="${FIXTURE}/bin:${PATH}" \
@@ -135,6 +147,7 @@ prepare_complete_deploy_fixture() {
   mkdir -p "${FIXTURE}/bin"
   cp "${DEPLOY_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/deploy.sh"
   cp "${PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-domain-worker.sh"
+  cp "${RUNTIME_PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-runtime-secrets.sh"
   cat > "${FIXTURE}/bin/docker" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${DOCKER_CALL_LOG}"

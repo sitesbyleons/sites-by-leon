@@ -2,8 +2,9 @@
 set -euo pipefail
 
 SOURCE_ROOT=${SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}
-DOMAIN_WORKER_ENV_FILE=${DOMAIN_WORKER_ENV_FILE:-${SOURCE_ROOT}/infra/ovh/secrets/domain-worker.env}
-POSTGRES_ENV_FILE=${POSTGRES_ENV_FILE:-${SOURCE_ROOT}/infra/ovh/secrets/postgres.env}
+SECRETS_ROOT=${SECRETS_ROOT:-${SOURCE_ROOT}/infra/ovh/secrets}
+DOMAIN_WORKER_ENV_FILE=${DOMAIN_WORKER_ENV_FILE:-${SECRETS_ROOT}/domain-worker.env}
+POSTGRES_ENV_FILE=${POSTGRES_ENV_FILE:-${SECRETS_ROOT}/postgres.env}
 
 fail() {
   echo "Custom-domain deployment preflight failed: $1" >&2

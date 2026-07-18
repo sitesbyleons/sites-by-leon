@@ -2,9 +2,12 @@
 set -euo pipefail
 
 SOURCE_ROOT=${SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}
+SECRETS_ROOT=${SECRETS_ROOT:-${SOURCE_ROOT}/infra/ovh/secrets}
+COMPOSE_ENV_FILE=${COMPOSE_ENV_FILE:-${SOURCE_ROOT}/infra/ovh/.env}
+export SECRETS_ROOT
 cd "${SOURCE_ROOT}/infra/ovh"
 
-docker compose --env-file .env exec \
+docker compose --env-file "${COMPOSE_ENV_FILE}" exec \
   -e DISABLE_LEGACY_RUNTIME_ROLE="${DISABLE_LEGACY_RUNTIME_ROLE:-false}" \
   -T database sh -s <<'CONTAINER_SH'
 set -eu

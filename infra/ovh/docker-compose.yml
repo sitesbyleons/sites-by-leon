@@ -5,7 +5,7 @@ services:
     image: postgres:17-bookworm
     restart: unless-stopped
     env_file:
-      - ./secrets/postgres.env
+      - ${SECRETS_ROOT:-./secrets}/postgres.env
     volumes:
       - leon-postgres:/var/lib/postgresql/data
       - ./postgres/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
@@ -61,7 +61,7 @@ services:
     cap_drop:
       - ALL
     env_file:
-      - ./secrets/dashboard.env
+      - ${SECRETS_ROOT:-./secrets}/dashboard.env
     environment:
       CUSTOM_DOMAIN_AUTOMATION_ENABLED: ${CUSTOM_DOMAIN_AUTOMATION_ENABLED:-false}
     depends_on:
@@ -88,7 +88,7 @@ services:
     cap_drop:
       - ALL
     env_file:
-      - ./secrets/northline.env
+      - ${SECRETS_ROOT:-./secrets}/northline.env
     volumes:
       - ${UPLOADS_PATH:-/opt/leon-platform/uploads}:/data/uploads
     depends_on:
@@ -113,7 +113,7 @@ services:
     cap_drop:
       - ALL
     env_file:
-      - path: ./secrets/domain-worker.env
+      - path: ${SECRETS_ROOT:-./secrets}/domain-worker.env
         required: false
     depends_on:
       database:

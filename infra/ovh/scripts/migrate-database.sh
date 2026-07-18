@@ -12,9 +12,12 @@ fi
 
 SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}
 SOURCE_ROOT=$(readlink -f "${SOURCE_ROOT}")
+SECRETS_ROOT=${SECRETS_ROOT:-${SOURCE_ROOT}/infra/ovh/secrets}
+COMPOSE_ENV_FILE=${COMPOSE_ENV_FILE:-${SOURCE_ROOT}/infra/ovh/.env}
+export SECRETS_ROOT
 
 cd "${SOURCE_ROOT}/infra/ovh"
-docker compose --env-file .env exec -T database sh -c \
+docker compose --env-file "${COMPOSE_ENV_FILE}" exec -T database sh -c \
   'psql --set ON_ERROR_STOP=1 --single-transaction --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"' \
   < "${SOURCE_ROOT}/infra/ovh/postgres/schema.sql"
 
