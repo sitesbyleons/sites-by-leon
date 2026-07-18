@@ -88,6 +88,19 @@ describe('canManageBilling', () => {
   });
 });
 
+describe('billing portal configuration', () => {
+  it('requires and passes an explicit Stripe Portal configuration', () => {
+    const portal = read('src/pages/api/billing/portal.ts');
+    const localEnv = read('.env.example');
+    const productionEnv = read('../infra/ovh/secrets/dashboard.env.example');
+
+    expect(portal).toContain('STRIPE_BILLING_PORTAL_CONFIGURATION');
+    expect(portal).toContain('configuration: portalConfiguration');
+    expect(localEnv).toMatch(/^STRIPE_BILLING_PORTAL_CONFIGURATION=bpc_/m);
+    expect(productionEnv).toMatch(/^STRIPE_BILLING_PORTAL_CONFIGURATION=bpc_/m);
+  });
+});
+
 describe('checkout reservation recovery', () => {
   it('does not reuse a nearly expired Stripe session deadline after a failed start', () => {
     const checkout = read('src/pages/api/billing/checkout.ts');

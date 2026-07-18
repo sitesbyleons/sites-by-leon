@@ -15,7 +15,10 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   if (!auth.userId) return auth.redirectToSignIn({ returnBackUrl: '/dashboard' });
   const database = createPlatformDatabase();
   const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!database || !stripeKey) return Response.json({ message: 'Billing management is not configured yet.' }, { status: 503 });
+  const portalConfiguration = process.env.STRIPE_BILLING_PORTAL_CONFIGURATION;
+  if (!database || !stripeKey || !portalConfiguration) {
+    return Response.json({ message: 'Billing management is not configured yet.' }, { status: 503 });
+  }
 
   const resolved = await resolveClientWorkspace(database, { userId: auth.userId, orgId: auth.orgId ?? null });
   if (resolved.reason === 'database') return Response.json({ message: 'Billing status could not be verified. Try again.' }, { status: 503 });
@@ -33,6 +36,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     const stripe = new Stripe(stripeKey);
     const session = await stripe.billingPortal.sessions.create({
       customer: workspace.data.stripe_customer_id,
+      configuration: portalConfiguration,
       return_url: `${publicOrigin}/dashboard`,
     });
     return Response.redirect(session.url, 303);
