@@ -86,4 +86,11 @@ describe('studio resource mutations', () => {
     expect(route).toContain("boundedNumber(source, 'cover_crop_zoom', 1, 3, 1)");
     expect(route).toContain("Math.round(boundedNumber(source, 'grid_columns', 1, 4, 3))");
   });
+
+  it('loads the existing publication time before editing a post', () => {
+    const route = read('src/pages/api/admin/[resource].ts');
+    expect(route).toContain("select('cover_storage_path,status,published_at')");
+    expect(route).toContain('resolvePublishedAt(previous.data.published_at, status, now)');
+    expect(route).not.toContain("published_at: status === 'published' ? new Date().toISOString() : null");
+  });
 });
