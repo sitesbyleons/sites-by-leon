@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const TEST_CLERK_PUBLISHABLE_KEY = 'pk_test_Y2xlcmsudGVzdC5pbnZhbGlkJA';
+const TEST_CLERK_SECRET_KEY = 'test-only-not-a-secret';
+
 export default defineConfig({
   testDir: './tests/e2e',
   webServer: [
@@ -18,7 +21,9 @@ export default defineConfig({
       url: 'http://127.0.0.1:4345',
       env: {
         ...process.env,
+        CLERK_SECRET_KEY: TEST_CLERK_SECRET_KEY,
         NORTHLINE_PREVIEW_STATUS: 'paused',
+        PUBLIC_CLERK_PUBLISHABLE_KEY: TEST_CLERK_PUBLISHABLE_KEY,
         SITE_CONTENT_MODE: 'demo',
       },
       reuseExistingServer: false,
