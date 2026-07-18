@@ -97,6 +97,41 @@ describe('fully self-hosted production stack', () => {
     expect(connectWebhook).not.toMatch(/supabase/i);
   });
 
+  it('ships a redacted verifier for Stripe prices, Portal, and connected-account destinations', () => {
+    const verifierPath = new URL('../infra/ovh/scripts/verify-stripe-config.mjs', import.meta.url);
+    expect(fs.existsSync(verifierPath)).toBe(true);
+    const verifier = fs.existsSync(verifierPath) ? fs.readFileSync(verifierPath, 'utf8') : '';
+
+    for (const required of [
+      'STRIPE_BILLING_PORTAL_CONFIGURATION',
+      "events_from",
+      "'@accounts'",
+      "'@self'",
+      "invoice.marked_uncollectible",
+      "v2.core.account[configuration.merchant].capability_status_updated",
+      'livemode',
+      'active',
+    ]) {
+      expect(verifier).toContain(required);
+    }
+    expect(verifier).not.toMatch(/console\.(?:log|error)\([^\n]*(?:SECRET_KEY|WEBHOOK_SECRET)/);
+  });
+
+  it('ships an idempotent Stripe resource repair command with atomic secret persistence', () => {
+    const configurePath = new URL('../infra/ovh/scripts/configure-stripe-resources.mjs', import.meta.url);
+    expect(fs.existsSync(configurePath)).toBe(true);
+    const configure = fs.existsSync(configurePath) ? fs.readFileSync(configurePath, 'utf8') : '';
+
+    expect(configure).toContain('connect: true');
+    expect(configure).toContain("'@accounts'");
+    expect(configure).toContain("'other_accounts'");
+    expect(configure).toContain('const secret = created.secret');
+    expect(configure).toContain('STRIPE_BILLING_PORTAL_CONFIGURATION');
+    expect(configure).toContain('STRIPE_CONNECT_WEBHOOK_SECRET');
+    expect(configure).toContain('renameSync');
+    expect(configure).not.toMatch(/console\.(?:log|error)\([^\n]*(?:SECRET_KEY|WEBHOOK_SECRET)/);
+  });
+
   it('health-checks every active customer hostname without loading mutable Compose as root', () => {
     const healthcheck = read('infra/ovh/scripts/healthcheck.sh');
     expect(healthcheck).toContain('com.docker.compose.project=${COMPOSE_PROJECT_NAME}');

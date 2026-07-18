@@ -111,6 +111,24 @@ Configure Stripe webhook destinations as:
 - `https://demo.leonsites.org/api/webhooks/stripe-connect` for invoice and payment events
 - `https://demo.leonsites.org/api/webhooks/stripe-connect-v2` for connected-account status events
 
+Verify account mode, prices, Billing Portal features, event origin, and event coverage without printing credentials:
+
+```bash
+STRIPE_EXPECTED_MODE=test node --env-file=infra/ovh/secrets/dashboard.env infra/ovh/scripts/verify-stripe-config.mjs platform
+STRIPE_EXPECTED_MODE=test node --env-file=infra/ovh/secrets/northline.env infra/ovh/scripts/verify-stripe-config.mjs connect
+```
+
+Use `STRIPE_EXPECTED_MODE=live` only with the live owner-only environment files. Depending on the Stripe API generation, connected-account origins are reported as `@accounts` or `other_accounts`, while platform origins are reported as `@self` or `self`.
+
+Create a missing Billing Portal configuration or safely replace a Connect destination with the wrong immutable event origin:
+
+```bash
+STRIPE_EXPECTED_MODE=test infra/ovh/scripts/configure-stripe-resources.mjs platform infra/ovh/secrets/dashboard.env
+STRIPE_EXPECTED_MODE=test infra/ovh/scripts/configure-stripe-resources.mjs connect infra/ovh/secrets/northline.env
+```
+
+The command refuses non-regular files, files not owned by the current user, and permissions other than `600`. A replacement Connect signing secret is written with an atomic rename before the old destination is disabled. Run the verifier immediately afterward.
+
 ## Backups
 
 `backup-database.sh` encrypts the PostgreSQL dump, application configuration, and uploaded images with restic. Keep the restic password offline as well as on the host. Install the nightly timer with:
