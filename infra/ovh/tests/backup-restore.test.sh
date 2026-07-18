@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT_RUNNER=()
+if [[ ${EUID} -ne 0 ]]; then
+  if unshare -Ur true 2>/dev/null; then
+    ROOT_RUNNER=(unshare -Ur)
+  elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+    sudo -n -- bash "$(readlink -f "${BASH_SOURCE[0]}")"
+    exit $?
+  else
+    echo 'Backup restore tests require root, an unprivileged user namespace, or passwordless sudo.' >&2
+    exit 1
+  fi
+fi
+
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 SCRIPT="${ROOT}/infra/ovh/scripts/verify-backup-restore.sh"
 FIXTURE=$(mktemp -d)
@@ -75,7 +88,7 @@ EOF
 chmod +x "${FIXTURE}/bin/restic" "${FIXTURE}/bin/jq" "${FIXTURE}/bin/pg_restore"
 
 run_drill() {
-  unshare -Ur env \
+  "${ROOT_RUNNER[@]}" env \
     PATH="${FIXTURE}/bin:/usr/bin:/bin" \
     RESTIC_REPOSITORY="${TEST_REPOSITORY:-s3:https://example.invalid/leon-backups/restic}" \
     RESTIC_PASSWORD_FILE="${FIXTURE}/restic-password" \
@@ -127,7 +140,7 @@ fi
 assert_restore_root_empty
 
 set +e
-unshare -Ur env \
+"${ROOT_RUNNER[@]}" env \
   PATH="${FIXTURE}/bin:/usr/bin:/bin" \
   RESTIC_REPOSITORY="${FIXTURE}/local-restic" \
   RESTIC_PASSWORD_FILE="${FIXTURE}/restic-password" \
