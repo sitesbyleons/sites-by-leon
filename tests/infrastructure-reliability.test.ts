@@ -61,11 +61,36 @@ describe('OVH infrastructure reliability', () => {
     expect(`${backup}\n${installer}\n${service}`).not.toContain('/opt/leon-platform/app');
   });
 
-  it('allows encrypted local backups until object-storage credentials are configured', () => {
+  it('requires an offsite backup repository unless local mode is explicitly enabled', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
+    const backupEnv = read('infra/ovh/secrets/backup.env.example');
+
+    expect(backup).toContain('s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*');
+    expect(backup).toContain('ALLOW_LOCAL_BACKUP:-false');
+    expect(backup).toContain('Local Restic repositories require ALLOW_LOCAL_BACKUP=true');
     expect(backup).toContain('if [[ "${RESTIC_REPOSITORY}" == s3:* ]]');
     expect(backup).toContain(': "${AWS_ACCESS_KEY_ID:?Set the OVH S3 access key.}"');
     expect(backup).toContain(': "${AWS_SECRET_ACCESS_KEY:?Set the OVH S3 secret key.}"');
+    expect(backupEnv).toMatch(/^RESTIC_REPOSITORY=s3:/m);
+    expect(backupEnv).toContain('ALLOW_LOCAL_BACKUP=false');
+  });
+
+  it('installs a private restore drill that verifies the latest database and uploads', () => {
+    const drill = read('infra/ovh/scripts/verify-backup-restore.sh');
+    const installer = read('infra/ovh/scripts/install-systemd.sh');
+    const readme = read('infra/ovh/README.md');
+
+    expect(drill).toContain('restic check');
+    expect(drill).toContain('restic snapshots --latest 1 --json');
+    expect(drill).toContain('mktemp -d');
+    expect(drill).toContain('chmod 0700');
+    expect(drill).toContain('trap cleanup EXIT');
+    expect(drill).toContain('restic restore "${snapshot_id}" --target "${restore_target}"');
+    expect(drill).toContain('pg_restore --list');
+    expect(drill).toContain('cmp --');
+    expect(drill).toContain('No restored secret values are printed.');
+    expect(installer).toContain('verify-backup-restore.sh');
+    expect(readme).toContain('/usr/local/libexec/leon-platform/verify-backup-restore.sh');
   });
 
   it('freezes application writes while taking a consistent database and upload snapshot', () => {
@@ -433,8 +458,9 @@ describe('OVH infrastructure reliability', () => {
     expect(dashboardEnv).toContain('PLATFORM_PROVISIONABLE_STORAGE_BYTES=');
     expect(readme).toContain('single shared photographer runtime');
     expect(readme).toContain('web containers must never use the database administrator login');
-    expect(readme).toContain('It is not an independent backup because it shares the VPS disk.');
-    expect(readme).toContain('before storing production client media');
+    expect(readme).toContain('Production requires an offsite repository');
+    expect(readme).toContain('it is not an independent backup because it shares the VPS disk');
     expect(backupEnv).toMatch(/^RESTIC_REPOSITORY=s3:/m);
+    expect(backupEnv).toContain('ALLOW_LOCAL_BACKUP=false');
   });
 });

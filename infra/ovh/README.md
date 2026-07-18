@@ -139,16 +139,20 @@ The command refuses non-regular files, files not owned by the current user, and 
 
 ## Backups
 
-`backup-database.sh` encrypts the PostgreSQL dump, application configuration, and uploaded images with restic. Keep the restic password offline as well as on the host. Install the nightly timer with:
-
-Until an OVH Object Storage bucket is configured, `RESTIC_REPOSITORY=/opt/leon-platform/backups/restic` provides an encrypted local repository for initial testing. It is not an independent backup because it shares the VPS disk. Move to the S3 repository in `backup.env.example` before storing production client media.
+`backup-database.sh` encrypts the PostgreSQL dump, application configuration, and uploaded images with Restic. Keep the Restic password offline as well as on the host. Production requires an offsite repository such as the OVH S3 target in `backup.env.example`. A local repository is rejected unless `ALLOW_LOCAL_BACKUP=true` is explicitly set for a one-off recovery exercise; it is not an independent backup because it shares the VPS disk.
 
 The backup makes a short-lived consistent copy of uploads before Restic reads them. It refuses to start unless the staging filesystem has the upload size plus 10 GiB free; a local Restic repository on the same filesystem requires twice the upload size plus 10 GiB. `BACKUP_STAGING_ROOT` must be a dedicated directory ending in `/staging-current` and cannot overlap the application, uploads, backup repository, or source release. Mount `/opt/leon-platform-backup-staging` on separate storage to avoid consuming the live disk. Before approaching 40 GiB of client uploads, use both separate staging storage and OVH Object Storage (or another S3-compatible offsite repository).
 
-The installer copies the recurring backup and health-check programs into root-owned `/usr/local/libexec/leon-platform`; systemd never executes a script from a writable release directory. The backup stops only the two write-serving application containers, starts them again after the snapshot is consistent, and requires the full public and PostgreSQL health check to recover before it writes a Restic snapshot. `RESTIC_PASSWORD_FILE` is always excluded using the configured path rather than a hard-coded filename.
+The installer copies the backup, restore-drill, and health-check programs into root-owned `/usr/local/libexec/leon-platform`; systemd never executes a script from a writable release directory. The backup stops only the two write-serving application containers, starts them again after the snapshot is consistent, and requires the full public and PostgreSQL health check to recover before it writes a Restic snapshot. `RESTIC_PASSWORD_FILE` is always excluded using the configured path rather than a hard-coded filename.
 
 ```bash
 sudo SOURCE_ROOT=/opt/leon-platform/current infra/ovh/scripts/install-systemd.sh
+```
+
+After a fresh backup, run the installed restore drill. It checks the encrypted repository, restores the latest snapshot into a temporary root-only directory, validates the PostgreSQL archive, compares one upload when an overlapping live file exists, and erases the restored files on every exit. Its successful output contains only the snapshot ID, snapshot time, and verification status.
+
+```bash
+sudo /usr/local/libexec/leon-platform/verify-backup-restore.sh
 ```
 
 Do not delete the old Vercel or managed database projects until the OVH deployment has passed the full cutover checklist and the rollback window has ended.

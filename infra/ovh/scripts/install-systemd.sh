@@ -45,6 +45,9 @@ install -o root -g root -m 0755 \
   "${SOURCE_ROOT}/infra/ovh/scripts/backup-database.sh" \
   "${LIBEXEC_ROOT}/backup-database.sh"
 install -o root -g root -m 0755 \
+  "${SOURCE_ROOT}/infra/ovh/scripts/verify-backup-restore.sh" \
+  "${LIBEXEC_ROOT}/verify-backup-restore.sh"
+install -o root -g root -m 0755 \
   "${SOURCE_ROOT}/infra/ovh/scripts/healthcheck.sh" \
   "${LIBEXEC_ROOT}/healthcheck.sh"
 install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.service" /etc/systemd/system/leon-backup.service
