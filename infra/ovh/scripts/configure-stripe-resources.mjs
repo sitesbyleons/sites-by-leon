@@ -221,7 +221,7 @@ export const configureConnect = async (stripe, envFile, environment = process.en
       description: 'Connected-account invoice events for the tenant-aware photographer runtime.',
       enabled_events: snapshotEvents,
       event_payload: 'snapshot',
-      events_from: ['@accounts'],
+      events_from: ['other_accounts'],
       include: ['webhook_endpoint.signing_secret', 'webhook_endpoint.url'],
       type: 'webhook_endpoint',
       webhook_endpoint: { url: snapshotUrl },
@@ -231,7 +231,7 @@ export const configureConnect = async (stripe, envFile, environment = process.en
       assertResourceMode(created, livemode, 'Connect snapshot destination');
       assertConfiguration(created.status === 'enabled', 'New Connect snapshot destination is not enabled.');
       assertConfiguration(isExpectedSnapshot(created, livemode),
-        'Stripe did not create a connected-account destination. Register and activate the Connect platform profile in the Stripe Dashboard before retrying.');
+        'Stripe did not create a connected-account destination. Complete and activate the Connect platform profile in the Stripe Dashboard before retrying.');
       assertConfiguration(created.webhook_endpoint?.url === snapshotUrl,
         'New Connect snapshot destination has the wrong URL.');
       assertConfiguration(includesAll(created.enabled_events, snapshotEvents),

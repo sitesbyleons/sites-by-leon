@@ -119,7 +119,7 @@ describe('Stripe resource configuration', () => {
     };
     const create = vi.fn(async () => ({
       id: 'ed_new', status: 'enabled', livemode: true, event_payload: 'snapshot',
-      events_from: ['@accounts'], enabled_events: [
+      events_from: ['other_accounts'], enabled_events: [
         'account.updated', 'account.application.deauthorized', 'invoice.paid',
         'invoice.payment_failed', 'invoice.voided', 'invoice.marked_uncollectible',
       ], webhook_endpoint: { url: snapshotUrl, signing_secret: 'whsec_new' },
@@ -148,7 +148,7 @@ describe('Stripe resource configuration', () => {
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
       event_payload: 'snapshot',
-      events_from: ['@accounts'],
+      events_from: ['other_accounts'],
       include: ['webhook_endpoint.signing_secret', 'webhook_endpoint.url'],
       type: 'webhook_endpoint',
       webhook_endpoint: { url: snapshotUrl },
@@ -200,7 +200,7 @@ describe('Stripe resource configuration', () => {
       STRIPE_EXPECTED_MODE: 'live',
       STRIPE_CONNECT_WEBHOOK_URL: snapshotUrl,
       STRIPE_CONNECT_V2_WEBHOOK_URL: thinUrl,
-    })).rejects.toThrow(/Register and activate the Connect platform profile/);
+    })).rejects.toThrow(/Complete and activate the Connect platform profile/);
 
     expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old');
     expect(disable).toHaveBeenCalledTimes(1);
