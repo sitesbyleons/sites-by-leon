@@ -6,8 +6,11 @@ After=docker.service network-online.target
 [Service]
 Type=oneshot
 EnvironmentFile=/opt/leon-platform/backup-secrets/backup.env
+Environment=XDG_CACHE_HOME=/run/leon-platform-backup-cache
 ExecStart=/usr/bin/bash /usr/local/libexec/leon-platform/backup-database.sh
 UMask=0077
+RuntimeDirectory=leon-platform-backup-cache
+RuntimeDirectoryMode=0700
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

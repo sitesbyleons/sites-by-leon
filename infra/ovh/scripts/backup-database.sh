@@ -38,6 +38,7 @@ if [[ -n ${SUPABASE_BACKUP_AUTH_URL:-} ]]; then
     echo "Supabase Storage backups require timeout." >&2
     exit 1
   fi
+  export RCLONE_CONFIG=/dev/null
 fi
 
 refresh_restic_session_token() {

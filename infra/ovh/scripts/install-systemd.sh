@@ -99,6 +99,7 @@ if [[ -n ${SUPABASE_BACKUP_AUTH_URL:-} ]]; then
     echo "Install timeout before enabling Supabase Storage backups." >&2
     exit 1
   fi
+  export RCLONE_CONFIG=/dev/null
 fi
 if [[ -z ${RESTIC_PASSWORD_FILE:-} ]]; then
   echo "RESTIC_PASSWORD_FILE must point to a private root-owned file." >&2

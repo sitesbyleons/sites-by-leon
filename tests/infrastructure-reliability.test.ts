@@ -119,6 +119,20 @@ describe('OVH infrastructure reliability', () => {
     expect(backupEnv).not.toContain('AWS_SESSION_TOKEN=');
   });
 
+  it('isolates rclone from ambient configuration and gives systemd a private cache', () => {
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+    const drill = read('infra/ovh/scripts/verify-backup-restore.sh');
+    const installer = read('infra/ovh/scripts/install-systemd.sh');
+    const service = read('infra/ovh/systemd/leon-backup.service');
+
+    for (const script of [backup, drill, installer]) {
+      expect(script).toContain('export RCLONE_CONFIG=/dev/null');
+    }
+    expect(service).toContain('RuntimeDirectory=leon-platform-backup-cache');
+    expect(service).toContain('RuntimeDirectoryMode=0700');
+    expect(service).toContain('Environment=XDG_CACHE_HOME=/run/leon-platform-backup-cache');
+  });
+
   it('parses backup environment files as data instead of root shell code', () => {
     const installer = read('infra/ovh/scripts/install-systemd.sh');
     const drill = read('infra/ovh/scripts/verify-backup-restore.sh');
