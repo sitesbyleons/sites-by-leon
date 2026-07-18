@@ -185,6 +185,26 @@ describe('OVH infrastructure reliability', () => {
     expect(installer).toContain('group or other permissions');
   });
 
+  it('shares the maintenance lock between root backups and deploy-user operations', () => {
+    const installer = read('infra/ovh/scripts/install-systemd.sh');
+    const tmpfiles = read('infra/ovh/tmpfiles/leon-platform.conf');
+    const scripts = [
+      read('infra/ovh/scripts/backup-database.sh'),
+      read('infra/ovh/scripts/deploy.sh'),
+      read('infra/ovh/scripts/migrate-database.sh'),
+      read('infra/ovh/scripts/verify-backup-restore.sh'),
+    ];
+
+    expect(tmpfiles).toContain(
+      'f /run/lock/leon-platform-maintenance.lock 0660 root docker -',
+    );
+    expect(installer).toContain('/etc/tmpfiles.d/leon-platform.conf');
+    expect(installer).toContain('systemd-tmpfiles --create /etc/tmpfiles.d/leon-platform.conf');
+    for (const script of scripts) {
+      expect(script).toContain('/run/lock/leon-platform-maintenance.lock');
+    }
+  });
+
   it('defines indexes for every previously unindexed foreign key', () => {
     const schema = read('infra/ovh/postgres/schema.sql');
 

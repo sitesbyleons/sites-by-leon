@@ -68,6 +68,8 @@ install -o root -g root -m 0755 \
 install -o root -g root -m 0755 \
   "${SOURCE_ROOT}/infra/ovh/scripts/healthcheck.sh" \
   "${LIBEXEC_ROOT}/healthcheck.sh"
+install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/tmpfiles/leon-platform.conf" /etc/tmpfiles.d/leon-platform.conf
+systemd-tmpfiles --create /etc/tmpfiles.d/leon-platform.conf
 install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.service" /etc/systemd/system/leon-backup.service
 install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.timer" /etc/systemd/system/leon-backup.timer
 systemctl daemon-reload
