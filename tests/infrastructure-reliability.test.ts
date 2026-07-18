@@ -63,14 +63,17 @@ describe('OVH infrastructure reliability', () => {
 
   it('requires an offsite backup repository unless local mode is explicitly enabled', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
+    const installer = read('infra/ovh/scripts/install-systemd.sh');
     const backupEnv = read('infra/ovh/secrets/backup.env.example');
 
-    expect(backup).toContain('s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*');
-    expect(backup).toContain('ALLOW_LOCAL_BACKUP:-false');
-    expect(backup).toContain('Local Restic repositories require ALLOW_LOCAL_BACKUP=true');
-    expect(backup).toContain('if [[ "${RESTIC_REPOSITORY}" == s3:* ]]');
-    expect(backup).toContain(': "${AWS_ACCESS_KEY_ID:?Set the OVH S3 access key.}"');
-    expect(backup).toContain(': "${AWS_SECRET_ACCESS_KEY:?Set the OVH S3 secret key.}"');
+    for (const script of [backup, installer]) {
+      expect(script).toContain('s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*');
+      expect(script).toContain('ALLOW_LOCAL_BACKUP:-false');
+      expect(script).toContain('Local Restic repositories require ALLOW_LOCAL_BACKUP=true');
+      expect(script).toContain('if [[ "${RESTIC_REPOSITORY}" == s3:* ]]');
+      expect(script).toContain(': "${AWS_ACCESS_KEY_ID:?Set the OVH S3 access key.}"');
+      expect(script).toContain(': "${AWS_SECRET_ACCESS_KEY:?Set the OVH S3 secret key.}"');
+    }
     expect(backupEnv).toMatch(/^RESTIC_REPOSITORY=s3:/m);
     expect(backupEnv).toContain('ALLOW_LOCAL_BACKUP=false');
   });

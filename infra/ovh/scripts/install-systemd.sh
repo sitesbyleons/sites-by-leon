@@ -51,6 +51,20 @@ require_root_secret "${BACKUP_ENV}"
 set -a
 source "${BACKUP_ENV}"
 set +a
+: "${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY to the remote backup repository.}"
+case "${RESTIC_REPOSITORY}" in
+  s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*) ;;
+  *)
+    if [[ ${ALLOW_LOCAL_BACKUP:-false} != true ]]; then
+      echo "Local Restic repositories require ALLOW_LOCAL_BACKUP=true and are not production backups." >&2
+      exit 1
+    fi
+    ;;
+esac
+if [[ "${RESTIC_REPOSITORY}" == s3:* ]]; then
+  : "${AWS_ACCESS_KEY_ID:?Set the OVH S3 access key.}"
+  : "${AWS_SECRET_ACCESS_KEY:?Set the OVH S3 secret key.}"
+fi
 if [[ -z ${RESTIC_PASSWORD_FILE:-} ]]; then
   echo "RESTIC_PASSWORD_FILE must point to a private root-owned file." >&2
   exit 1
