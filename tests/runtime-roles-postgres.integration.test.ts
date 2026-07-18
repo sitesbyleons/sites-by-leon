@@ -24,7 +24,11 @@ integrationSuite('PostgreSQL photographer runtime grants', () => {
 
     control = postgres(databaseUrl!, { max: 1 });
     const [roleStatement] = await control<{ statement: string }[]>`
-      select format('create role %I login password %L', ${roleName}, ${rolePassword}) as statement
+      select format(
+        'create role %I login password %L',
+        ${roleName}::text,
+        ${rolePassword}::text
+      ) as statement
     `;
     await control.unsafe(roleStatement.statement);
     roleCreated = true;
