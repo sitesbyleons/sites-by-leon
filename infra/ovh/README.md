@@ -33,10 +33,10 @@ Copy these ignored examples and replace every placeholder:
 4. `infra/ovh/secrets/northline.env.example` to `infra/ovh/secrets/northline.env`.
 5. Keep `infra/ovh/secrets/domain-worker.env.example` as a reference until custom-domain automation is activated.
 6. Put the Cloudflare Tunnel token only in `infra/ovh/secrets/cloudflare-tunnel-token`.
-7. Copy `infra/ovh/secrets/backup.env.example` to `/opt/leon-platform/secrets/backup.env`.
-8. Generate `/opt/leon-platform/secrets/restic-password` with `openssl rand -base64 48` and keep an offline copy.
+7. Create the root-only directory `/opt/leon-platform/backup-secrets` with mode `700`, then copy `infra/ovh/secrets/backup.env.example` to `/opt/leon-platform/backup-secrets/backup.env`.
+8. Generate `/opt/leon-platform/backup-secrets/restic-password` with `openssl rand -base64 48` and keep an offline copy.
 
-Set every secret file to mode `600`. The backup installer also refuses to source `backup.env` or read the Restic password unless each is a regular, root-owned file with no group or world permissions. `POSTGRES_PASSWORD` is the migration/backup credential and stays only in `postgres.env`. Use different `POSTGRES_DASHBOARD_PASSWORD` and `POSTGRES_PHOTOGRAPHER_PASSWORD` values in the matching `leon_dashboard` and `leon_photographer` database URLs; web containers must never use the database administrator login. The `northline.env` filename is retained for deployment compatibility, but it now configures the single shared photographer runtime rather than one Northline-only container.
+Set every secret file to mode `600`. Keep backup credentials in the separate root-owned `/opt/leon-platform/backup-secrets` directory with mode `700`; the deploy-user-owned runtime secret directory must never contain them. The backup installer refuses to source `backup.env` or read the Restic password unless both the file and its parent directory are root-owned with no group or world permissions. `POSTGRES_PASSWORD` is the migration/backup credential and stays only in `postgres.env`. Use different `POSTGRES_DASHBOARD_PASSWORD` and `POSTGRES_PHOTOGRAPHER_PASSWORD` values in the matching `leon_dashboard` and `leon_photographer` database URLs; web containers must never use the database administrator login. The `northline.env` filename is retained for deployment compatibility, but it now configures the single shared photographer runtime rather than one Northline-only container.
 
 Production runtime secrets live in `/opt/leon-platform/secrets`, outside release archives. Synchronize the explicit owner-only allowlist before a deployment:
 

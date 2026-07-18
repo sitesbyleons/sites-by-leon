@@ -9,7 +9,23 @@ fi
 SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}
 SOURCE_ROOT=$(readlink -f "${SOURCE_ROOT}")
 LIBEXEC_ROOT=/usr/local/libexec/leon-platform
-BACKUP_ENV=/opt/leon-platform/secrets/backup.env
+BACKUP_SECRETS_ROOT=/opt/leon-platform/backup-secrets
+BACKUP_ENV=${BACKUP_SECRETS_ROOT}/backup.env
+
+require_root_secret_directory() {
+  local path=$1
+  local owner mode
+  if [[ ! -d ${path} || -L ${path} ]]; then
+    echo "${path} must be a regular, non-symlink secret directory." >&2
+    exit 1
+  fi
+  owner=$(stat -c '%u' "${path}")
+  mode=$(stat -c '%a' "${path}")
+  if [[ ${owner} != 0 || $((8#${mode} & 077)) -ne 0 ]]; then
+    echo "${path} must be root-owned with no group or other permissions." >&2
+    exit 1
+  fi
+}
 
 require_root_secret() {
   local path=$1
@@ -26,6 +42,7 @@ require_root_secret() {
   fi
 }
 
+require_root_secret_directory "${BACKUP_SECRETS_ROOT}"
 if [[ ! -e ${BACKUP_ENV} ]]; then
   echo "Create ${BACKUP_ENV} from backup.env.example before enabling backups." >&2
   exit 1
@@ -39,6 +56,7 @@ if [[ -z ${RESTIC_PASSWORD_FILE:-} ]]; then
   exit 1
 fi
 require_root_secret "${RESTIC_PASSWORD_FILE}"
+require_root_secret_directory "$(dirname "${RESTIC_PASSWORD_FILE}")"
 
 install -o root -g root -m 0755 -d "${LIBEXEC_ROOT}"
 install -o root -g root -m 0755 \

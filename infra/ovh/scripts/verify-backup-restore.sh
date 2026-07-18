@@ -22,8 +22,25 @@ require_root_secret() {
   fi
 }
 
-BACKUP_ENV=${BACKUP_ENV:-/opt/leon-platform/secrets/backup.env}
+require_root_secret_directory() {
+  local path=$1
+  local owner mode
+  if [[ ! -d ${path} || -L ${path} ]]; then
+    echo "${path} must be a regular, non-symlink secret directory." >&2
+    exit 1
+  fi
+  owner=$(stat -c '%u' "${path}")
+  mode=$(stat -c '%a' "${path}")
+  if [[ ${owner} != 0 || $((8#${mode} & 077)) -ne 0 ]]; then
+    echo "${path} must be root-owned with no group or other permissions." >&2
+    exit 1
+  fi
+}
+
+BACKUP_SECRETS_ROOT=${BACKUP_SECRETS_ROOT:-/opt/leon-platform/backup-secrets}
+BACKUP_ENV=${BACKUP_ENV:-${BACKUP_SECRETS_ROOT}/backup.env}
 if [[ -z ${RESTIC_REPOSITORY:-} || -z ${RESTIC_PASSWORD_FILE:-} ]]; then
+  require_root_secret_directory "$(dirname "${BACKUP_ENV}")"
   require_root_secret "${BACKUP_ENV}"
   set -a
   source "${BACKUP_ENV}"
@@ -32,6 +49,7 @@ fi
 
 : "${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY to the remote backup repository.}"
 : "${RESTIC_PASSWORD_FILE:?Set RESTIC_PASSWORD_FILE to a chmod-600 file.}"
+require_root_secret_directory "$(dirname "${RESTIC_PASSWORD_FILE}")"
 require_root_secret "${RESTIC_PASSWORD_FILE}"
 case "${RESTIC_REPOSITORY}" in
   s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*) ;;

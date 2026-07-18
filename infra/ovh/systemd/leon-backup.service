@@ -5,7 +5,7 @@ After=docker.service network-online.target
 
 [Service]
 Type=oneshot
-EnvironmentFile=/opt/leon-platform/secrets/backup.env
+EnvironmentFile=/opt/leon-platform/backup-secrets/backup.env
 ExecStart=/usr/bin/bash /usr/local/libexec/leon-platform/backup-database.sh
 UMask=0077
 Nice=10

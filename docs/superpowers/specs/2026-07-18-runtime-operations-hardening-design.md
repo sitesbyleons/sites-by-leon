@@ -32,7 +32,7 @@ Deletion keeps the existing database reference check before unlinking. Filesyste
 
 Production backups require a remote Restic repository. Local paths are rejected unless `ALLOW_LOCAL_BACKUP=true` is explicitly set for a one-off development recovery exercise. The production target is OVH S3-compatible Object Storage in the same region family but outside the VPS disk.
 
-The bucket credentials remain root-only in `/opt/leon-platform/secrets/backup.env`. The nightly job backs up PostgreSQL, uploads, current release configuration, and stable secrets while excluding the Restic password file. Completion requires all of the following:
+The bucket credentials remain root-only in `/opt/leon-platform/backup-secrets/backup.env`, outside the deploy-user-owned runtime secret directory. The nightly job backs up PostgreSQL, uploads, current release configuration, and stable runtime secrets while excluding the Restic password file. Completion requires all of the following:
 
 - a successful remote snapshot;
 - `restic check` against the remote repository;
@@ -45,4 +45,3 @@ OVH's VPS snapshot and automated-backup features remain defense in depth, not a 
 ## Verification And Rollback
 
 Database grants are validated in a disposable PostgreSQL instance and again on production after migration. Deployment takes a backup first, keeps the current release symlink available for rollback, and health-checks every active site. The live Stripe cutover is blocked until the remote backup and restore drill pass.
-

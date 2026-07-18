@@ -170,7 +170,7 @@ describe('OVH infrastructure reliability', () => {
   it('refuses to enable the backup timer until its secret files exist', () => {
     const installer = read('infra/ovh/scripts/install-systemd.sh');
     const readme = read('infra/ovh/README.md');
-    expect(installer).toContain('/opt/leon-platform/secrets/backup.env');
+    expect(installer).toContain('/opt/leon-platform/backup-secrets');
     expect(installer).toContain('RESTIC_PASSWORD_FILE');
     expect(readme).toContain('backup.env.example');
     expect(readme).toContain('restic-password');
