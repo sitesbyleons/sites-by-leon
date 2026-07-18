@@ -22,6 +22,10 @@ export function canManageSubscription(status: string | null | undefined) {
   return Boolean(status && !replaceableSubscriptionStatuses.has(status));
 }
 
+export function canManageBilling(role: string | null | undefined) {
+  return role === 'owner' || role === 'admin';
+}
+
 export function canStartCheckout(context: CheckoutContext) {
   return Boolean(
     context.userId &&

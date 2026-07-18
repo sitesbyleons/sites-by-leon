@@ -30,12 +30,16 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     return Response.json({ message: 'Online requests are not connected yet. Please email Leon.' }, { status: 503 });
   }
 
-  const { workspace, error: workspaceError } = await resolveClientWorkspace(database, {
+  const { workspace, reason: workspaceReason } = await resolveClientWorkspace(database, {
     userId: auth.userId,
     orgId: auth.orgId ?? null,
   });
 
-  if (workspaceError || !workspace) {
+  if (workspaceReason === 'database') {
+    return Response.json({ message: 'Online requests are temporarily unavailable. Please email Leon.' }, { status: 503 });
+  }
+
+  if (!workspace) {
     return Response.json({ message: 'This client workspace is not ready yet. Please email Leon.' }, { status: 409 });
   }
 

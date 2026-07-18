@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { canManageSubscription, canStartCheckout, getPlan, plans } from '../src/lib/billing';
+import { canManageBilling, canManageSubscription, canStartCheckout, getPlan, plans } from '../src/lib/billing';
 
 const read = (path: string) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -67,6 +67,24 @@ describe('canManageSubscription', () => {
     expect(canManageSubscription('canceled')).toBe(false);
     expect(canManageSubscription('incomplete_expired')).toBe(false);
     expect(canManageSubscription(null)).toBe(false);
+  });
+});
+
+describe('canManageBilling', () => {
+  it('permits owners and admins but not ordinary members', () => {
+    expect(canManageBilling('owner')).toBe(true);
+    expect(canManageBilling('admin')).toBe(true);
+    expect(canManageBilling('member')).toBe(false);
+    expect(canManageBilling(null)).toBe(false);
+  });
+
+  it('distinguishes a missing workspace from a forbidden workspace member', () => {
+    for (const routePath of ['src/pages/api/billing/checkout.ts', 'src/pages/api/billing/portal.ts']) {
+      const route = read(routePath);
+      expect(route).toContain("resolved.reason === 'not-found'");
+      expect(route.indexOf("resolved.reason === 'not-found'")).toBeLessThan(route.indexOf('!canManageBilling(resolved.role)'));
+      expect(route).toContain("resolved.reason === 'forbidden'");
+    }
   });
 });
 

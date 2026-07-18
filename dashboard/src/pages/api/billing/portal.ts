@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
+import { canManageBilling } from '../../../lib/billing';
 import { createPlatformDatabase } from '../../../lib/database';
 import { resolveTrustedOrigin } from '../../../lib/request-security';
 import { resolveClientWorkspace } from '../../../lib/workspaces';
@@ -17,6 +18,12 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   if (!database || !stripeKey) return Response.json({ message: 'Billing management is not configured yet.' }, { status: 503 });
 
   const resolved = await resolveClientWorkspace(database, { userId: auth.userId, orgId: auth.orgId ?? null });
+  if (resolved.reason === 'database') return Response.json({ message: 'Billing status could not be verified. Try again.' }, { status: 503 });
+  if (resolved.reason === 'ambiguous') return Response.json({ message: 'Activate the organization you want to bill and try again.' }, { status: 409 });
+  if (resolved.reason === 'not-found') return Response.json({ message: 'No client workspace is connected to this account.' }, { status: 404 });
+  if (resolved.reason === 'forbidden' || !canManageBilling(resolved.role)) {
+    return Response.json({ message: 'Only a workspace owner or admin can manage billing.' }, { status: 403 });
+  }
   const workspace = resolved.workspace
     ? await database.from('client_workspaces').select<{ stripe_customer_id: string | null }>('stripe_customer_id').eq('id', resolved.workspace.id).maybeSingle()
     : { data: null, error: null };

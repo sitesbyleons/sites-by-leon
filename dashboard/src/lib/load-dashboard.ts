@@ -45,14 +45,23 @@ export async function loadDashboardData(
     };
   }
 
-  const { workspace, error: workspaceError } = await resolveClientWorkspace(database, identity);
+  const { workspace, reason: workspaceReason } = await resolveClientWorkspace(database, identity);
 
-  if (workspaceError) {
+  if (workspaceReason === 'database') {
     return {
       workspace: null,
       project: null,
       subscription: null,
       error: 'Your workspace could not be loaded. Leon has been notified to check the connection.',
+    };
+  }
+
+  if (workspaceReason === 'ambiguous') {
+    return {
+      workspace: null,
+      project: null,
+      subscription: null,
+      error: 'Your account is connected to more than one workspace. Activate the organization you want to view.',
     };
   }
 

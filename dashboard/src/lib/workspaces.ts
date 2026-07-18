@@ -6,11 +6,17 @@ export type ResolvedWorkspace = {
   status: string;
 };
 
+export type WorkspaceResolution = {
+  workspace: ResolvedWorkspace | null;
+  role: string | null;
+  reason: null | 'not-found' | 'ambiguous' | 'forbidden' | 'database';
+};
+
 export async function resolveClientWorkspace(
   database: DataClient | null,
   input: { userId: string; orgId: string | null },
-): Promise<{ workspace: ResolvedWorkspace | null; error: boolean }> {
-  if (!database) return { workspace: null, error: true };
+): Promise<WorkspaceResolution> {
+  if (!database) return { workspace: null, role: null, reason: 'database' };
 
   if (input.orgId) {
     const byOrganization = await database
@@ -19,26 +25,40 @@ export async function resolveClientWorkspace(
       .eq('clerk_org_id', input.orgId)
       .maybeSingle<ResolvedWorkspace>();
 
-    if (byOrganization.error) return { workspace: null, error: true };
-    if (byOrganization.data) return { workspace: byOrganization.data, error: false };
+    if (byOrganization.error) return { workspace: null, role: null, reason: 'database' };
+    if (!byOrganization.data) return { workspace: null, role: null, reason: 'not-found' };
+
+    const membership = await database
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', byOrganization.data.id)
+      .eq('clerk_user_id', input.userId)
+      .maybeSingle<{ role: string }>();
+
+    if (membership.error) return { workspace: null, role: null, reason: 'database' };
+    if (!membership.data) return { workspace: null, role: null, reason: 'forbidden' };
+    return { workspace: byOrganization.data, role: membership.data.role, reason: null };
   }
 
-  const membership = await database
+  const memberships = await database
     .from('workspace_members')
-    .select('workspace_id')
+    .select('workspace_id,role')
     .eq('clerk_user_id', input.userId)
     .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle<{ workspace_id: string }>();
+    .limit(2);
 
-  if (membership.error) return { workspace: null, error: true };
-  if (!membership.data) return { workspace: null, error: false };
+  if (memberships.error) return { workspace: null, role: null, reason: 'database' };
+  if (!memberships.data.length) return { workspace: null, role: null, reason: 'not-found' };
+  if (memberships.data.length > 1) return { workspace: null, role: null, reason: 'ambiguous' };
+  const membership = memberships.data[0] as { workspace_id: string; role: string };
 
   const workspace = await database
     .from('client_workspaces')
     .select('id,name,status')
-    .eq('id', membership.data.workspace_id)
+    .eq('id', membership.workspace_id)
     .maybeSingle<ResolvedWorkspace>();
 
-  return { workspace: workspace.data, error: Boolean(workspace.error) };
+  if (workspace.error) return { workspace: null, role: null, reason: 'database' };
+  if (!workspace.data) return { workspace: null, role: null, reason: 'not-found' };
+  return { workspace: workspace.data, role: membership.role, reason: null };
 }
