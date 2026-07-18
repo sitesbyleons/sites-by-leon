@@ -203,6 +203,13 @@ describe('OVH infrastructure reliability', () => {
     expect(caddy).toContain('X-Permitted-Cross-Domain-Policies none');
   });
 
+  it('keeps deleted public media revocable through short revalidation', () => {
+    const caddy = read('infra/ovh/Caddyfile');
+
+    expect(caddy).toContain('header Cache-Control "public, max-age=300, must-revalidate"');
+    expect(caddy).not.toContain('Cache-Control "public, max-age=31536000, immutable"');
+  });
+
   it('permits the Cloudflare analytics beacon required on proxied sites', () => {
     const caddy = read('infra/ovh/Caddyfile');
 
