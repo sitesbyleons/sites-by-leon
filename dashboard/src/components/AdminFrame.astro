@@ -1,8 +1,8 @@
 ---
-import { SignOutButton, UserButton } from '@clerk/astro/components';
-
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import AdminIcon from './AdminIcon.astro';
+import ClerkSignOutButton from './ClerkSignOutButton.astro';
+import ClerkUI from './ClerkUI.astro';
 
 interface Props {
   active: 'overview' | 'users' | 'tickets' | 'subscriptions' | 'sites';
@@ -39,7 +39,7 @@ const links = [
           </a>
         ))}
       </nav>
-      {!isPreview && <div class="studio-admin__account"><UserButton /><a href="/dashboard">Client view</a><SignOutButton><button type="button">Sign out</button></SignOutButton></div>}
+      {!isPreview && <div class="studio-admin__account"><ClerkUI kind="user-button" /><a href="/dashboard">Client view</a><ClerkSignOutButton>Sign out</ClerkSignOutButton></div>}
     </aside>
     <button class="admin-nav-scrim" type="button" data-admin-nav-toggle aria-label="Close navigation"></button>
 
@@ -47,7 +47,7 @@ const links = [
       <header class="admin-topbar">
         <button class="admin-nav-open" type="button" data-admin-nav-toggle aria-label="Open navigation"><AdminIcon name="menu" /></button>
         <div><small>{eyebrow} / {title}</small><strong>{title}</strong></div>
-        {!isPreview && <UserButton />}
+        {!isPreview && <ClerkUI kind="user-button" />}
       </header>
       <div class="admin-workspace">
         <section class="admin-intro"><div><span>{eyebrow}</span><h1>{title}</h1></div><p>{description}</p></section>

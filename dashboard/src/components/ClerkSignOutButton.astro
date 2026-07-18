@@ -1,0 +1,11 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+type Props = HTMLAttributes<'button'> & { redirectUrl?: string };
+
+const { redirectUrl = '/', type = 'button', ...attributes } = Astro.props;
+---
+
+<button {...attributes} type={type} data-clerk-sign-out data-clerk-redirect-url={redirectUrl}>
+  <slot>Sign out</slot>
+</button>

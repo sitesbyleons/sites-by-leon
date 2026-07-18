@@ -1,6 +1,5 @@
 ---
-import { UserButton } from '@clerk/astro/components';
-
+import ClerkUI from '../components/ClerkUI.astro';
 import StudioIcon from '../components/StudioIcon.astro';
 import type { StudioUpload } from '../lib/studio';
 import '../styles/studio-admin.css';
@@ -91,7 +90,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
           <div><small>Workspace / {title}</small><h1>{title}</h1></div>
           <div class="studio-topbar__tools">
             <button class="studio-topbar__files" type="button" data-open-media-library><StudioIcon name="media" /><span>Files</span></button>
-            {!isPreview && <UserButton />}
+            {!isPreview && <ClerkUI kind="user-button" />}
           </div>
         </header>
         {error && <p class="studio-notice" role="status">{error}</p>}

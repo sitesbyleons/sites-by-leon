@@ -1,6 +1,6 @@
 ---
-import { SignOutButton, UserButton } from '@clerk/astro/components';
-
+import ClerkSignOutButton from '../../components/ClerkSignOutButton.astro';
+import ClerkUI from '../../components/ClerkUI.astro';
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { checkAppAdmin } from '../../lib/admin';
 import { decideDashboardAccess } from '../../lib/access';
@@ -86,7 +86,7 @@ const periodEnd = dashboardData.subscription?.current_period_end
         <a href="/dashboard/billing">Billing</a>
       </nav>
       <div class="client-account">
-        {!isPreview && <UserButton />}
+        {!isPreview && <ClerkUI kind="user-button" />}
       </div>
     </header>
 
@@ -108,7 +108,7 @@ const periodEnd = dashboardData.subscription?.current_period_end
           </div>
           <div class="onboarding-card__actions">
             <a class="simple-button" href="mailto:sites.by.leon@gmail.com">Contact Leon</a>
-            {!isPreview && <SignOutButton><button class="simple-button simple-button--quiet" type="button">Sign out</button></SignOutButton>}
+            {!isPreview && <ClerkSignOutButton class="simple-button simple-button--quiet">Sign out</ClerkSignOutButton>}
           </div>
         </section>
       ) : (

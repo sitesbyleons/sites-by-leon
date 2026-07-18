@@ -1,6 +1,5 @@
 ---
-import { UserButton } from '@clerk/astro/components';
-
+import ClerkUI from '../../components/ClerkUI.astro';
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { decideDashboardAccess } from '../../lib/access';
 import { canManageSubscription, canStartCheckout, plans } from '../../lib/billing';
@@ -34,7 +33,7 @@ const checkoutReady = canStartCheckout({
     <header class="client-header">
       <a class="portal-brand portal-brand--small" href="/dashboard" aria-label="Sites By Leon dashboard"><span>Sites</span><span>By</span><span>Leon</span></a>
       <nav aria-label="Client dashboard"><a href="/dashboard">Website</a><a href="/dashboard/support">Support</a><a href="/dashboard/billing" aria-current="page">Billing</a></nav>
-      <div class="client-account">{!isPreview && <UserButton />}</div>
+      <div class="client-account">{!isPreview && <ClerkUI kind="user-button" />}</div>
     </header>
     <main class="client-main client-main--page">
       <section class="client-intro"><p>Client dashboard</p><h1>Billing</h1><span>View your plan and manage billing with Stripe.</span></section>

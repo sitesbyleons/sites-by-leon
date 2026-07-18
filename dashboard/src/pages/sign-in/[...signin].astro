@@ -1,6 +1,5 @@
 ---
-import { SignIn } from '@clerk/astro/components';
-
+import ClerkUI from '../../components/ClerkUI.astro';
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { normalizeReturnPath } from '../../lib/request-security';
 
@@ -37,13 +36,7 @@ const appearance = {
         <h1>Sign in</h1>
         <p>Access your website, support tickets, and billing.</p>
       </div>
-      <SignIn
-        path="/sign-in"
-        routing="path"
-        signUpUrl={signUpUrl}
-        forceRedirectUrl={redirectUrl}
-        {appearance}
-      />
+      <ClerkUI kind="sign-in" options={{ path: '/sign-in', routing: 'path', signUpUrl, forceRedirectUrl: redirectUrl, appearance }} />
       <a class="auth-card__back" href={import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://leonsites.org'}>← Back to leonsites.org</a>
     </div>
   </main>

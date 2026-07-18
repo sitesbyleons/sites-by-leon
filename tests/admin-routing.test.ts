@@ -18,11 +18,17 @@ describe('Leon admin routing', () => {
   });
 
   it('allows Clerk only through the explicit authentication hosts', () => {
-    const config = readFileSync(new URL('../infra/ovh/Caddyfile', import.meta.url), 'utf8');
+    const caddy = readFileSync(new URL('../infra/ovh/Caddyfile', import.meta.url), 'utf8');
+    const appPolicies = [
+      readFileSync(new URL('../dashboard/astro.config.mjs', import.meta.url), 'utf8'),
+      readFileSync(new URL('../photographer-site/astro.config.mjs', import.meta.url), 'utf8'),
+    ];
 
-    expect(config).toContain('https://clerk.leonsites.org');
-    expect(config).toContain('https://accounts.leonsites.org');
-    expect(config).toContain("frame-ancestors 'none'");
-    expect(config).toContain("object-src 'none'");
+    for (const policy of appPolicies) {
+      expect(policy).toContain('https://clerk.leonsites.org');
+      expect(policy).toContain('https://accounts.leonsites.org');
+    }
+    expect(caddy).toContain("frame-ancestors 'none'");
+    expect(caddy).toContain("object-src 'none'");
   });
 });

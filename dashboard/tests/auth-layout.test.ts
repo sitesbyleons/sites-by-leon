@@ -17,7 +17,7 @@ describe('simple authentication layout', () => {
 
   it('returns an admin to the requested protected page after sign in', () => {
     expect(signIn).toContain('normalizeReturnPath');
-    expect(signIn).toContain('forceRedirectUrl={redirectUrl}');
+    expect(signIn).toContain('forceRedirectUrl: redirectUrl');
     expect(signIn).not.toContain('forceRedirectUrl="/dashboard"');
   });
 });

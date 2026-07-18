@@ -236,12 +236,17 @@ describe('OVH infrastructure reliability', () => {
   });
 
   it('permits the Cloudflare analytics beacon required on proxied sites', () => {
-    const caddy = read('infra/ovh/Caddyfile');
+    const configs = [
+      read('astro.config.mjs'),
+      read('dashboard/astro.config.mjs'),
+      read('photographer-site/astro.config.mjs'),
+    ];
 
-    expect(caddy).toContain('script-src');
-    expect(caddy).toContain('https://static.cloudflareinsights.com');
-    expect(caddy).toContain('connect-src');
-    expect(caddy).toContain('https://cloudflareinsights.com');
+    for (const config of configs) {
+      expect(config).toContain('https://static.cloudflareinsights.com');
+      expect(config).toContain('connect-src');
+      expect(config).toContain('https://cloudflareinsights.com');
+    }
   });
 
   it('keeps the schema safe to apply more than once', () => {

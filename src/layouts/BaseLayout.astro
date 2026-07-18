@@ -39,9 +39,9 @@ const canonical = canonicalUrl
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
-    <script is:inline>document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js');</script>
   </head>
   <body id="top">
+    <script>document.documentElement.classList.remove('no-js'); document.documentElement.classList.add('js');</script>
     <a class="skip-link" href="#main">Skip to content</a>
     <slot />
   </body>

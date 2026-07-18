@@ -1,0 +1,50 @@
+---
+type ClerkUIKind = 'sign-in' | 'sign-up' | 'user-button';
+
+interface Props {
+  kind: ClerkUIKind;
+  options?: Record<string, unknown>;
+}
+
+const { kind, options = {} } = Astro.props;
+---
+
+<div data-clerk-ui={kind} data-clerk-options={JSON.stringify(options)}></div>
+
+<script>
+  import { $clerkStore } from '@clerk/astro/client';
+
+  const mountedElements = new WeakSet<HTMLElement>();
+  const boundSignOutButtons = new WeakSet<HTMLButtonElement>();
+
+  $clerkStore.subscribe((clerk) => {
+    if (!clerk?.loaded) return;
+
+    document.querySelectorAll<HTMLDivElement>('[data-clerk-ui]').forEach((element) => {
+      if (mountedElements.has(element)) return;
+      const options = JSON.parse(element.dataset.clerkOptions ?? '{}') as never;
+      switch (element.dataset.clerkUi) {
+        case 'sign-in':
+          clerk.mountSignIn(element, options);
+          break;
+        case 'sign-up':
+          clerk.mountSignUp(element, options);
+          break;
+        case 'user-button':
+          clerk.mountUserButton(element, options);
+          break;
+        default:
+          return;
+      }
+      mountedElements.add(element);
+    });
+
+    document.querySelectorAll<HTMLButtonElement>('[data-clerk-sign-out]').forEach((button) => {
+      if (boundSignOutButtons.has(button)) return;
+      button.addEventListener('click', () => {
+        void clerk.signOut({ redirectUrl: button.dataset.clerkRedirectUrl || '/' });
+      });
+      boundSignOutButtons.add(button);
+    });
+  });
+</script>
