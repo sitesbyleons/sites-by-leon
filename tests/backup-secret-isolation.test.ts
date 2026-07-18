@@ -14,6 +14,7 @@ describe('backup secret isolation', () => {
 
     expect(service).toContain(`EnvironmentFile=${backupRoot}/backup.env`);
     expect(example).toContain(`RESTIC_PASSWORD_FILE=${backupRoot}/restic-password`);
+    expect(example).not.toContain('AWS_SESSION_TOKEN=');
     expect(installer).toContain(`BACKUP_SECRETS_ROOT=${backupRoot}`);
     expect(installer).toContain('require_root_secret_directory "${BACKUP_SECRETS_ROOT}"');
     expect(verifier).toContain(`BACKUP_SECRETS_ROOT=\${BACKUP_SECRETS_ROOT:-${backupRoot}}`);

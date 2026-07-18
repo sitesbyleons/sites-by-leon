@@ -9,10 +9,10 @@ flock -w "${MAINTENANCE_LOCK_TIMEOUT:-900}" 9 || {
   exit 1
 }
 
-: "${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY, for example s3:https://ENDPOINT/BUCKET/restic.}"
+: "${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY to an offsite Restic repository.}"
 : "${RESTIC_PASSWORD_FILE:?Set RESTIC_PASSWORD_FILE to a chmod-600 file.}"
 case "${RESTIC_REPOSITORY}" in
-  s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*) ;;
+  s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*|rclone:*) ;;
   *)
     if [[ ${ALLOW_LOCAL_BACKUP:-false} != true ]]; then
       echo "Local Restic repositories require ALLOW_LOCAL_BACKUP=true and are not production backups." >&2
@@ -21,9 +21,53 @@ case "${RESTIC_REPOSITORY}" in
     ;;
 esac
 if [[ "${RESTIC_REPOSITORY}" == s3:* ]]; then
-  : "${AWS_ACCESS_KEY_ID:?Set the OVH S3 access key.}"
-  : "${AWS_SECRET_ACCESS_KEY:?Set the OVH S3 secret key.}"
+  : "${AWS_ACCESS_KEY_ID:?Set the S3 access key.}"
+  : "${AWS_SECRET_ACCESS_KEY:?Set the S3 secret key.}"
 fi
+if [[ "${RESTIC_REPOSITORY}" == rclone:* ]] && ! command -v rclone >/dev/null 2>&1; then
+  echo "The configured Restic repository requires rclone." >&2
+  exit 1
+fi
+SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS=${SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS:-3000}
+if [[ -n ${SUPABASE_BACKUP_AUTH_URL:-} ]]; then
+  if [[ ! ${SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS} =~ ^[1-9][0-9]*$ ]] || (( SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS > 3000 )); then
+    echo "SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS must be between 1 and 3000." >&2
+    exit 1
+  fi
+  if ! command -v timeout >/dev/null 2>&1; then
+    echo "Supabase Storage backups require timeout." >&2
+    exit 1
+  fi
+fi
+
+refresh_restic_session_token() {
+  if [[ -z ${SUPABASE_BACKUP_AUTH_URL:-} ]]; then
+    return
+  fi
+  local helper=/usr/local/libexec/leon-platform/supabase-storage-session-token.sh
+  local owner mode
+  if [[ ! -x ${helper} || -L ${helper} ]]; then
+    echo "The Supabase Storage session helper must be an executable regular file." >&2
+    exit 1
+  fi
+  owner=$(stat -c '%u' "${helper}")
+  mode=$(stat -c '%a' "${helper}")
+  if [[ ${owner} != 0 || $((8#${mode} & 022)) -ne 0 ]]; then
+    echo "The Supabase Storage session helper must be root-owned and not group- or world-writable." >&2
+    exit 1
+  fi
+  AWS_SESSION_TOKEN=$("${helper}")
+  export AWS_SESSION_TOKEN
+}
+
+restic_with_fresh_session() {
+  if [[ -n ${SUPABASE_BACKUP_AUTH_URL:-} ]]; then
+    refresh_restic_session_token
+    timeout --kill-after=30s "${SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS}s" restic "$@"
+  else
+    restic "$@"
+  fi
+}
 
 SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}
 SOURCE_ROOT=$(readlink -f "${SOURCE_ROOT}")
@@ -224,10 +268,10 @@ docker exec "${database_container}" sh -c \
   'pg_dump --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --format custom --no-owner --no-acl' > "${dump}"
 restart_application_containers
 stop_attempted=0
-restic snapshots >/dev/null 2>&1 || restic init
+restic_with_fresh_session cat config >/dev/null
 backup_paths=("${dump}" "${staged_uploads}")
 [[ -d "${SOURCE_ROOT}" ]] && backup_paths+=("${SOURCE_ROOT}")
 [[ -d /opt/leon-platform/secrets ]] && backup_paths+=(/opt/leon-platform/secrets)
-restic backup --host "${BACKUP_HOSTNAME}" --exclude "${RESTIC_PASSWORD_FILE}" "${backup_paths[@]}"
-restic forget --group-by host --host "${BACKUP_HOSTNAME}" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+restic_with_fresh_session backup --host "${BACKUP_HOSTNAME}" --exclude "${RESTIC_PASSWORD_FILE}" "${backup_paths[@]}"
+restic_with_fresh_session forget --group-by host --host "${BACKUP_HOSTNAME}" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
 echo "Encrypted database and application backup completed."

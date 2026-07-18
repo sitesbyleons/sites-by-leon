@@ -55,6 +55,8 @@ describe('OVH infrastructure reliability', () => {
     expect(installer).toContain('SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current}');
     expect(installer).toContain('LIBEXEC_ROOT=/usr/local/libexec/leon-platform');
     expect(installer).toContain('install -o root -g root -m 0755');
+    expect(installer).toContain('supabase-storage-session-token.sh');
+    expect(installer).toContain('load-backup-environment.sh');
     expect(service).toContain('/usr/local/libexec/leon-platform/backup-database.sh');
     expect(service).toContain('UMask=0077');
     expect(service).not.toContain('/opt/leon-platform/current/infra/ovh/scripts');
@@ -67,15 +69,68 @@ describe('OVH infrastructure reliability', () => {
     const backupEnv = read('infra/ovh/secrets/backup.env.example');
 
     for (const script of [backup, installer]) {
-      expect(script).toContain('s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*');
+      expect(script).toContain('s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*|rclone:*');
       expect(script).toContain('ALLOW_LOCAL_BACKUP:-false');
       expect(script).toContain('Local Restic repositories require ALLOW_LOCAL_BACKUP=true');
       expect(script).toContain('if [[ "${RESTIC_REPOSITORY}" == s3:* ]]');
-      expect(script).toContain(': "${AWS_ACCESS_KEY_ID:?Set the OVH S3 access key.}"');
-      expect(script).toContain(': "${AWS_SECRET_ACCESS_KEY:?Set the OVH S3 secret key.}"');
+      expect(script).toContain(': "${AWS_ACCESS_KEY_ID:?Set the S3 access key.}"');
+      expect(script).toContain(': "${AWS_SECRET_ACCESS_KEY:?Set the S3 secret key.}"');
     }
-    expect(backupEnv).toMatch(/^RESTIC_REPOSITORY=s3:/m);
+    expect(backupEnv).toMatch(/^RESTIC_REPOSITORY=rclone:/m);
     expect(backupEnv).toContain('ALLOW_LOCAL_BACKUP=false');
+  });
+
+  it('refreshes a scoped Supabase Storage session immediately before Restic access', () => {
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+    const drill = read('infra/ovh/scripts/verify-backup-restore.sh');
+    const helper = read('infra/ovh/scripts/supabase-storage-session-token.sh');
+    const installer = read('infra/ovh/scripts/install-systemd.sh');
+    const backupEnv = read('infra/ovh/secrets/backup.env.example');
+
+    for (const script of [backup, drill]) {
+      expect(script).toContain('/usr/local/libexec/leon-platform/supabase-storage-session-token.sh');
+      expect(script).toContain('export AWS_SESSION_TOKEN');
+      expect(script).toContain('restic_with_fresh_session()');
+      expect(script).toContain('timeout --kill-after=30s');
+      expect(script).toContain('SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS > 3000');
+    }
+    expect(backup).toContain('restic_with_fresh_session cat config');
+    expect(backup).not.toContain('snapshots >/dev/null 2>&1 ||');
+    expect(helper).toContain(
+      "^https://([a-z0-9-]+)\\.supabase\\.co/auth/v1/token\\?grant_type=password$",
+    );
+    expect(helper).toContain('--data-binary @-');
+    expect(helper).toContain('must use the scoped Supabase rclone remote');
+    expect(helper).toContain("'.access_token | select(type == \"string\" and length > 0)'");
+    expect(helper).toContain('SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS + 300');
+    expect(helper).toContain('SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS > 3000');
+    expect(helper).not.toContain('set -x');
+    expect(installer).toContain('command -v rclone');
+    expect(installer).toContain('command -v curl');
+    expect(installer).toContain('Backup repository preflight failed');
+    expect(installer).toContain('restic init');
+    expect(installer).toContain('restic cat config');
+    expect(installer).toContain('repository_status == 10');
+    expect(installer).toContain('SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS > 3000');
+    expect(backupEnv).toContain('SUPABASE_BACKUP_AUTH_URL=https://');
+    expect(backupEnv).toContain('RCLONE_CONFIG_SUPABASE_ENDPOINT=https://');
+    expect(backupEnv).toContain('AWS_DEFAULT_REGION=replace_with_project_region');
+    expect(backupEnv).toContain('RCLONE_CONFIG_SUPABASE_REGION=replace_with_project_region');
+    expect(backupEnv).not.toContain('AWS_SESSION_TOKEN=');
+  });
+
+  it('parses backup environment files as data instead of root shell code', () => {
+    const installer = read('infra/ovh/scripts/install-systemd.sh');
+    const drill = read('infra/ovh/scripts/verify-backup-restore.sh');
+    const loader = read('infra/ovh/scripts/load-backup-environment.sh');
+
+    for (const script of [installer, drill]) {
+      expect(script).toContain('load_backup_environment "${BACKUP_ENV}"');
+      expect(script).not.toContain('source "${BACKUP_ENV}"');
+    }
+    expect(loader).toContain('Unsupported backup environment key');
+    expect(loader).toContain('contains an unsafe value');
+    expect(loader).not.toContain('eval ');
   });
 
   it('installs a private restore drill that verifies the latest database and uploads', () => {
@@ -83,13 +138,17 @@ describe('OVH infrastructure reliability', () => {
     const installer = read('infra/ovh/scripts/install-systemd.sh');
     const readme = read('infra/ovh/README.md');
 
-    expect(drill).toContain('restic check');
-    expect(drill).toContain('restic snapshots --host "${BACKUP_HOSTNAME}" --json');
+    expect(drill).toContain('restic_with_fresh_session check');
+    expect(drill).toContain(
+      'restic_with_fresh_session snapshots --host "${BACKUP_HOSTNAME}" --json',
+    );
     expect(drill).toContain('max_by(.time)');
     expect(drill).toContain('mktemp -d');
     expect(drill).toContain('chmod 0700');
     expect(drill).toContain('trap cleanup EXIT');
-    expect(drill).toContain('restic restore "${snapshot_id}" --target "${restore_target}"');
+    expect(drill).toContain(
+      'restic_with_fresh_session restore "${snapshot_id}" --target "${restore_target}"',
+    );
     expect(drill).toContain('pg_restore --list');
     expect(drill).toContain('cmp --');
     expect(drill).toContain('No restored secret values are printed.');
@@ -153,7 +212,7 @@ describe('OVH infrastructure reliability', () => {
   it('applies retention across changing dump and release paths', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
 
-    expect(backup).toContain('restic forget --group-by host');
+    expect(backup).toContain('restic_with_fresh_session forget --group-by host');
   });
 
   it('refuses to stage uploads when the backup filesystem lacks safe headroom', () => {
@@ -495,7 +554,7 @@ describe('OVH infrastructure reliability', () => {
     expect(readme).toContain('web containers must never use the database administrator login');
     expect(readme).toContain('Production requires an offsite repository');
     expect(readme).toContain('it is not an independent backup because it shares the VPS disk');
-    expect(backupEnv).toMatch(/^RESTIC_REPOSITORY=s3:/m);
+    expect(backupEnv).toMatch(/^RESTIC_REPOSITORY=rclone:/m);
     expect(backupEnv).toContain('ALLOW_LOCAL_BACKUP=false');
   });
 });

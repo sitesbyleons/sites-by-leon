@@ -42,9 +42,19 @@ BACKUP_ENV=${BACKUP_ENV:-${BACKUP_SECRETS_ROOT}/backup.env}
 if [[ -z ${RESTIC_REPOSITORY:-} || -z ${RESTIC_PASSWORD_FILE:-} ]]; then
   require_root_secret_directory "$(dirname "${BACKUP_ENV}")"
   require_root_secret "${BACKUP_ENV}"
-  set -a
-  source "${BACKUP_ENV}"
-  set +a
+  environment_loader=/usr/local/libexec/leon-platform/load-backup-environment.sh
+  if [[ ! -f ${environment_loader} || -L ${environment_loader} ]]; then
+    echo "The backup environment loader must be an installed regular file." >&2
+    exit 1
+  fi
+  loader_owner=$(stat -c '%u' "${environment_loader}")
+  loader_mode=$(stat -c '%a' "${environment_loader}")
+  if [[ ${loader_owner} != 0 || $((8#${loader_mode} & 022)) -ne 0 ]]; then
+    echo "The backup environment loader must be root-owned and not group- or world-writable." >&2
+    exit 1
+  fi
+  source "${environment_loader}"
+  load_backup_environment "${BACKUP_ENV}"
 fi
 
 : "${RESTIC_REPOSITORY:?Set RESTIC_REPOSITORY to the remote backup repository.}"
@@ -52,7 +62,7 @@ fi
 require_root_secret_directory "$(dirname "${RESTIC_PASSWORD_FILE}")"
 require_root_secret "${RESTIC_PASSWORD_FILE}"
 case "${RESTIC_REPOSITORY}" in
-  s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*) ;;
+  s3:*|b2:*|azure:*|gs:*|sftp:*|rest:*|rclone:*) ;;
   *)
     if [[ ${ALLOW_LOCAL_BACKUP:-false} != true ]]; then
       echo "Local Restic repositories require ALLOW_LOCAL_BACKUP=true and are not production backups." >&2
@@ -61,9 +71,53 @@ case "${RESTIC_REPOSITORY}" in
     ;;
 esac
 if [[ "${RESTIC_REPOSITORY}" == s3:* ]]; then
-  : "${AWS_ACCESS_KEY_ID:?Set the OVH S3 access key.}"
-  : "${AWS_SECRET_ACCESS_KEY:?Set the OVH S3 secret key.}"
+  : "${AWS_ACCESS_KEY_ID:?Set the S3 access key.}"
+  : "${AWS_SECRET_ACCESS_KEY:?Set the S3 secret key.}"
 fi
+if [[ "${RESTIC_REPOSITORY}" == rclone:* ]] && ! command -v rclone >/dev/null 2>&1; then
+  echo "The configured Restic repository requires rclone." >&2
+  exit 1
+fi
+SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS=${SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS:-3000}
+if [[ -n ${SUPABASE_BACKUP_AUTH_URL:-} ]]; then
+  if [[ ! ${SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS} =~ ^[1-9][0-9]*$ ]] || (( SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS > 3000 )); then
+    echo "SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS must be between 1 and 3000." >&2
+    exit 1
+  fi
+  if ! command -v timeout >/dev/null 2>&1; then
+    echo "Supabase Storage restore drills require timeout." >&2
+    exit 1
+  fi
+fi
+
+refresh_restic_session_token() {
+  if [[ -z ${SUPABASE_BACKUP_AUTH_URL:-} ]]; then
+    return
+  fi
+  local helper=/usr/local/libexec/leon-platform/supabase-storage-session-token.sh
+  local owner mode
+  if [[ ! -x ${helper} || -L ${helper} ]]; then
+    echo "The Supabase Storage session helper must be an executable regular file." >&2
+    exit 1
+  fi
+  owner=$(stat -c '%u' "${helper}")
+  mode=$(stat -c '%a' "${helper}")
+  if [[ ${owner} != 0 || $((8#${mode} & 022)) -ne 0 ]]; then
+    echo "The Supabase Storage session helper must be root-owned and not group- or world-writable." >&2
+    exit 1
+  fi
+  AWS_SESSION_TOKEN=$("${helper}")
+  export AWS_SESSION_TOKEN
+}
+
+restic_with_fresh_session() {
+  if [[ -n ${SUPABASE_BACKUP_AUTH_URL:-} ]]; then
+    refresh_restic_session_token
+    timeout --kill-after=30s "${SUPABASE_BACKUP_COMMAND_TIMEOUT_SECONDS}s" restic "$@"
+  else
+    restic "$@"
+  fi
+}
 
 for command_name in cmp find flock hostname install jq mktemp pg_restore readlink restic sort stat; do
   if ! command -v "${command_name}" >/dev/null 2>&1; then
@@ -118,16 +172,16 @@ restore_target=$(mktemp -d "${RESTORE_DRILL_ROOT}/restore.XXXXXXXX")
 chmod 0700 "${restore_target}"
 
 # No restored secret values are printed.
-restic check >/dev/null
+restic_with_fresh_session check >/dev/null
 BACKUP_HOSTNAME=${BACKUP_HOSTNAME:-$(hostname)}
 if [[ ! ${BACKUP_HOSTNAME} =~ ^[A-Za-z0-9._-]+$ ]]; then
   echo "BACKUP_HOSTNAME must be a non-empty hostname." >&2
   exit 1
 fi
-snapshot_json=$(restic snapshots --host "${BACKUP_HOSTNAME}" --json)
+snapshot_json=$(restic_with_fresh_session snapshots --host "${BACKUP_HOSTNAME}" --json)
 snapshot_id=$(jq -er 'if type == "array" and length > 0 then max_by(.time).id else empty end | select(type == "string" and test("^[0-9a-f]{64}$"))' <<<"${snapshot_json}")
 snapshot_time=$(jq -er 'if type == "array" and length > 0 then max_by(.time).time else empty end | select(type == "string" and length > 0)' <<<"${snapshot_json}")
-restic restore "${snapshot_id}" --target "${restore_target}" >/dev/null
+restic_with_fresh_session restore "${snapshot_id}" --target "${restore_target}" >/dev/null
 
 restored_backup_root="${restore_target}${BACKUP_ROOT}"
 if [[ ! -d ${restored_backup_root} ]]; then
