@@ -169,7 +169,7 @@ describe('Stripe resource configuration', () => {
     });
   });
 
-  it('disables a replacement and preserves the old secret when Stripe returns the wrong origin', async () => {
+  it('deletes an invalid replacement and preserves the old secret when Stripe returns the wrong origin', async () => {
     const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old\n');
     const snapshotUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect';
     const thinUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect-v2';
@@ -186,11 +186,13 @@ describe('Stripe resource configuration', () => {
       events_from: ['@self'], enabled_events: ['account.updated'],
       webhook_endpoint: { url: snapshotUrl, signing_secret: 'whsec_wrong' },
     }));
+    const del = vi.fn(async (id: string) => ({ id, deleted: true }));
     const disable = vi.fn(async (id: string) => ({ id, status: 'disabled' }));
     const stripe = {
       v2: { core: { eventDestinations: {
         list: vi.fn(() => destinations([oldSnapshot, thin])),
         create,
+        del,
         disable,
         update: vi.fn(),
       } } },
@@ -203,7 +205,48 @@ describe('Stripe resource configuration', () => {
     })).rejects.toThrow(/Complete and activate the Connect platform profile/);
 
     expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old');
-    expect(disable).toHaveBeenCalledTimes(1);
+    expect(del).toHaveBeenCalledOnce();
+    expect(del).toHaveBeenCalledWith('ed_wrong');
+    expect(disable).not.toHaveBeenCalled();
+  });
+
+  it('disables an invalid replacement when Stripe deletion fails', async () => {
+    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old\n');
+    const snapshotUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect';
+    const thinUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect-v2';
+    const oldSnapshot = {
+      id: 'we_old', status: 'enabled', livemode: true, event_payload: 'snapshot',
+      events_from: ['@self'], enabled_events: ['account.updated'], webhook_endpoint: { url: snapshotUrl },
+    };
+    const thin = {
+      id: 'ed_thin', status: 'enabled', livemode: true, event_payload: 'thin',
+      events_from: ['@accounts'], enabled_events: ['v2.core.account.updated'], webhook_endpoint: { url: thinUrl },
+    };
+    const create = vi.fn(async () => ({
+      id: 'ed_wrong', status: 'enabled', livemode: true, event_payload: 'snapshot',
+      events_from: ['@self'], enabled_events: ['account.updated'],
+      webhook_endpoint: { url: snapshotUrl, signing_secret: 'whsec_wrong' },
+    }));
+    const del = vi.fn(async () => { throw new Error('delete failed'); });
+    const disable = vi.fn(async (id: string) => ({ id, status: 'disabled' }));
+    const stripe = {
+      v2: { core: { eventDestinations: {
+        list: vi.fn(() => destinations([oldSnapshot, thin])),
+        create,
+        del,
+        disable,
+        update: vi.fn(),
+      } } },
+    };
+
+    await expect(configureConnect(stripe, file, {
+      STRIPE_EXPECTED_MODE: 'live',
+      STRIPE_CONNECT_WEBHOOK_URL: snapshotUrl,
+      STRIPE_CONNECT_V2_WEBHOOK_URL: thinUrl,
+    })).rejects.toThrow(/Complete and activate the Connect platform profile/);
+
+    expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old');
+    expect(del).toHaveBeenCalledWith('ed_wrong');
     expect(disable).toHaveBeenCalledWith('ed_wrong');
     expect(disable).not.toHaveBeenCalledWith('we_old');
   });

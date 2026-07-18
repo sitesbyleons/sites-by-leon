@@ -239,7 +239,11 @@ export const configureConnect = async (stripe, envFile, environment = process.en
       assertConfiguration(Boolean(secret), 'Stripe did not return the new Connect signing secret.');
       setEnvValue(envFile, 'STRIPE_CONNECT_WEBHOOK_SECRET', secret);
     } catch (error) {
-      await stripe.v2.core.eventDestinations.disable(created.id).catch(() => undefined);
+      try {
+        await stripe.v2.core.eventDestinations.del(created.id);
+      } catch {
+        await stripe.v2.core.eventDestinations.disable(created.id);
+      }
       throw error;
     }
 
