@@ -4,7 +4,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Verified July 24
 
-- [x] Production release `8f44166b1cf0341223be3346ccc3c0c358bf29b8` deployed in `coming-soon` mode with release `95cd2626a54c08c41297afe5624b348519020059` preserved for rollback.
+- [x] Production release `d194c66a16399b7c4b5ae6728db390945eaae585` deployed in `coming-soon` mode with release `8f44166b1cf0341223be3346ccc3c0c358bf29b8` preserved for rollback.
 - [x] Marketing, dashboard, three active customer sites, API, and PostgreSQL health checks pass.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
 - [x] Dependency audit reports no known vulnerabilities.
