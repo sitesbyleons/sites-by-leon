@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { renderToStaticMarkup } from 'react-dom/server';
-import * as ts from 'typescript';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 import SelectedWorkReel from '../src/components/SelectedWorkReel';

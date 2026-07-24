@@ -11,6 +11,7 @@ SOURCE_ROOT=$(readlink -f "${SOURCE_ROOT}")
 LIBEXEC_ROOT=/usr/local/libexec/leon-platform
 BACKUP_SECRETS_ROOT=/opt/leon-platform/backup-secrets
 BACKUP_ENV=${BACKUP_SECRETS_ROOT}/backup.env
+MONITOR_ENV=/opt/leon-platform/monitor.env
 ENVIRONMENT_LOADER_SOURCE=${SOURCE_ROOT}/infra/ovh/scripts/load-backup-environment.sh
 
 require_root_secret_directory() {
@@ -49,6 +50,9 @@ if [[ ! -e ${BACKUP_ENV} ]]; then
   exit 1
 fi
 require_root_secret "${BACKUP_ENV}"
+if [[ -e ${MONITOR_ENV} ]]; then
+  require_root_secret "${MONITOR_ENV}"
+fi
 if [[ ! -f ${ENVIRONMENT_LOADER_SOURCE} || -L ${ENVIRONMENT_LOADER_SOURCE} ]]; then
   echo "The backup environment loader must be a regular release file." >&2
   exit 1
@@ -109,7 +113,7 @@ require_root_secret "${RESTIC_PASSWORD_FILE}"
 require_root_secret_directory "$(dirname "${RESTIC_PASSWORD_FILE}")"
 
 install -o root -g root -m 0755 -d "${LIBEXEC_ROOT}"
-systemctl disable --now leon-backup.timer >/dev/null 2>&1 || true
+systemctl disable --now leon-backup.timer leon-monitor.timer >/dev/null 2>&1 || true
 install -o root -g root -m 0755 \
   "${ENVIRONMENT_LOADER_SOURCE}" \
   "${LIBEXEC_ROOT}/load-backup-environment.sh"
@@ -154,10 +158,15 @@ install -o root -g root -m 0755 \
 install -o root -g root -m 0755 \
   "${SOURCE_ROOT}/infra/ovh/scripts/healthcheck.sh" \
   "${LIBEXEC_ROOT}/healthcheck.sh"
+install -o root -g root -m 0755 \
+  "${SOURCE_ROOT}/infra/ovh/scripts/monitor-production.sh" \
+  "${LIBEXEC_ROOT}/monitor-production.sh"
 install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/tmpfiles/leon-platform.conf" /etc/tmpfiles.d/leon-platform.conf
 systemd-tmpfiles --create /etc/tmpfiles.d/leon-platform.conf
 install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.service" /etc/systemd/system/leon-backup.service
 install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-backup.timer" /etc/systemd/system/leon-backup.timer
+install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-monitor.service" /etc/systemd/system/leon-monitor.service
+install -o root -g root -m 0644 "${SOURCE_ROOT}/infra/ovh/systemd/leon-monitor.timer" /etc/systemd/system/leon-monitor.timer
 systemctl daemon-reload
-systemctl enable --now leon-backup.timer
+systemctl enable --now leon-backup.timer leon-monitor.timer
 systemctl list-timers 'leon-*'

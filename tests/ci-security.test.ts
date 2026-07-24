@@ -39,5 +39,6 @@ describe('CI security', () => {
   it('runs secret-sync and backup-restore regressions without credentials', () => {
     expect(workflow).toContain('bash infra/ovh/tests/sync-secrets.test.sh');
     expect(workflow).toContain('bash infra/ovh/tests/backup-restore.test.sh');
+    expect(workflow).toContain('bash infra/ovh/tests/monitor-production.test.sh');
   });
 });

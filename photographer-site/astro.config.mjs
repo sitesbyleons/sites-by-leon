@@ -5,6 +5,8 @@ import { defineConfig } from 'astro/config';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
+  devToolbar: { enabled: process.env.PLAYWRIGHT_TEST !== '1' },
+  markdown: { syntaxHighlight: 'prism' },
   adapter: node({ mode: 'standalone' }),
   integrations: [clerk(), react()],
   output: 'server',
