@@ -53,7 +53,7 @@
 		reverse_proxy gateway-test:80
 	}
 
-	@test_customer host_regexp test_customer ^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?-test\.leonsites\.org$
+	@test_customer header_regexp test_customer Host ^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?-test\.leonsites\.org(?::[0-9]+)?$
 	handle @test_customer {
 		reverse_proxy gateway-test:80
 	}

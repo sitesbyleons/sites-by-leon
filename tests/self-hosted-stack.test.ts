@@ -74,7 +74,8 @@ describe('fully self-hosted production stack', () => {
     expect(compose).toContain('leon-postgres-test:');
     expect(gateway).toContain('reverse_proxy dashboard-test:4321');
     expect(gateway).toContain('reverse_proxy photographer-test:4321');
-    expect(gateway).toContain('-test\\.leonsites\\.org$');
+    expect(gateway).toContain('@test_customer header_regexp test_customer Host');
+    expect(gateway).toContain('-test\\.leonsites\\.org');
     expect(deploy).toContain('/opt/leon-platform/current-test');
     expect(deploy).toContain('configure-test-runtime-role.sh');
     expect(activate).toContain('current-test.new');
