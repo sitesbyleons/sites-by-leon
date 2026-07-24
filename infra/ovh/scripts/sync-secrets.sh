@@ -72,7 +72,11 @@ source_paths=()
 remote_names=()
 for name in "${required_names[@]}"; do
   if [[ ${name} == .env ]]; then
-    source=${LOCAL_OVH_ROOT}/.env
+    if [[ ${SECRETS_PROFILE} == staging ]]; then
+      source=${LOCAL_SECRETS_ROOT}/.env
+    else
+      source=${LOCAL_OVH_ROOT}/.env
+    fi
   else
     source=${LOCAL_SECRETS_ROOT}/${name}
   fi
