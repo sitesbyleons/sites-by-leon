@@ -63,11 +63,28 @@ describe('site provisioning validation', () => {
     });
   });
 
+  it('accepts staging-only administration domains for isolated test provisioning', () => {
+    const result = validateSiteProvisioningInput({
+      ...valid,
+      primary_domain: 'vow-and-light.staging.invalid',
+      admin_domain: 'vow-and-light.staging.invalid',
+    }, { adminDomainSuffix: 'staging.invalid' });
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        primaryDomain: 'vow-and-light.staging.invalid',
+        adminDomain: 'vow-and-light.staging.invalid',
+      },
+    });
+  });
+
   it('renders the success summary without interpreting customer text as markup', () => {
     const page = fs.readFileSync(new URL('../src/pages/admin/sites/new.astro', import.meta.url), 'utf8');
 
     expect(page).not.toContain('result.innerHTML');
     expect(page).toContain('summary.textContent');
     expect(page).toContain("button.textContent = 'Site created'");
+    expect(page).toContain("form.dataset.domainSuffix ?? 'leonsites.org'");
   });
 });
