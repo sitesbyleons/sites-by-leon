@@ -47,6 +47,7 @@ export type AdminMember = {
 export type AdminConnection = {
   workspace_id: string;
   site_key: string;
+  site_kind: 'client' | 'demo';
   primary_domain: string;
   admin_domain: string;
   deployment_target: string | null;
@@ -129,6 +130,7 @@ export function getPreviewAdminData(): AdminData {
     projects: [
       { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, updated_at: '2026-07-10T17:00:00.000Z' },
       { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, updated_at: '2026-07-09T15:00:00.000Z' },
+      { id: 'prj_3', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     subscriptions: [
       { id: 'sub_local', workspace_id: 'ws_northline', stripe_subscription_id: 'sub_preview', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
@@ -143,7 +145,9 @@ export function getPreviewAdminData(): AdminData {
       { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
     ],
     connections: [
-      { workspace_id: 'ws_northline', site_key: 'northline-demo', primary_domain: 'demo.leonsites.org', admin_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+      { workspace_id: 'ws_northline', site_key: 'northline-demo', site_kind: 'demo', primary_domain: 'demo.leonsites.org', admin_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+      { workspace_id: 'ws_vow', site_key: 'vow-and-light-demo', site_kind: 'demo', primary_domain: 'vow-and-light.leonsites.org', admin_domain: 'vow-and-light.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'active', current_version: 'editorial-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+      { workspace_id: 'ws_fieldwork', site_key: 'fieldwork-site', site_kind: 'client', primary_domain: 'fieldwork.leonsites.org', admin_domain: 'fieldwork.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'maintenance', current_version: 'onboarding', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'maintenance', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
     ],
     domainAliases: [
       { id: 'domain_preview', workspace_id: 'ws_northline', hostname: 'www.northlinesports.com', status: 'dns_pending', is_canonical: false, cloudflare_hostname_status: 'pending', cloudflare_ssl_status: 'pending_validation', dns_target: 'customers.leonsites.org', last_error: null, last_checked_at: null },
@@ -272,7 +276,7 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
       .order('created_at', { ascending: false })
       .limit(100),
     database.from('workspace_members').select('workspace_id,clerk_user_id,role'),
-    database.from('site_connections').select('workspace_id,site_key,primary_domain,admin_domain,deployment_target,github_repository,status,current_version,last_seen_at,hosting_subscription_id,billing_mode,desired_status,billing_state,billing_updated_at,archived_at,archive_reason'),
+    database.from('site_connections').select('workspace_id,site_key,site_kind,primary_domain,admin_domain,deployment_target,github_repository,status,current_version,last_seen_at,hosting_subscription_id,billing_mode,desired_status,billing_state,billing_updated_at,archived_at,archive_reason'),
     database.from('site_domain_aliases').select('id,workspace_id,hostname,status,is_canonical,cloudflare_hostname_status,cloudflare_ssl_status,dns_target,last_error,last_checked_at').order('created_at', { ascending: false }),
     database.from('site_provisioning_runs').select('workspace_id,status,last_error,updated_at').order('updated_at', { ascending: false }),
   ]);

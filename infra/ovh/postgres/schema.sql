@@ -408,6 +408,13 @@ create table if not exists site_connections (
 alter table site_connections add column if not exists admin_domain text;
 update site_connections set admin_domain = primary_domain where admin_domain is null;
 alter table site_connections alter column admin_domain set not null;
+alter table site_connections add column if not exists site_kind text not null default 'client';
+update site_connections
+set site_kind = 'demo'
+where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org');
+alter table site_connections drop constraint if exists site_connections_site_kind_check;
+alter table site_connections add constraint site_connections_site_kind_check
+  check (site_kind in ('client', 'demo'));
 alter table site_connections add column if not exists hosting_subscription_id uuid;
 alter table site_connections add column if not exists billing_mode text not null default 'manual';
 alter table site_connections add column if not exists desired_status text;

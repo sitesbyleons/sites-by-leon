@@ -23,6 +23,7 @@ const aliases = data.domainAliases.filter((item) => item.workspace_id === worksp
 if (!workspace || !project || !connection) return new Response('Site not found', { status: 404 });
 
 const preview = isPreview ? '?preview=true' : '';
+const isDemo = connection.site_kind === 'demo';
 const domainAutomationEnabled = isPreview || process.env.CUSTOM_DOMAIN_AUTOMATION_ENABLED === 'true';
 const isArchived = connection.status === 'archived';
 const billingLabel = connection.billing_mode === 'automatic'
@@ -30,13 +31,13 @@ const billingLabel = connection.billing_mode === 'automatic'
   : 'manual';
 ---
 
-<AdminFrame active="sites" title={workspace.name} eyebrow="Website settings" description="Domains, hosting, and site access." isPreview={isPreview} error={session.error}>
-  <div class="provision-back"><a href={`/admin/sites${preview}`}>← Back to sites</a></div>
+<AdminFrame active={isDemo ? 'demos' : 'sites'} title={workspace.name} eyebrow={isDemo ? 'Demo settings' : 'Website settings'} description={isDemo ? 'Public access and editor controls for this example site.' : 'Domains, hosting, and site access.'} isPreview={isPreview} error={session.error}>
+  <div class="provision-back"><a href={`${isDemo ? '/admin/demos' : '/admin/sites'}${preview}`}>← Back to {isDemo ? 'demos' : 'sites'}</a></div>
 
   <section class="site-detail-summary">
     <div><small>Website</small><strong>{connection.status}</strong><span>{project.progress}% complete</span></div>
-    <div><small>Hosting</small><strong>{billingLabel}</strong><span>{subscription ? `${subscription.plan_key} · ${subscription.status}` : 'No subscription linked'}</span></div>
-    <div><small>Custom domain</small><strong>{aliases.find((item) => item.status === 'active')?.hostname ?? 'Not connected'}</strong><span>{aliases.length ? `${aliases.length} domain request${aliases.length === 1 ? '' : 's'}` : 'Add one below'}</span></div>
+    <div><small>{isDemo ? 'Type' : 'Hosting'}</small><strong>{isDemo ? 'Demo' : billingLabel}</strong><span>{isDemo ? 'Portfolio example' : subscription ? `${subscription.plan_key} · ${subscription.status}` : 'No subscription linked'}</span></div>
+    <div><small>{isDemo ? 'Address' : 'Custom domain'}</small><strong>{isDemo ? connection.primary_domain : aliases.find((item) => item.status === 'active')?.hostname ?? 'Not connected'}</strong><span>{isDemo ? 'Leon Sites domain' : aliases.length ? `${aliases.length} domain request${aliases.length === 1 ? '' : 's'}` : 'Add one below'}</span></div>
   </section>
 
   {isArchived && (
@@ -58,7 +59,7 @@ const billingLabel = connection.billing_mode === 'automatic'
     </div>
   </section>
 
-  <section class="site-detail-section" hidden={isArchived}>
+  <section class="site-detail-section" hidden={isArchived || isDemo}>
     <header><div><span>Namecheap setup</span><h2>Custom domain</h2></div><p>Add a CNAME and one redirect. Email records stay untouched.</p></header>
     {!domainAutomationEnabled && (
       <p class="admin-notice">The setup screen is finished. Cloudflare for SaaS still needs to be enabled on the Leon Sites account before custom domains can be connected.</p>
@@ -92,7 +93,7 @@ const billingLabel = connection.billing_mode === 'automatic'
     ) : <p class="simple-empty">No custom domain has been requested.</p>}
   </section>
 
-  <section class="site-detail-section" hidden={isArchived}>
+  <section class="site-detail-section" hidden={isArchived || isDemo}>
     <header><div><span>Monthly hosting</span><h2>Subscription control</h2></div><p>Automatic mode follows Stripe payment status.</p></header>
     <div class="billing-control-card">
       <div><small>Current setup</small><strong>{connection.billing_mode === 'automatic' ? 'Automatic' : 'Manual'}</strong><span>{subscription ? `${subscription.plan_key} · ${subscription.status}` : 'The client has not started a hosting subscription.'}</span><span>Paid or trialing: live · Past due: maintenance · Unpaid or canceled: paused</span></div>
@@ -114,7 +115,23 @@ const billingLabel = connection.billing_mode === 'automatic'
     </div>
   </section>
 
-  <section class="site-detail-section site-delete-panel" hidden={isArchived}>
+  {isDemo && !isArchived && (
+    <section class="site-detail-section">
+      <header><div><span>Public access</span><h2>Demo availability</h2></div></header>
+      <div class="site-status-grid">
+        {(['active', 'maintenance', 'paused'] as const).map((status) => (
+          <form data-api-form data-endpoint="/api/admin/sites" data-preview={isPreview ? 'true' : 'false'}>
+            <input type="hidden" name="workspace_id" value={workspaceId} />
+            <input type="hidden" name="status" value={status} />
+            <button type="submit" aria-pressed={connection.desired_status === status}>{status === 'active' ? 'Keep live' : status === 'maintenance' ? 'Maintenance page' : 'Pause site'}</button>
+            <small data-result aria-live="polite"></small>
+          </form>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="site-detail-section site-delete-panel" hidden={isArchived || isDemo}>
     <header><div><span>Recovery included</span><h2>Delete site</h2></div></header>
     <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-lifecycle" data-preview={isPreview ? 'true' : 'false'}>
       <input type="hidden" name="workspace_id" value={workspaceId} /><input type="hidden" name="action" value="archive" />

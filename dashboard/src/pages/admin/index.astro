@@ -22,10 +22,12 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 
 const data = session.data!;
 const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
+const connections = new Map(data.connections.map((connection) => [connection.workspace_id, connection]));
 const openTickets = data.requests.filter((request) => !['completed', 'declined'].includes(request.status));
 const activeSubscriptions = data.subscriptions.filter((subscription) => ['active', 'trialing'].includes(subscription.status));
 const recentTickets = openTickets.slice(0, 4);
-const recentSites = data.projects.slice(0, 3);
+const clientProjects = data.projects.filter((project) => connections.get(project.workspace_id)?.site_kind !== 'demo');
+const recentSites = clientProjects.slice(0, 3);
 const preview = isPreview ? '?preview=true' : '';
 const date = (value: string | number | null) => value
   ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(value))
@@ -44,7 +46,7 @@ const date = (value: string | number | null) => value
     <a href={`/admin/users${preview}`}><span>Users</span><strong>{session.users.length}</strong><small>View accounts</small></a>
     <a href={`/admin/tickets${preview}`}><span>Open tickets</span><strong>{openTickets.length}</strong><small>Sort support</small></a>
     <a href={`/admin/subscriptions${preview}`}><span>Active subscriptions</span><strong>{activeSubscriptions.length}</strong><small>Review billing</small></a>
-    <a href={`/admin/sites${preview}`}><span>Sites</span><strong>{data.projects.length}</strong><small>Track builds</small></a>
+    <a href={`/admin/sites${preview}`}><span>Sites</span><strong>{clientProjects.length}</strong><small>Track builds</small></a>
   </section>
 
   <div class="admin-overview-grid">

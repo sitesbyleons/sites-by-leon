@@ -11,12 +11,14 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 
 const data = session.data!;
 const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
+const connections = new Map(data.connections.map((connection) => [connection.workspace_id, connection]));
 const requestedStatus = Astro.url.searchParams.get('status') ?? 'all';
 const status = ['all', 'onboarding', 'design', 'review', 'live', 'paused', 'archived'].includes(requestedStatus) ? requestedStatus : 'all';
 const sort = Astro.url.searchParams.get('sort') ?? 'updated';
 const sites = data.projects
   .filter((project) => {
-    const connection = data.connections.find((item) => item.workspace_id === project.workspace_id);
+    const connection = connections.get(project.workspace_id);
+    if (connection?.site_kind === 'demo') return false;
     if (status === 'archived') return connection?.status === 'archived';
     if (connection?.status === 'archived') return status === 'all';
     return status === 'all' || project.status === status;
@@ -27,7 +29,6 @@ const sites = data.projects
     if (sort === 'client') return (workspaceNames.get(a.workspace_id) ?? '').localeCompare(workspaceNames.get(b.workspace_id) ?? '');
     return Date.parse(b.updated_at) - Date.parse(a.updated_at);
   });
-const connections = new Map(data.connections.map((connection) => [connection.workspace_id, connection]));
 const provisioningRuns = new Map(data.provisioningRuns.map((run) => [run.workspace_id, run]));
 ---
 
