@@ -5,7 +5,7 @@ import ClerkSignOutButton from './ClerkSignOutButton.astro';
 import ClerkUI from './ClerkUI.astro';
 
 interface Props {
-  active: 'overview' | 'users' | 'tickets' | 'subscriptions' | 'sites';
+  active: 'overview' | 'users' | 'tickets' | 'subscriptions' | 'sites' | 'demos';
   title: string;
   eyebrow: string;
   description: string;
@@ -21,6 +21,7 @@ const links = [
   { key: 'tickets', label: 'Tickets', href: `/admin/tickets${preview}` },
   { key: 'subscriptions', label: 'Subscriptions', href: `/admin/subscriptions${preview}` },
   { key: 'sites', label: 'Sites', href: `/admin/sites${preview}` },
+  { key: 'demos', label: 'Demos', href: `/admin/demos${preview}` },
 ] as const;
 ---
 

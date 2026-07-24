@@ -1,0 +1,45 @@
+---
+import AdminFrame from '../../components/AdminFrame.astro';
+import { decideAdminAccess } from '../../lib/access';
+import { loadAdminSession } from '../../lib/admin';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadAdminSession({
+  isPreview,
+  userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
+  getToken: async () => (auth ? (await auth.getToken()) ?? null : null),
+});
+const access = decideAdminAccess({ userId: isPreview ? 'preview_admin' : (auth?.userId ?? null), isAdmin: session.isAdmin });
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+
+const data = session.data!;
+const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
+const projects = new Map(data.projects.map((project) => [project.workspace_id, project]));
+const demos = data.connections
+  .filter((connection) => connection.site_kind === 'demo')
+  .sort((a, b) => (workspaceNames.get(a.workspace_id) ?? '').localeCompare(workspaceNames.get(b.workspace_id) ?? ''));
+const preview = isPreview ? '?preview=true' : '';
+---
+
+<AdminFrame active="demos" title="Demos" eyebrow="Example websites" description="Open and manage the portfolio examples shown to prospective clients." isPreview={isPreview} error={session.error}>
+  <section class="admin-list-section admin-list-section--results">
+    <header><div><span>Portfolio</span><h2>Demo sites</h2></div><div class="admin-section-actions"><p>{demos.length} shown</p></div></header>
+    <div class="site-list">
+      {demos.length ? demos.map((connection) => {
+        const project = projects.get(connection.workspace_id);
+        const name = workspaceNames.get(connection.workspace_id) ?? project?.name ?? 'Demo';
+        return (
+          <article class="site-control-row">
+            <div><strong>{name}</strong><small>{connection.primary_domain}</small></div>
+            <div class="site-progress" role="progressbar" aria-label={`${project?.progress ?? 100}% complete`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={project?.progress ?? 100}><span style={`width:${project?.progress ?? 100}%`}></span></div>
+            <div>
+              <span>{connection.status} · {project?.progress ?? 100}%</span>
+              <div class="site-open-links"><a aria-label={`Manage ${name}`} href={`/admin/sites/${connection.workspace_id}${preview}`}>Manage</a><a aria-label={`Open public site for ${name}`} href={`https://${connection.primary_domain}`} target="_blank" rel="noreferrer">Public site</a><a aria-label={`Open editor for ${name}`} href={`https://${connection.admin_domain}/admin`} target="_blank" rel="noreferrer">Editor</a></div>
+            </div>
+          </article>
+        );
+      }) : <p class="simple-empty">No demo sites are configured.</p>}
+    </div>
+  </section>
+</AdminFrame>
