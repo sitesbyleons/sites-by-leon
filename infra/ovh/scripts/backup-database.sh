@@ -275,4 +275,10 @@ backup_paths=("${dump}" "${staged_uploads}")
 [[ -d /opt/leon-platform/secrets ]] && backup_paths+=(/opt/leon-platform/secrets)
 restic_with_fresh_session backup --host "${BACKUP_HOSTNAME}" --exclude "${RESTIC_PASSWORD_FILE}" "${backup_paths[@]}"
 restic_with_fresh_session forget --group-by host --host "${BACKUP_HOSTNAME}" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+backup_marker=/var/lib/leon-platform/last-successful-backup
+install -o root -g root -m 0700 -d "$(dirname "${backup_marker}")"
+marker_stage=$(mktemp "${backup_marker}.XXXXXXXX")
+date -u +%s >"${marker_stage}"
+chmod 0600 "${marker_stage}"
+mv -f -- "${marker_stage}" "${backup_marker}"
 echo "Encrypted database and application backup completed."

@@ -113,6 +113,28 @@ Then run:
 infra/ovh/scripts/healthcheck.sh
 ```
 
+## Public launch switch
+
+Keep `PUBLIC_SITE_MODE=coming-soon` in `/opt/leon-platform/secrets/.env` until the approved launch window. The release switch validates the private environment file, takes the platform maintenance lock, updates the mode atomically, deploys, and restores the previous mode if deployment fails.
+
+Launch the full marketing site:
+
+```bash
+/opt/leon-platform/current/infra/ovh/scripts/switch-public-site-mode.sh live
+/opt/leon-platform/current/infra/ovh/scripts/healthcheck.sh
+curl --fail --silent --show-error --location https://leonsites.org/ >/dev/null
+```
+
+Return the homepage to the coming-soon experience:
+
+```bash
+/opt/leon-platform/current/infra/ovh/scripts/switch-public-site-mode.sh coming-soon
+/opt/leon-platform/current/infra/ovh/scripts/healthcheck.sh
+curl --fail --silent --show-error --location https://leonsites.org/ >/dev/null
+```
+
+Do not edit `PUBLIC_SITE_MODE` manually during a launch or rollback. The switch script preserves file ownership and mode `0600`, serializes against deployments and backups, and redeploys the prior mode automatically after a failed change.
+
 Configure Stripe webhook destinations as:
 
 - `https://leonsites.org/api/webhooks/stripe`
@@ -153,6 +175,8 @@ It also installs a boot-time tmpfiles rule for the shared maintenance lock so ro
 ```bash
 sudo SOURCE_ROOT=/opt/leon-platform/current infra/ovh/scripts/install-systemd.sh
 ```
+
+The installer also enables `leon-monitor.timer`. Every five minutes it runs the full public/application/database health check, requires the last completed encrypted backup to be less than 36 hours old, and fails when the application disk reaches 80% utilization. To override those defaults or deliver alerts, copy `secrets/monitor.env.example` to `/opt/leon-platform/monitor.env`, keep it root-owned with mode `600`, and set a private HTTPS `MONITOR_ALERT_WEBHOOK_URL`. The monitor never receives backup repository credentials; failure payloads contain only the host, monitor name, and a generic reason. Check current state with `systemctl status leon-monitor.timer leon-monitor.service` and `journalctl -u leon-monitor.service`.
 
 After a fresh backup, run the installed restore drill. It checks the encrypted repository, restores the latest snapshot into a temporary root-only directory, validates the PostgreSQL archive, compares one upload when an overlapping live file exists, and erases the restored files on every exit. Its successful output contains only the snapshot ID, snapshot time, and verification status.
 

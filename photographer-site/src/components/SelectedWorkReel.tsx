@@ -1,7 +1,6 @@
 import { animated, to, useSpring as useReactSpring } from '@react-spring/web';
 import {
   motion,
-  useReducedMotion,
   useScroll,
   useSpring as useMotionSpring,
   useTransform,
@@ -37,8 +36,7 @@ const uniqueFrames = (gallery: Gallery) => {
 };
 
 const useLiveReducedMotion = () => {
-  const initialPreference = useReducedMotion() ?? false;
-  const [reducedMotion, setReducedMotion] = useState(initialPreference);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');

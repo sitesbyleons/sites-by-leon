@@ -227,6 +227,7 @@ prepare_deploy_fixture
 cat > "${FIXTURE}/infra/ovh/.env" <<'EOF'
 CUSTOM_DOMAIN_AUTOMATION_ENABLED=true
 COMPOSE_PROFILES=tunnel,domains
+PUBLIC_SITE_MODE=coming-soon
 EOF
 rm "${FIXTURE}/infra/ovh/secrets/domain-worker.env"
 set +e
@@ -243,6 +244,7 @@ prepare_deploy_fixture
 cat > "${FIXTURE}/infra/ovh/.env" <<'EOF'
 CUSTOM_DOMAIN_AUTOMATION_ENABLED=true
 COMPOSE_PROFILES=tunnel
+PUBLIC_SITE_MODE=coming-soon
 EOF
 set +e
 deploy_output=$(run_deploy 2>&1)
@@ -258,6 +260,7 @@ prepare_deploy_fixture
 cat > "${FIXTURE}/infra/ovh/.env" <<'EOF'
 CUSTOM_DOMAIN_AUTOMATION_ENABLED=true
 COMPOSE_PROFILES=tunnel,domains
+PUBLIC_SITE_MODE=coming-soon
 EOF
 set +e
 deploy_output=$(run_deploy 2>&1)
@@ -273,6 +276,7 @@ prepare_deploy_fixture
 cat > "${FIXTURE}/infra/ovh/.env" <<'EOF'
 CUSTOM_DOMAIN_AUTOMATION_ENABLED=false
 COMPOSE_PROFILES=tunnel
+PUBLIC_SITE_MODE=coming-soon
 EOF
 rm "${FIXTURE}/infra/ovh/secrets/domain-worker.env"
 set +e
@@ -288,6 +292,7 @@ prepare_complete_deploy_fixture
 cat > "${FIXTURE}/infra/ovh/.env" <<'EOF'
 CUSTOM_DOMAIN_AUTOMATION_ENABLED=true
 COMPOSE_PROFILES=tunnel,domains
+PUBLIC_SITE_MODE=coming-soon
 EOF
 if ! (unset COMPOSE_PROFILES CUSTOM_DOMAIN_AUTOMATION_ENABLED; run_deploy) >/dev/null 2>&1; then
   fail_test 'deployment did not pass .env domain settings to its healthcheck'

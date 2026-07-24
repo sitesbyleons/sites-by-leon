@@ -3,6 +3,8 @@ import node from '@astrojs/node';
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
+  devToolbar: { enabled: process.env.PLAYWRIGHT_TEST !== '1' },
+  markdown: { syntaxHighlight: 'prism' },
   adapter: node({ mode: 'standalone' }),
   integrations: [clerk()],
   output: 'server',

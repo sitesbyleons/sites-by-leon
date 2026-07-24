@@ -2,11 +2,13 @@
 set -euo pipefail
 
 MAINTENANCE_LOCK=${MAINTENANCE_LOCK:-/run/lock/leon-platform-maintenance.lock}
-exec 9>"${MAINTENANCE_LOCK}"
-flock -w "${MAINTENANCE_LOCK_TIMEOUT:-900}" 9 || {
-  echo "Another platform deployment, migration, or backup is still running." >&2
-  exit 1
-}
+if [[ ${MAINTENANCE_LOCK_HELD:-0} != 1 ]]; then
+  exec 9>"${MAINTENANCE_LOCK}"
+  flock -w "${MAINTENANCE_LOCK_TIMEOUT:-900}" 9 || {
+    echo "Another platform deployment, migration, or backup is still running." >&2
+    exit 1
+  }
+fi
 
 SOURCE_ROOT=${SOURCE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)}
 PLATFORM_ROOT=${PLATFORM_ROOT:-/opt/leon-platform}

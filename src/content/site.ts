@@ -37,7 +37,7 @@ export type ProcessStep = {
   description: string;
 };
 
-export const contactEmail = 'leon@leonsites.com';
+export const contactEmail = 'sites.by.leon@gmail.com';
 
 export const navigation: readonly NavigationItem[] = [
   { label: 'Work', href: '#work' },

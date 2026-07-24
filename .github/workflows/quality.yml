@@ -67,6 +67,8 @@ jobs:
           bash infra/ovh/tests/healthcheck-domain-worker.test.sh
           bash infra/ovh/tests/sync-secrets.test.sh
           bash infra/ovh/tests/backup-restore.test.sh
+          bash infra/ovh/tests/monitor-production.test.sh
+          bash infra/ovh/tests/switch-public-site-mode.test.sh
 
       - name: Install browser
         run: pnpm exec playwright install --with-deps chromium

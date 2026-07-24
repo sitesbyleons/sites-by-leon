@@ -31,6 +31,7 @@ services:
       TEST_DOMAIN: ${TEST_DOMAIN}
       DEMO_DOMAIN: ${DEMO_DOMAIN}
       MEDIA_DOMAIN: ${MEDIA_DOMAIN}
+      PUBLIC_SITE_MODE: ${PUBLIC_SITE_MODE}
     volumes:
       - ${UPLOADS_PATH:-/opt/leon-platform/uploads}:/srv/uploads:ro
     ports:

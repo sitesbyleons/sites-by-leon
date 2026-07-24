@@ -53,4 +53,13 @@ if [[ -e ${SECRETS_ROOT}/domain-worker.env || -L ${SECRETS_ROOT}/domain-worker.e
   require_secret_file "${SECRETS_ROOT}/domain-worker.env" 'domain-worker.env'
 fi
 
+mapfile -t public_site_mode_lines < <(sed -n 's/^PUBLIC_SITE_MODE=//p' "${COMPOSE_ENV_FILE}")
+if [[ ${#public_site_mode_lines[@]} -ne 1 ]]; then
+  fail 'PUBLIC_SITE_MODE must appear exactly once in .env.'
+fi
+public_site_mode=${public_site_mode_lines[0]%$'\r'}
+if [[ ${public_site_mode} != coming-soon && ${public_site_mode} != live ]]; then
+  fail 'PUBLIC_SITE_MODE must be coming-soon or live.'
+fi
+
 echo 'Runtime secret preflight passed.'

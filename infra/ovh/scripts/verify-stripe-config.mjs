@@ -27,6 +27,10 @@ const prices = [
   ['studio', 'STRIPE_PRICE_STUDIO', 3_000],
   ['signature', 'STRIPE_PRICE_SIGNATURE', 4_000],
 ];
+const legalUrls = {
+  privacy: 'https://leonsites.org/privacy',
+  terms: 'https://leonsites.org/terms',
+};
 
 class ConfigurationError extends Error {}
 
@@ -115,6 +119,10 @@ const verifyPlatform = async (stripe, livemode) => {
   assertConfig(portal.features.subscription_cancel.enabled, 'Billing Portal cancellation is disabled.');
   assertConfig(portal.features.subscription_cancel.mode === 'at_period_end', 'Billing Portal must cancel at period end.');
   assertConfig(!portal.features.subscription_update.enabled, 'Billing Portal subscription updates must be disabled.');
+  assertConfig(portal.business_profile.privacy_policy_url === legalUrls.privacy,
+    'Billing Portal privacy policy URL is incorrect.');
+  assertConfig(portal.business_profile.terms_of_service_url === legalUrls.terms,
+    'Billing Portal terms of service URL is incorrect.');
 
   const destinations = await listEventDestinations(stripe);
   const endpoint = verifyDestination(
@@ -124,7 +132,13 @@ const verifyPlatform = async (stripe, livemode) => {
 
   return {
     prices: verifiedPrices,
-    portal: { id: portal.id, active: portal.active, livemode: portal.livemode },
+    portal: {
+      id: portal.id,
+      active: portal.active,
+      livemode: portal.livemode,
+      privacy_policy_url: portal.business_profile.privacy_policy_url,
+      terms_of_service_url: portal.business_profile.terms_of_service_url,
+    },
     destinations: [endpoint],
   };
 };

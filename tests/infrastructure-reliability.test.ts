@@ -63,6 +63,29 @@ describe('OVH infrastructure reliability', () => {
     expect(`${backup}\n${installer}\n${service}`).not.toContain('/opt/leon-platform/app');
   });
 
+  it('monitors production health, disk headroom, and completed backup age', () => {
+    const monitor = read('infra/ovh/scripts/monitor-production.sh');
+    const backup = read('infra/ovh/scripts/backup-database.sh');
+    const installer = read('infra/ovh/scripts/install-systemd.sh');
+    const service = read('infra/ovh/systemd/leon-monitor.service');
+    const timer = read('infra/ovh/systemd/leon-monitor.timer');
+
+    expect(backup).toContain('/var/lib/leon-platform/last-successful-backup');
+    expect(backup.indexOf('last-successful-backup')).toBeGreaterThan(
+      backup.indexOf('restic_with_fresh_session forget'),
+    );
+    expect(monitor).toContain('BACKUP_MAX_AGE_SECONDS');
+    expect(monitor).toContain('DISK_MAX_USED_PERCENT');
+    expect(monitor).toContain('MONITOR_ALERT_WEBHOOK_URL');
+    expect(monitor).toContain('"${HEALTHCHECK_SCRIPT}"');
+    expect(service).toContain('/usr/local/libexec/leon-platform/monitor-production.sh');
+    expect(service).toContain('EnvironmentFile=-/opt/leon-platform/monitor.env');
+    expect(service).not.toContain('backup-secrets/backup.env');
+    expect(service).toContain('NoNewPrivileges=true');
+    expect(timer).toContain('OnUnitActiveSec=5m');
+    expect(installer).toContain('systemctl enable --now leon-backup.timer leon-monitor.timer');
+  });
+
   it('requires an offsite backup repository unless local mode is explicitly enabled', () => {
     const backup = read('infra/ovh/scripts/backup-database.sh');
     const installer = read('infra/ovh/scripts/install-systemd.sh');
