@@ -14,6 +14,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Displayed Essential and Studio prices are approved at $25 and $35 per month. Test and live Stripe both use active monthly prices at exactly those amounts; unused $30 and $40 prices are inactive.
 - [x] Test Stripe has one enabled platform webhook at `https://test.leonsites.org/api/webhooks/stripe`; the stale duplicate endpoint and orphaned test subscription/customer are disabled or removed.
 - [x] Authenticated staging billing opened a real Stripe Sandbox Checkout for Studio at exactly $35 per month with required Terms consent. The unpaid session was expired and its temporary Stripe customer and database fixture were removed afterward.
+- [x] A fresh `customer.subscription.updated` test event reached the staging webhook and was recorded exactly once as `processed`; temporary smoke metadata was removed afterward.
 - [x] Public, dashboard, and photographer support fallbacks consistently use the established `sites.by.leon@gmail.com` inbox.
 - [x] Nightly encrypted offsite backup timer is enabled and successful.
 - [x] Fresh snapshot `e9f1d4be7b149a9e0c30ed4252c8b30e187ace1f2b51c1b2de7f54de75974188` restores and validates PostgreSQL plus uploaded media.
@@ -27,7 +28,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [ ] Publish local `main` through `fae52962a47faf00ba89687fd4d1407a06ac9f64` to the private GitHub repository. The local branch is ahead of the remote and the connected GitHub account currently cannot read that private repository.
+- [ ] Publish local `main` through `fae52962a47faf00ba89687fd4d1407a06ac9f64` to `sitesbyleons/sites-by-leon`. The local branch is ahead of the remote; HTTPS has no credential, and the connected GitHub App is installed only on the different public repository `LimonLimez/sites-by-leon`.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
 - [ ] Add application-scoped object storage or expand the upload volume before assigning the advertised 50 GB or 100 GB customer quotas. The current VPS has a 96 GB root filesystem with 71 GB free and a conservative 20 GB provisioning ceiling, so a 100 GB Studio allocation cannot be honored safely yet.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
