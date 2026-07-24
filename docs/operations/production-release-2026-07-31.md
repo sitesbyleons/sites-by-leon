@@ -4,28 +4,31 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Verified July 24
 
-- [x] Production release `c959c84fa4fb6c9698f3089e96a41b01d5dd75a2` deployed in `coming-soon` mode with release `d194c66a16399b7c4b5ae6728db390945eaae585` preserved for rollback.
-- [x] Marketing, dashboard, three active customer sites, API, and PostgreSQL health checks pass.
+- [x] Immutable release `8e21b6cd0738f8c542207507c32c91eb5d609546` passed staging and production deployment gates in `coming-soon` mode, with release `58262bbbae5e0c2c5ca964afc7ebfa5ec40b8e8b` preserved for rollback.
+- [x] Marketing, dashboard, the two intended production customer sites, the isolated staging customer site, API, and PostgreSQL health checks pass after an OS update and reboot.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
 - [x] Dependency audit reports no known vulnerabilities.
-- [x] Root and workspace type checks, builds, unit tests, infrastructure regressions, and 92 browser tests pass.
+- [x] Root and workspace type checks, builds, 416 unit tests, deployment/backup/monitor regressions, and 94 browser tests pass.
 - [x] Live Stripe platform prices, Billing Portal, platform webhook, Connect webhook, and Connect v2 destination verify in live mode.
 - [x] Live Billing Portal links to `https://leonsites.org/privacy` and `https://leonsites.org/terms`; the release verifier rejects drift in either URL.
 - [x] Displayed Essential, Studio, and Signature prices match the active live Stripe prices at $25, $30, and $40 per month.
 - [x] Public, dashboard, and photographer support fallbacks consistently use the established `sites.by.leon@gmail.com` inbox.
 - [x] Nightly encrypted offsite backup timer is enabled and successful.
-- [x] Fresh snapshot `1942470cff7c79ce7167a49cd9bdd8023493eb20308041327f1921bc496ad6d8` restores and validates PostgreSQL plus uploaded media.
+- [x] Fresh snapshot `e9f1d4be7b149a9e0c30ed4252c8b30e187ace1f2b51c1b2de7f54de75974188` restores and validates PostgreSQL plus uploaded media.
 - [x] Five-minute monitor verifies public/application/database health, backup age under 36 hours, and disk usage under 80%.
-- [x] Production disk usage is 19%.
+- [x] Build cache is bounded to `8GB` by both deployment paths; cleanup recovered 10.49GB and production disk usage is 26%.
+- [x] The host firewall denies unsolicited inbound traffic except key-only SSH; root login, password login, and keyboard-interactive login are disabled.
+- [x] Available PAM, rsyslog, Docker, and system security updates were installed, the host was rebooted, and no further reboot is required.
 - [x] Playwright uses deterministic foreground Astro 7 servers and produces no hidden application errors or hydration mismatches.
 - [x] Reversible `coming-soon` / `live` launch switching is implemented with maintenance locking, atomic environment updates, deployment rollback, and CI regression coverage.
+- [x] Production shows the timezone-fixed July 31 noon Eastern countdown, starting price, approved Instagram link, and established support email without mobile or desktop overflow.
 
 ## Required before public launch
 
-- [x] Release-candidate tree `02bebc7c12fc44bd1ef4fc602dac81e68f1ffc83` published to private GitHub `main` as commit `ce7ee023998959ea36d28417c16a2bc1717fc1c3` through a non-forced fast-forward.
+- [ ] Publish local `main` through `8e21b6cd0738f8c542207507c32c91eb5d609546` to the private GitHub repository. The local branch is ahead of the remote and the connected GitHub account currently cannot read that private repository.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
-- [x] Authenticated production owner smoke passed for `/admin`, `/admin/sites`, `/admin/subscriptions`, `/admin/tickets`, and `/admin/users` using Clerk's short-lived official Playwright testing helper; no credentials or browser state were persisted.
+- [x] Authenticated production owner smoke passed for Overview, Sites, Demos, Subscriptions, Tickets, and Users. Authenticated staging smoke also passed all ten customer Studio routes without an access-denied redirect.
 - [ ] Complete a controlled live Stripe lifecycle: real checkout, webhook receipt, cancellation, refund, Connect invoice payment, payout confirmation, and webhook replay/idempotency check. Use real owner-approved payment details; never fictional identity data.
 - [x] Live Stripe public settings include the business website and Terms URL. A no-charge Checkout preview returned HTTP 200 and visibly rendered required Terms consent; the application now requires that consent for every subscription checkout.
 - [ ] Confirm final launch copy, prices, support email, privacy policy, and terms with the business owner.
@@ -65,9 +68,9 @@ pnpm load:production:50
 
 Record UTC time, request count, failures, p50, p95, and requests/second. Both runs require zero failures and p95 at or below 2.5 seconds.
 
-Results at `2026-07-24T03:03:18Z`:
+Results at `2026-07-24T20:32:03Z`:
 
 | Concurrency | Requests | Failures | p50 | p95 | Requests/second |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 10 | 100 | 0 | 62 ms | 345 ms | 95.2 |
-| 50 | 500 | 0 | 62 ms | 734 ms | 332.4 |
+| 10 | 100 | 0 | 63 ms | 394 ms | 86.0 |
+| 50 | 500 | 0 | 62 ms | 747 ms | 345.3 |
