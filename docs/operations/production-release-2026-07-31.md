@@ -17,6 +17,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Five-minute monitor verifies public/application/database health, backup age under 36 hours, and disk usage under 80%.
 - [x] Production disk usage is 19%.
 - [x] Playwright uses deterministic foreground Astro 7 servers and produces no hidden application errors or hydration mismatches.
+- [x] Reversible `coming-soon` / `live` launch switching is implemented with maintenance locking, atomic environment updates, deployment rollback, and CI regression coverage.
 
 ## Required before public launch
 
@@ -27,7 +28,29 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [ ] Complete a controlled live Stripe lifecycle: real checkout, webhook receipt, cancellation, refund, Connect invoice payment, payout confirmation, and webhook replay/idempotency check. Use real owner-approved payment details; never fictional identity data.
 - [ ] Confirm final launch copy, prices, support email, privacy policy, and terms with the business owner.
 - [ ] If branded email is desired, verify a real `@leonsites.org` mailbox end to end before replacing the established Gmail address. Never use `@leonsites.com`; that domain belongs to an unrelated site and has no mail exchanger.
-- [ ] On July 31, replace the public coming-soon route with the verified marketing build, rerun this checklist, and keep the previous release plus DNS rollback available.
+- [ ] On July 31, run the launch procedure below, rerun this checklist, and keep the previous release plus DNS rollback available.
+
+## Launch and rollback
+
+Before the launch window, confirm the production environment contains exactly one `PUBLIC_SITE_MODE=coming-soon` entry and that `/opt/leon-platform/secrets/.env` is owned by the deployment user with mode `0600`. Do not print the rest of that file.
+
+Launch:
+
+```bash
+/opt/leon-platform/current/infra/ovh/scripts/switch-public-site-mode.sh live
+/opt/leon-platform/current/infra/ovh/scripts/healthcheck.sh
+curl --fail --silent --show-error --location https://leonsites.org/ >/dev/null
+```
+
+Rollback the public homepage while preserving dashboard and API routing:
+
+```bash
+/opt/leon-platform/current/infra/ovh/scripts/switch-public-site-mode.sh coming-soon
+/opt/leon-platform/current/infra/ovh/scripts/healthcheck.sh
+curl --fail --silent --show-error --location https://leonsites.org/ >/dev/null
+```
+
+The switch script restores and redeploys the previous mode automatically if the requested deployment fails. If application health remains unhealthy after the mode rollback, restore the preserved release symlink and run that release's deployment script.
 
 ## Load results
 

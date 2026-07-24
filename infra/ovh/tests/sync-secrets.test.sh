@@ -31,6 +31,7 @@ SECRETS_ROOT=/opt/leon-platform/secrets
 CLOUDFLARE_TUNNEL_TOKEN_FILE=/opt/leon-platform/secrets/cloudflare-tunnel-token
 CUSTOM_DOMAIN_AUTOMATION_ENABLED=false
 COMPOSE_PROFILES=tunnel
+PUBLIC_SITE_MODE=coming-soon
 EOF
   for file in postgres.env dashboard.env northline.env; do
     printf 'SAFE_VALUE=%s\n' "${VALID_SECRET}" > "${FIXTURE}/infra/ovh/secrets/${file}"

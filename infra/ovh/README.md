@@ -113,6 +113,28 @@ Then run:
 infra/ovh/scripts/healthcheck.sh
 ```
 
+## Public launch switch
+
+Keep `PUBLIC_SITE_MODE=coming-soon` in `/opt/leon-platform/secrets/.env` until the approved launch window. The release switch validates the private environment file, takes the platform maintenance lock, updates the mode atomically, deploys, and restores the previous mode if deployment fails.
+
+Launch the full marketing site:
+
+```bash
+/opt/leon-platform/current/infra/ovh/scripts/switch-public-site-mode.sh live
+/opt/leon-platform/current/infra/ovh/scripts/healthcheck.sh
+curl --fail --silent --show-error --location https://leonsites.org/ >/dev/null
+```
+
+Return the homepage to the coming-soon experience:
+
+```bash
+/opt/leon-platform/current/infra/ovh/scripts/switch-public-site-mode.sh coming-soon
+/opt/leon-platform/current/infra/ovh/scripts/healthcheck.sh
+curl --fail --silent --show-error --location https://leonsites.org/ >/dev/null
+```
+
+Do not edit `PUBLIC_SITE_MODE` manually during a launch or rollback. The switch script preserves file ownership and mode `0600`, serializes against deployments and backups, and redeploys the prior mode automatically after a failed change.
+
 Configure Stripe webhook destinations as:
 
 - `https://leonsites.org/api/webhooks/stripe`

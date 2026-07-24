@@ -40,5 +40,6 @@ describe('CI security', () => {
     expect(workflow).toContain('bash infra/ovh/tests/sync-secrets.test.sh');
     expect(workflow).toContain('bash infra/ovh/tests/backup-restore.test.sh');
     expect(workflow).toContain('bash infra/ovh/tests/monitor-production.test.sh');
+    expect(workflow).toContain('bash infra/ovh/tests/switch-public-site-mode.test.sh');
   });
 });

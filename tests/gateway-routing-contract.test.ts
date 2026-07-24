@@ -16,6 +16,7 @@ describe('production gateway routing contract', () => {
 
     expect(comingSoon).toContain('host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}');
     expect(comingSoon).toMatch(/\bpath\s+\/\s+\/index\.html\s*$/m);
+    expect(comingSoon).toContain('expression {env.PUBLIC_SITE_MODE} == "coming-soon"');
     expect(caddyfile).toContain('rewrite * /coming-soon/index.html');
   });
 

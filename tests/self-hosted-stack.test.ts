@@ -47,6 +47,7 @@ describe('fully self-hosted production stack', () => {
     expect(comingSoonExists).toBe(true);
     expect(caddy).toMatch(/@coming_soon\s*\{[\s\S]*host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\}[\s\S]*path \/[\s\S]*\}/);
     expect(caddy).toContain('rewrite * /coming-soon/index.html');
+    expect(caddy).toContain('expression {env.PUBLIC_SITE_MODE} == "coming-soon"');
     expect(caddy).toMatch(/@marketing host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\} \{\$TEST_DOMAIN\}/);
     expect(fullMarketing).not.toContain('ComingSoon');
     expect(fullMarketing).not.toContain('hostSwitch');
