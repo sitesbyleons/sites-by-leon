@@ -24,6 +24,7 @@ COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
 COPY --from=build --chown=node:node /workspace/photographer-site/node_modules ./photographer-site/node_modules
 COPY --from=build --chown=node:node /workspace/photographer-site/dist ./photographer-site/dist
 COPY --from=build --chown=node:node /workspace/photographer-site/package.json ./photographer-site/package.json
+COPY --from=build --chown=node:node /workspace/photographer-site/scripts ./photographer-site/scripts
 COPY --from=build --chown=node:node /workspace/platform-core ./platform-core
 USER node
 EXPOSE 4321

@@ -40,16 +40,16 @@ describe('studio resource mutations', () => {
     expect(upload).toContain('sweepOrphanedUploads');
     expect(upload).toContain('}.webp`');
     expect(upload).toContain('claimWorkspaceUpload(workspaceId, managedPath, optimized.bytes.byteLength');
-    expect(upload).toContain('writeFile(absolute, optimized.bytes');
+    expect(upload).toContain('storage.write(workspaceId, managedPath, optimized.bytes');
   });
 
   it('does not remove an upload after it has been attached to studio content', () => {
     const upload = read('src/pages/api/admin/upload.ts');
     const referenceCheck = upload.indexOf('isWorkspaceUploadReferenced');
-    const unlink = upload.indexOf('await unlink');
+    const remove = upload.indexOf('await storage.remove');
 
     expect(referenceCheck).toBeGreaterThan(-1);
-    expect(referenceCheck).toBeLessThan(unlink);
+    expect(referenceCheck).toBeLessThan(remove);
     expect(upload).toContain('if (reference.data)');
   });
 

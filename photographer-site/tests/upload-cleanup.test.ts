@@ -1,15 +1,11 @@
-import { unlink } from 'node:fs/promises';
-
 import type { DataClient } from '@leon/platform-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { sweepOrphanedUploads } from '../src/lib/upload-cleanup';
 
-vi.mock('node:fs/promises', () => ({ unlink: vi.fn() }));
-
 const workspaceId = 'workspace-1';
-const uploadRoot = '/srv/uploads';
-const unlinkMock = vi.mocked(unlink);
+const removeMock = vi.fn();
+const storage = { remove: removeMock };
 
 function dataClient(
   findOrphanedWorkspaceUploads: ReturnType<typeof vi.fn>,
@@ -26,7 +22,7 @@ function dataClient(
 
 describe('orphan upload cleanup', () => {
   beforeEach(() => {
-    unlinkMock.mockReset();
+    removeMock.mockReset();
   });
 
   afterEach(() => {
@@ -40,7 +36,7 @@ describe('orphan upload cleanup', () => {
       error: { message: 'database unavailable' },
     }));
 
-    await sweepOrphanedUploads(client, workspaceId, uploadRoot);
+    await sweepOrphanedUploads(client, workspaceId, storage);
 
     expect(errorSpy).toHaveBeenCalledWith('Orphan upload cleanup failed.', {
       operation: 'scan',
@@ -69,23 +65,19 @@ describe('orphan upload cleanup', () => {
           : { data: [], error: null }
       )),
     );
-    unlinkMock.mockImplementation(async (absolutePath) => {
-      const path = String(absolutePath);
-      if (path.endsWith('/denied.webp')) {
+    removeMock.mockImplementation(async (_workspaceId, storagePath) => {
+      if (storagePath === deniedPath) {
         throw Object.assign(new Error('permission denied'), { code: 'EACCES' });
-      }
-      if (path.endsWith('/missing.webp')) {
-        throw Object.assign(new Error('not found'), { code: 'ENOENT' });
       }
     });
 
-    await sweepOrphanedUploads(client, workspaceId, uploadRoot);
+    await sweepOrphanedUploads(client, workspaceId, storage);
 
     expect(releaseWorkspaceUpload).not.toHaveBeenCalledWith(workspaceId, deniedPath);
     expect(releaseWorkspaceUpload).toHaveBeenCalledWith(workspaceId, releaseFailedPath);
     expect(releaseWorkspaceUpload).toHaveBeenCalledWith(workspaceId, missingPath);
     expect(errorSpy).toHaveBeenCalledWith('Orphan upload cleanup failed.', {
-      operation: 'unlink',
+      operation: 'remove',
       workspaceId,
       storagePath: deniedPath,
       error: 'permission denied',

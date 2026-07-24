@@ -8,7 +8,7 @@ Northline Sports is the production-style photographer-site example owned by Site
 - Dockerized Astro server on the Sites By Leon OVH VPS
 - Cloudflare DNS and private Tunnel routing
 - Plain PostgreSQL 17 database shared through workspace-scoped records
-- Persistent images under `/opt/leon-platform/uploads`
+- Tenant-prefixed managed images in the local upload fallback or private S3-compatible media storage
 - Clerk authentication for the studio administration routes
 - Stripe Connect and invoice routes running inside the site container
 

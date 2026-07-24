@@ -19,7 +19,7 @@ Cloudflare provides authoritative DNS and a private Tunnel to the VPS. The VPS d
 - `photographer-site/` — production-style sports photographer site and studio controls
 - `platform-core/` — shared PostgreSQL, billing, and image-storage helpers
 - `infra/ovh/` — Docker Compose, Caddy gateway, PostgreSQL schema, import tools, and health checks
-- `/opt/leon-platform/uploads` on the VPS — persistent image storage
+- `/opt/leon-platform/uploads` on the VPS — local image fallback; production can use private S3-compatible media storage
 - Docker-managed PostgreSQL 17 volume — persistent application database
 
 Authentication is provided by Clerk. Subscription billing, customer portal sessions, photographer Stripe Connect onboarding, and invoices are handled by server routes running on the VPS.

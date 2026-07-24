@@ -1,11 +1,10 @@
-import { unlink } from 'node:fs/promises';
-
-import { resolveManagedUpload } from '@leon/platform-core/image-storage';
+import { isManagedUploadPath } from '@leon/platform-core/image-storage';
 import { isTrustedOrigin } from '@leon/platform-core/request-security';
 import type { DataClient } from '@leon/platform-core';
 import type { APIRoute } from 'astro';
 
 import { MIN_STRIPE_USD_CENTS, parseUsdCents } from '../../../lib/invoice-events';
+import { mediaStorage } from '../../../lib/media-storage';
 import { resolvePublishedAt } from '../../../lib/post-publication';
 import { resolveManagedStudio } from '../../../lib/studio';
 import { sweepOrphanedUploads } from '../../../lib/upload-cleanup';
@@ -19,8 +18,6 @@ const mediaAspectRatios = new Set(['square', 'portrait', 'landscape', 'wide']);
 const imageAspectRatios = new Set(['inherit', ...mediaAspectRatios]);
 const orderable = new Set(['galleries', 'images', 'posts', 'services']);
 const deletable = new Set(['galleries', 'images', 'posts', 'services', 'clients', 'invoices']);
-const uploadRoot = process.env.UPLOAD_ROOT ?? '/data/uploads';
-
 const text = (source: Record<string, unknown>, key: string, max = 2000) => {
   const value = typeof source[key] === 'string' ? source[key].trim() : '';
   return value.slice(0, max);
@@ -59,11 +56,8 @@ async function removeFiles(client: DataClient, workspaceId: string, paths: Array
       .eq('storage_path', managedPath)
       .maybeSingle<{ is_retained: boolean }>();
     if (upload.data?.is_retained) return;
-    const absolute = resolveManagedUpload(uploadRoot, workspaceId, managedPath);
-    if (!absolute) return;
-    await unlink(absolute).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== 'ENOENT') throw error;
-    });
+    if (!isManagedUploadPath(workspaceId, managedPath)) return;
+    await mediaStorage().remove(workspaceId, managedPath);
     const released = await client.releaseWorkspaceUpload(workspaceId, managedPath);
     if (released.error) throw new Error(released.error.message);
   }));
@@ -133,7 +127,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
       message: resource === 'invoices' ? 'This invoice is already being sent and cannot be deleted.' : 'Item not found.',
     }, { status: resource === 'invoices' ? 409 : 404 });
     await removeFiles(client, workspaceId, paths.map((path) => path ? managedPath(workspaceId, path) : null)).catch(() => null);
-    await sweepOrphanedUploads(client, workspaceId, uploadRoot);
+    await sweepOrphanedUploads(client, workspaceId, mediaStorage());
     return Response.json({ ok: true });
   }
 
@@ -318,7 +312,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
   if (!result.data.length) return Response.json({ message: 'This item no longer exists. Refresh and try again.' }, { status: 404 });
   const newPath = text(source, resource === 'images' ? 'storage_path' : 'cover_storage_path', 1024);
   if (oldPath && oldPath !== newPath) await removeFiles(client, workspaceId, [managedPath(workspaceId, oldPath)]).catch(() => null);
-  await sweepOrphanedUploads(client, workspaceId, uploadRoot);
+  await sweepOrphanedUploads(client, workspaceId, mediaStorage());
   const resourceId = typeof result.data[0]?.id === 'string' ? result.data[0].id : null;
   return Response.json(resourceId ? { ok: true, id: resourceId } : { ok: true });
 };

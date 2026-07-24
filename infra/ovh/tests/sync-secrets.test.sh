@@ -74,6 +74,18 @@ write_fixture
 run_preflight >/dev/null
 pass 'owner-only stable secrets pass preflight'
 
+cat >> "${FIXTURE}/infra/ovh/secrets/northline.env" <<EOF
+MEDIA_STORAGE_BACKEND=s3
+S3_ENDPOINT=http://objects.example.test
+S3_REGION=us-east-1
+S3_BUCKET=leonsites-media
+S3_ACCESS_KEY_ID=${VALID_SECRET}
+S3_SECRET_ACCESS_KEY=${VALID_SECRET}
+EOF
+expect_preflight_failure 'insecure media endpoint is rejected' 'S3_ENDPOINT must be a credential-free HTTPS URL'
+printf 'SAFE_VALUE=%s\n' "${VALID_SECRET}" > "${FIXTURE}/infra/ovh/secrets/northline.env"
+chmod 600 "${FIXTURE}/infra/ovh/secrets/northline.env"
+
 chmod 640 "${FIXTURE}/infra/ovh/secrets/dashboard.env"
 expect_preflight_failure 'group-readable secret is rejected' 'dashboard.env must have mode 600'
 chmod 600 "${FIXTURE}/infra/ovh/secrets/dashboard.env"

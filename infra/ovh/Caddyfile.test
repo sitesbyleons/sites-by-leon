@@ -42,9 +42,8 @@
 	handle @media {
 		header Cross-Origin-Resource-Policy cross-origin
 		handle_path /media/* {
-			root * /srv/uploads
-			header Cache-Control "public, max-age=300, must-revalidate"
-			file_server
+			rewrite * /api/media{path}
+			reverse_proxy photographer-test:4321
 		}
 	}
 

@@ -87,8 +87,6 @@ services:
         condition: service_healthy
     environment:
       TEST_DOMAIN: ${TEST_DOMAIN:-test.leonsites.org}
-    volumes:
-      - ${TEST_UPLOADS_PATH:-/opt/leon-platform/uploads-test}:/srv/uploads:ro
     networks:
       leon-edge:
         aliases:

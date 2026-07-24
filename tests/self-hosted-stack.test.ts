@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 describe('fully self-hosted production stack', () => {
-  it('uses plain PostgreSQL and persistent VPS image storage', () => {
+  it('uses plain PostgreSQL and a persistent local fallback for image storage', () => {
     const compose = read('infra/ovh/docker-compose.yml');
     expect(compose).toMatch(/\n  database:\n/);
     expect(compose).toMatch(/image:\s*postgres:17/);
@@ -23,8 +23,9 @@ describe('fully self-hosted production stack', () => {
     expect(caddy).toContain('@test host {$TEST_DOMAIN}');
     expect(caddy).toContain('reverse_proxy gateway-test:80');
     expect(caddy).toContain('handle_path /media/*');
-    expect(caddy).toContain('root * /srv/uploads');
+    expect(caddy).toContain('rewrite * /api/media{path}');
     expect(caddy).toContain('reverse_proxy photographer:4321');
+    expect(caddy).not.toContain('root * /srv/uploads');
     expect(caddy).not.toMatch(/DEMO_DOMAIN|@test_site|reverse_proxy northline:/);
     expect(compose).toMatch(/\n  photographer:\n/);
     expect(compose).not.toMatch(/\n  northline:\n/);
@@ -79,6 +80,7 @@ describe('fully self-hosted production stack', () => {
     expect(gateway).toContain('-test\\.leonsites\\.org');
     expect(deploy).toContain('/opt/leon-platform/current-test');
     expect(deploy).toContain('configure-test-runtime-role.sh');
+    expect(deploy).toContain('verify-media-storage.mjs');
     expect(activate).toContain('current-test.new');
     expect(activate).toContain('automatic rollback protection');
     expect(activate).toContain('flock -u 9');
@@ -89,6 +91,20 @@ describe('fully self-hosted production stack', () => {
     expect(promote).toContain('Only the currently deployed staging release can be promoted.');
     expect(promote).toContain('MAINTENANCE_LOCK_HELD=1');
     expect(promote).toContain('/infra/ovh/scripts/deploy.sh');
+  });
+
+  it('verifies private object storage before accepting either deployment', () => {
+    const productionDeploy = read('infra/ovh/scripts/deploy.sh');
+    const stagingDeploy = read('infra/ovh/scripts/deploy-test.sh');
+    const verifier = read('photographer-site/scripts/verify-media-storage.mjs');
+
+    expect(productionDeploy).toContain('node ./photographer-site/scripts/verify-media-storage.mjs');
+    expect(stagingDeploy).toContain('node ./photographer-site/scripts/verify-media-storage.mjs');
+    expect(verifier).toContain('PutObjectCommand');
+    expect(verifier).toContain('GetBucketVersioningCommand');
+    expect(verifier).toContain('GetObjectCommand');
+    expect(verifier).toContain('DeleteObjectCommand');
+    expect(verifier).toContain('crypto.timingSafeEqual');
   });
 
   it('defines the application schema without Supabase roles or auth functions', () => {

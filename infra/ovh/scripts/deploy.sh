@@ -67,6 +67,8 @@ docker compose --env-file "${COMPOSE_ENV_FILE}" build "${build_services[@]}"
 MAINTENANCE_LOCK_HELD=1 SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/migrate-database.sh"
 SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/configure-runtime-role.sh"
 docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --no-build --remove-orphans
+docker compose --env-file "${COMPOSE_ENV_FILE}" exec -T photographer \
+  node ./photographer-site/scripts/verify-media-storage.mjs
 docker compose --env-file "${COMPOSE_ENV_FILE}" ps
 for attempt in $(seq 1 "${DEPLOY_HEALTHCHECK_ATTEMPTS:-24}"); do
   if COMPOSE_PROFILES="${compose_profiles}" \

@@ -370,8 +370,9 @@ describe('OVH infrastructure reliability', () => {
 
   it('keeps deleted public media revocable through short revalidation', () => {
     const caddy = read('infra/ovh/Caddyfile');
+    const mediaRoute = read('photographer-site/src/pages/api/media/[...path].ts');
 
-    expect(caddy).toContain('header Cache-Control "public, max-age=300, must-revalidate"');
+    expect(mediaRoute).toContain("'cache-control': 'public, max-age=300, must-revalidate'");
     expect(caddy).not.toContain('Cache-Control "public, max-age=31536000, immutable"');
   });
 
@@ -556,6 +557,8 @@ describe('OVH infrastructure reliability', () => {
     expect(preflight).toContain('must be a regular, non-symlink file');
     expect(preflight).toContain('must have mode 600');
     expect(preflight).toContain('must belong to the deployment user');
+    expect(preflight).toContain('S3_ENDPOINT must be a credential-free HTTPS URL.');
+    expect(preflight).toContain('MEDIA_STORAGE_BACKEND must be local or s3.');
     expect(sync).toContain('required_names=(.env postgres.env dashboard.env northline.env cloudflare-tunnel-token)');
     expect(sync).toContain('optional_names=(domain-worker.env)');
     expect(sync).toContain('StrictHostKeyChecking=yes');

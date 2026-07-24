@@ -1,6 +1,6 @@
 # Sites By Leon — OVH platform
 
-This stack hosts the Sites By Leon marketing site, client/admin dashboard, photographer example site, PostgreSQL database, Stripe endpoints, and uploaded images on the OVH VPS.
+This stack hosts the Sites By Leon marketing site, client/admin dashboard, photographer example site, PostgreSQL database, Stripe endpoints, and managed image delivery on the OVH VPS.
 
 ## Public routing
 
@@ -13,7 +13,7 @@ This stack hosts the Sites By Leon marketing site, client/admin dashboard, photo
 
 Cloudflare Tunnel is the only public ingress. Caddy listens inside Docker, PostgreSQL stays on the private Docker network, and no database port is published.
 
-Clerk remains the identity provider, Stripe remains the payment processor, GitHub remains the private code source, and uploaded images live in `/opt/leon-platform/uploads`.
+Clerk remains the identity provider, Stripe remains the payment processor, and GitHub remains the private code source. Uploaded images use `/opt/leon-platform/uploads` by default; the photographer runtime also supports private S3-compatible object storage without changing public media URLs.
 
 ## One-time host setup
 
@@ -57,6 +57,30 @@ The sync command validates local ownership and mode `600`, uses the pinned host 
 Generate `CONTACT_HASH_SALT` independently with `openssl rand -hex 32`; it is required for privacy-preserving inquiry rate limits.
 Each application uses at most four PostgreSQL connections by default. Set `DATABASE_POOL_MAX` to a value from 1 through 20 only when capacity planning shows that a different limit is safe. Set `PLATFORM_PROVISIONABLE_STORAGE_BYTES` in the dashboard environment to the amount of the media disk that customer quotas may reserve; provisioning rejects requests that would exceed it. Keep operating-system, database, deployment, backup staging, and free-space headroom outside that number. Both staging and production deployments prune unused BuildKit data older than `BUILD_CACHE_RETENTION_HOURS` and enforce `BUILD_CACHE_MAX_SIZE` (default `8GB`) so frequent releases cannot consume the media headroom.
 
+## Scalable media storage
+
+`MEDIA_STORAGE_BACKEND=local` keeps the current disk-backed behavior. `MEDIA_STORAGE_BACKEND=s3` writes optimized uploads to a private S3-compatible bucket while reading existing disk files first, so the backend can be changed without breaking old URLs. Caddy proxies `/media/*` through the photographer runtime; it no longer mounts or reads the upload directory.
+
+Use separate production and staging buckets. Keep public access disabled, enable bucket versioning, and issue different app credentials for each environment. Limit each credential to bucket versioning status plus get, put, and delete access under its configured `S3_KEY_PREFIX`; do not use account-wide object-storage credentials. Put the endpoint, region, bucket, access key, secret, path-style setting, and prefix only in the owner-readable photographer environment file. Deployment rejects malformed configuration and performs a temporary write/read/delete check against the real versioned bucket before accepting the release.
+
+Roll out one environment at a time:
+
+1. Create the private versioned bucket and its scoped app credential.
+2. Add the `S3_*` values and set `MEDIA_STORAGE_BACKEND=s3` in the photographer environment file.
+3. Deploy. Existing files still read from local disk; new uploads go to object storage.
+4. Copy and verify existing files without deleting them:
+
+```bash
+docker compose --env-file /opt/leon-platform/secrets/.env \
+  exec -T photographer \
+  node ./photographer-site/scripts/migrate-media-to-s3.mjs --dry-run
+docker compose --env-file /opt/leon-platform/secrets/.env \
+  exec -T photographer \
+  node ./photographer-site/scripts/migrate-media-to-s3.mjs
+```
+
+The migration uses create-only writes, verifies every remote object by byte size and SHA-256 content, preserves supported legacy image content types, and leaves every local file intact. A nonzero `failed` count is a failed migration. Keep the local originals through at least one restore drill and rollback window. Bucket versioning protects overwritten or deleted objects, but it is not an independent backup against provider/account loss; configure a separate-account replica or scheduled export before treating object storage as the only media copy.
+
 ## Adding a customer
 
 1. The photographer creates their Clerk account.
@@ -96,7 +120,7 @@ After the database container is healthy:
 docker compose exec -T database psql -U leon_app -d leon_platform < migration-artifacts/managed-import.sql
 ```
 
-The current managed project has no stored image objects, so there are no image bytes to copy. New uploads are written directly to `/opt/leon-platform/uploads`.
+Local-mode uploads are written to `/opt/leon-platform/uploads`. When object storage is enabled, use the verified migration procedure above rather than manually copying or deleting managed paths.
 
 ## Deploy
 

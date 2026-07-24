@@ -32,8 +32,6 @@ services:
       DEMO_DOMAIN: ${DEMO_DOMAIN}
       MEDIA_DOMAIN: ${MEDIA_DOMAIN}
       PUBLIC_SITE_MODE: ${PUBLIC_SITE_MODE}
-    volumes:
-      - ${UPLOADS_PATH:-/opt/leon-platform/uploads}:/srv/uploads:ro
     ports:
       - "127.0.0.1:8080:80"
     depends_on:

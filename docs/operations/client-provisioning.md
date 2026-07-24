@@ -28,7 +28,7 @@ The public domain can be custom. The private editor should use `<slug>.leonsites
 - Total allocated workspace quotas cannot exceed `PLATFORM_PROVISIONABLE_STORAGE_BYTES`.
 - Site pause/activation updates related lifecycle records together.
 - Browser applications never receive VPS, Docker, GitHub, Cloudflare, database-admin, or backup credentials.
-- Uploads are signature-checked, pixel-limited, autorotated, metadata-stripped, resized to 2400px, and stored as WebP. Quota accounting uses the optimized size.
+- Uploads are signature-checked, pixel-limited, autorotated, metadata-stripped, resized to 2400px, and stored as WebP. Quota accounting uses the optimized size. Managed paths are tenant-prefixed and validated before local or private S3-compatible reads, writes, and deletions.
 
 ## Second-customer acceptance test
 
@@ -81,7 +81,7 @@ Before raising it:
 
 - move Restic to independent S3-compatible object storage;
 - run and document an isolated PostgreSQL/media restore;
-- move customer media or backup staging to separate storage;
+- configure the private versioned application media bucket, migrate and verify existing files, and add an independent media replica/export;
 - add disk, tunnel, database, webhook, and backup-age alerts;
 - run 10- and 50-host load tests;
 - finish the staged database RLS/service-role separation described in the production audit;

@@ -39,6 +39,7 @@ const unavailableResponse = (message: string, status: number) => new Response(me
 });
 
 const tenantResolution = defineMiddleware(async (context, next) => {
+  if (matchesPathPrefix(context.url.pathname, '/api/media')) return next();
   const hostname = context.url.hostname.toLowerCase();
   const cached = siteContextCache.get(hostname);
   const resolution = cached

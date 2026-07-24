@@ -1,9 +1,8 @@
-import { unlink } from 'node:fs/promises';
-
 import type { DataClient } from '@leon/platform-core';
-import { resolveManagedUpload } from '@leon/platform-core/image-storage';
+import { isManagedUploadPath } from '@leon/platform-core/image-storage';
 
-type CleanupOperation = 'scan' | 'validate-path' | 'unlink' | 'release';
+type CleanupOperation = 'scan' | 'validate-path' | 'remove' | 'release';
+type UploadStorage = { remove(workspaceId: string, managedPath: string): Promise<void> };
 
 function errorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -31,7 +30,7 @@ function reportCleanupFailure(
 export async function sweepOrphanedUploads(
   client: DataClient,
   workspaceId: string,
-  uploadRoot: string,
+  storage: UploadStorage,
   minimumAgeMs = 15 * 60 * 1000,
 ) {
   let pending;
@@ -50,26 +49,26 @@ export async function sweepOrphanedUploads(
     return;
   }
 
-  await Promise.all(pending.data.map(async (row) => {
-    const storagePath = typeof row.storage_path === 'string' ? row.storage_path : '';
-    const absolute = resolveManagedUpload(uploadRoot, workspaceId, storagePath);
-    if (!absolute) {
-      reportCleanupFailure('validate-path', workspaceId, 'Invalid managed upload path.', storagePath);
-      return;
-    }
-    try {
-      await unlink(absolute);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        reportCleanupFailure('unlink', workspaceId, error, storagePath);
+  const rows = pending.data;
+  for (let offset = 0; offset < rows.length; offset += 8) {
+    await Promise.all(rows.slice(offset, offset + 8).map(async (row) => {
+      const storagePath = typeof row.storage_path === 'string' ? row.storage_path : '';
+      if (!isManagedUploadPath(workspaceId, storagePath)) {
+        reportCleanupFailure('validate-path', workspaceId, 'Invalid managed upload path.', storagePath);
         return;
       }
-    }
-    try {
-      const released = await client.releaseWorkspaceUpload(workspaceId, storagePath);
-      if (released.error) reportCleanupFailure('release', workspaceId, released.error, storagePath);
-    } catch (error) {
-      reportCleanupFailure('release', workspaceId, error, storagePath);
-    }
-  }));
+      try {
+        await storage.remove(workspaceId, storagePath);
+      } catch (error) {
+        reportCleanupFailure('remove', workspaceId, error, storagePath);
+        return;
+      }
+      try {
+        const released = await client.releaseWorkspaceUpload(workspaceId, storagePath);
+        if (released.error) reportCleanupFailure('release', workspaceId, released.error, storagePath);
+      } catch (error) {
+        reportCleanupFailure('release', workspaceId, error, storagePath);
+      }
+    }));
+  }
 }

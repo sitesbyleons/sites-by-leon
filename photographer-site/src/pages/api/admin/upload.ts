@@ -1,17 +1,14 @@
-import { mkdir, unlink, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-
-import { detectImageExtension, resolveManagedUpload } from '@leon/platform-core/image-storage';
+import { detectImageExtension, isManagedUploadPath } from '@leon/platform-core/image-storage';
 import { isTrustedOrigin } from '@leon/platform-core/request-security';
 import type { APIRoute } from 'astro';
 
 import { ImageProcessingError, optimizeUploadedImage } from '../../../lib/image-processing';
+import { mediaStorage } from '../../../lib/media-storage';
 import { resolveManagedStudio } from '../../../lib/studio';
 import { sweepOrphanedUploads } from '../../../lib/upload-cleanup';
 
 export const prerender = false;
 
-const uploadRoot = process.env.UPLOAD_ROOT ?? '/data/uploads';
 const mediaOrigin = (process.env.PUBLIC_MEDIA_URL ?? 'https://api.leonsites.org').replace(/\/$/, '');
 const maxImageBytes = 15 * 1024 * 1024;
 const defaultWorkspaceQuotaBytes = 4 * 1024 * 1024 * 1024;
@@ -36,25 +33,27 @@ const route: APIRoute = async ({ request, locals, url }) => {
   if (!auth.userId) return Response.json({ message: 'Sign in again.' }, { status: 401 });
   const { client, workspaceId } = await resolveManagedStudio(auth.userId, locals.siteContext.workspaceId);
   if (!client || !workspaceId) return Response.json({ message: 'You do not have access to this studio.' }, { status: 403 });
+  const storage = mediaStorage();
 
   if (request.method === 'DELETE') {
     const source = await request.json().catch(() => null);
     const managedPath = typeof source?.path === 'string' ? source.path : '';
-    const absolute = resolveManagedUpload(uploadRoot, workspaceId, managedPath);
-    if (!absolute) return Response.json({ message: 'Invalid image path.' }, { status: 422 });
+    if (!isManagedUploadPath(workspaceId, managedPath)) return Response.json({ message: 'Invalid image path.' }, { status: 422 });
     const reference = await client.isWorkspaceUploadReferenced(workspaceId, managedPath);
     if (reference.error) return Response.json({ message: 'Image use could not be checked. Try again.' }, { status: 503 });
     if (reference.data) return Response.json({ ok: true, retained: true });
-    await unlink(absolute).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== 'ENOENT') throw error;
-    });
+    try {
+      await storage.remove(workspaceId, managedPath);
+    } catch {
+      return Response.json({ message: 'Image storage is temporarily unavailable.' }, { status: 503 });
+    }
     const released = await client.releaseWorkspaceUpload(workspaceId, managedPath);
     if (released.error) return Response.json({ message: 'Image was removed, but storage accounting needs a retry.' }, { status: 503 });
     return Response.json({ ok: true });
   }
 
   if (request.method !== 'POST') return Response.json({ message: 'Method not allowed.' }, { status: 405 });
-  await sweepOrphanedUploads(client, workspaceId, uploadRoot);
+  await sweepOrphanedUploads(client, workspaceId, storage);
   const form = await request.formData().catch(() => null);
   const file = form?.get('file');
   const requestedKind = form?.get('kind');
@@ -74,14 +73,12 @@ const route: APIRoute = async ({ request, locals, url }) => {
   }
 
   const managedPath = `${workspaceId}/${kind}/${crypto.randomUUID()}.webp`;
-  const absolute = resolveManagedUpload(uploadRoot, workspaceId, managedPath);
-  if (!absolute) return Response.json({ message: 'Upload path could not be created.' }, { status: 500 });
+  if (!isManagedUploadPath(workspaceId, managedPath)) return Response.json({ message: 'Upload path could not be created.' }, { status: 500 });
   const claimed = await client.claimWorkspaceUpload(workspaceId, managedPath, optimized.bytes.byteLength, workspaceQuotaBytes);
   if (claimed.error) return Response.json({ message: 'Storage could not be reserved.' }, { status: 503 });
   if (!claimed.data.length) return Response.json({ message: 'This studio has reached its image storage limit. Contact Leon to add storage.' }, { status: 413 });
   try {
-    await mkdir(path.dirname(absolute), { recursive: true, mode: 0o750 });
-    await writeFile(absolute, optimized.bytes, { flag: 'wx', mode: 0o640 });
+    await storage.write(workspaceId, managedPath, optimized.bytes);
   } catch {
     const released = await client.releaseWorkspaceUpload(workspaceId, managedPath);
     return Response.json({
@@ -98,7 +95,7 @@ const route: APIRoute = async ({ request, locals, url }) => {
       is_retained: true,
     }).eq('workspace_id', workspaceId).eq('storage_path', managedPath);
     if (retained.error || !retained.data.length) {
-      await unlink(absolute).catch(() => null);
+      await storage.remove(workspaceId, managedPath).catch(() => null);
       await client.releaseWorkspaceUpload(workspaceId, managedPath);
       return Response.json({ message: 'The image could not be added to your files.' }, { status: 503 });
     }

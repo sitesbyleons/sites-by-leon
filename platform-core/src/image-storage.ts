@@ -17,12 +17,23 @@ export function detectImageExtension(bytes: Uint8Array): ImageExtension | null {
 }
 
 export function resolveManagedUpload(root: string, workspaceId: string, managedPath: string) {
-  if (!root || !workspaceId || !managedPath || managedPath.includes('\\')) return null;
+  if (!root || !isManagedUploadPath(workspaceId, managedPath)) return null;
   const segments = managedPath.split('/');
-  if (segments[0] !== workspaceId || segments.some((segment) => !segment || segment === '.' || segment === '..')) return null;
   const workspaceRoot = path.resolve(root, workspaceId);
   const candidate = path.resolve(root, ...segments);
   const relative = path.relative(workspaceRoot, candidate);
   if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return null;
   return candidate;
+}
+
+export function isManagedUploadPath(workspaceId: string, managedPath: string) {
+  if (!workspaceId || !managedPath || managedPath.includes('\\') || managedPath.length > 512) return false;
+  const segments = managedPath.split('/');
+  return segments[0] === workspaceId
+    && segments.length >= 3
+    && segments.every((segment) =>
+      Boolean(segment)
+      && segment !== '.'
+      && segment !== '..'
+      && /^[A-Za-z0-9._-]+$/.test(segment));
 }
