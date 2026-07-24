@@ -66,6 +66,7 @@ integrationSuite('PostgreSQL photographer runtime grants', () => {
       .resolves.toEqual([expect.objectContaining({ role: 'owner' })]);
     await expect(photographer`select workspace_id from site_connections limit 1`).resolves.toBeDefined();
     await expect(photographer`select workspace_id from site_domain_aliases limit 1`).resolves.toBeDefined();
+    await expect(photographer`select clerk_user_id from app_admins limit 1`).resolves.toBeDefined();
   });
 
   it('can create, update, and delete managed studio records', async () => {
@@ -83,7 +84,6 @@ integrationSuite('PostgreSQL photographer runtime grants', () => {
   });
 
   it.each([
-    'app_admins',
     'subscriptions',
     'checkout_attempts',
     'website_projects',

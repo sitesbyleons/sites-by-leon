@@ -680,7 +680,7 @@ revoke all privileges on all sequences in schema public from leon_photographer_r
 alter default privileges in schema public revoke all on tables from leon_photographer_runtime;
 alter default privileges in schema public revoke all on sequences from leon_photographer_runtime;
 grant usage on schema public to leon_photographer_runtime;
-grant select on table client_workspaces, workspace_members, site_connections, site_domain_aliases to leon_photographer_runtime;
+grant select on table app_admins, client_workspaces, workspace_members, site_connections, site_domain_aliases to leon_photographer_runtime;
 grant select, insert, update, delete on table
   workspace_storage_usage,
   workspace_uploads,
@@ -698,4 +698,5 @@ grant select, insert, update, delete on table
   inquiry_rate_limits,
   stripe_events
 to leon_photographer_runtime;
-revoke all privileges on table app_admins, subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime;
+revoke all privileges on table subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime;
+revoke insert, update, delete, truncate, references, trigger on table app_admins from leon_photographer_runtime;

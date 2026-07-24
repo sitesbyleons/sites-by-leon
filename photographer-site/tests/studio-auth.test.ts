@@ -18,7 +18,7 @@ describe('studio authentication boundaries', () => {
   });
 });
 
-describe('studio owner authorization', () => {
+describe('studio authorization', () => {
   it('sends signed-out visitors to sign in without exposing admin content', () => {
     expect(decideStudioAdminAccess({ authenticated: false, authorized: false }, '/admin/services')).toEqual({
       kind: 'redirect',
@@ -37,9 +37,9 @@ describe('studio owner authorization', () => {
     expect(decideStudioAdminAccess({ authenticated: true, authorized: true }, '/admin/services')).toEqual({ kind: 'admin' });
   });
 
-  it('authorizes editors from workspace membership without platform-admin database access', () => {
+  it('authorizes workspace editors and Leon platform administrators', () => {
     const studio = fs.readFileSync(new URL('../src/lib/studio.ts', import.meta.url), 'utf8');
-    expect(studio).toContain("userCanManageWorkspace(client, clerkUserId, workspace.data.id, { allowPlatformAdmin: false })");
+    expect(studio).toContain("userCanManageWorkspace(client, clerkUserId, workspace.data.id, { allowPlatformAdmin: true })");
   });
 
   it('sanitizes Clerk return paths instead of accepting external redirects', () => {
