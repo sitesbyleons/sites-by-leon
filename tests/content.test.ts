@@ -51,6 +51,6 @@ describe('launch content', () => {
   });
 
   it('uses the approved contact address', () => {
-    expect(contactEmail).toBe('leon@leonsites.com');
+    expect(contactEmail).toBe('sites.by.leon@gmail.com');
   });
 });

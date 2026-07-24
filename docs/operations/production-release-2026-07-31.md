@@ -4,12 +4,14 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Verified July 23
 
-- [x] Production release `8b1e8afee5a4af1d819de560a63e3bfd1bf3db6f` deployed with the previous release preserved for rollback.
+- [x] Production release `95cd2626a54c08c41297afe5624b348519020059` deployed with release `8b1e8afee5a4af1d819de560a63e3bfd1bf3db6f` preserved for rollback.
 - [x] Marketing, dashboard, three active customer sites, API, and PostgreSQL health checks pass.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
 - [x] Dependency audit reports no known vulnerabilities.
 - [x] Root and workspace type checks, builds, unit tests, infrastructure regressions, and 92 browser tests pass.
 - [x] Live Stripe platform prices, Billing Portal, platform webhook, Connect webhook, and Connect v2 destination verify in live mode.
+- [x] Displayed Essential, Studio, and Signature prices match the active live Stripe prices at $25, $30, and $40 per month.
+- [x] Public, dashboard, and photographer support fallbacks consistently use the established `sites.by.leon@gmail.com` inbox.
 - [x] Nightly encrypted offsite backup timer is enabled and successful.
 - [x] Fresh snapshot `1942470cff7c79ce7167a49cd9bdd8023493eb20308041327f1921bc496ad6d8` restores and validates PostgreSQL plus uploaded media.
 - [x] Five-minute monitor verifies public/application/database health, backup age under 36 hours, and disk usage under 80%.
@@ -24,6 +26,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [ ] Complete one authenticated customer acceptance smoke test with a short-lived Clerk owner session.
 - [ ] Complete a controlled live Stripe lifecycle: real checkout, webhook receipt, cancellation, refund, Connect invoice payment, payout confirmation, and webhook replay/idempotency check. Use real owner-approved payment details; never fictional identity data.
 - [ ] Confirm final launch copy, prices, support email, privacy policy, and terms with the business owner.
+- [ ] If branded email is desired, verify a real `@leonsites.org` mailbox end to end before replacing the established Gmail address. Never use `@leonsites.com`; that domain belongs to an unrelated site and has no mail exchanger.
 - [ ] On July 31, replace the public coming-soon route with the verified marketing build, rerun this checklist, and keep the previous release plus DNS rollback available.
 
 ## Load results

@@ -29,6 +29,6 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     details: validation.value.details,
   });
   return created.error
-    ? Response.json({ message: 'Ticket could not be sent. Email leon@leonsites.com.' }, { status: 503 })
+    ? Response.json({ message: 'Ticket could not be sent. Email sites.by.leon@gmail.com.' }, { status: 503 })
     : Response.json({ ok: true }, { status: 201 });
 };

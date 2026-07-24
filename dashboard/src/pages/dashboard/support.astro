@@ -40,7 +40,7 @@ if (access.kind === 'redirect') return Astro.redirect('/sign-in?redirect_url=%2F
       const values = new FormData(form);
       const response = await fetch('/api/content-requests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ subject: values.get('subject'), details: values.get('details') }) }).catch(() => null);
       const payload = await response?.json().catch(() => null);
-      status.textContent = response?.ok ? 'Ticket sent.' : (payload?.message ?? 'Ticket not sent. Email leon@leonsites.com.');
+      status.textContent = response?.ok ? 'Ticket sent.' : (payload?.message ?? 'Ticket not sent. Email sites.by.leon@gmail.com.');
       if (response?.ok) form.reset();
     });
   </script>
