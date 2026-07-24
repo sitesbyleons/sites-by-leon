@@ -615,6 +615,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .simple-plan-list small { color: #686b70; font-size: 0.62rem; }
 .simple-plan-list button { padding: 0.45rem 0.7rem; border: 1px solid #c7c9cd; border-radius: 0.4rem; background: #fff; color: #181a1d; cursor: pointer; font-size: 0.64rem; }
 .simple-plan-list button:disabled { cursor: not-allowed; opacity: 0.45; }
+.checkout-status { min-height: 1.2em; margin: 0.75rem 0 0; color: #7a2925; font-size: 0.68rem; }
 
 .studio-admin { display: grid; min-height: 100svh; grid-template-columns: 15rem minmax(0, 1fr); background: #f2f3f4; color: #181a1d; }
 .studio-admin__header { position: sticky; top: 0; display: flex; height: 100svh; padding: 2rem; flex-direction: column; background: #17191c; color: #fff; }

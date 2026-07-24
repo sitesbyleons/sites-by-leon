@@ -125,6 +125,8 @@ if grep -Eq 'backup\.env|\.example' "${FIXTURE}/scp.log"; then
   fail_test 'sync copied a file outside the allowlist'
 fi
 grep -Fq 'StrictHostKeyChecking=yes' "${FIXTURE}/ssh.log" || fail_test 'sync did not pin SSH host checking'
+grep -Fq 'ConnectTimeout=15' "${FIXTURE}/ssh.log" || fail_test 'sync did not bound SSH connection time'
+grep -Fq 'ServerAliveInterval=10' "${FIXTURE}/ssh.log" || fail_test 'sync did not configure SSH keepalives'
 grep -Fq 'install -m 600' "${FIXTURE}/remote-script.log" || fail_test 'remote install is not mode 600'
 grep -Fq 'mv --' "${FIXTURE}/remote-script.log" || fail_test 'remote install is not atomically renamed'
 if grep -Fq 'set -x' "${SYNC_SCRIPT}" || [[ ${sync_output} == *"${VALID_SECRET}"* ]]; then
@@ -143,5 +145,27 @@ SSH_LOG="${FIXTURE}/ssh.log" \
   bash "${SYNC_SCRIPT}" ubuntu@example.test "${FIXTURE}/identity" >/dev/null
 grep -Fq 'domain-worker.env' "${FIXTURE}/scp.log" || fail_test 'optional domain-worker secret was not included'
 pass 'optional domain-worker secret is included only when present'
+
+mkdir -p "${FIXTURE}/infra/ovh/secrets-test"
+printf 'STAGING_MARKER=true\n' > "${FIXTURE}/infra/ovh/secrets-test/.env"
+for file in postgres.env dashboard.env; do
+  printf 'SAFE_VALUE=%s\n' "${VALID_SECRET}" > "${FIXTURE}/infra/ovh/secrets-test/${file}"
+done
+chmod 600 "${FIXTURE}/infra/ovh/secrets-test/.env" "${FIXTURE}/infra/ovh/secrets-test/"*.env
+: > "${FIXTURE}/scp.log"
+SSH_LOG="${FIXTURE}/ssh.log" \
+  SCP_LOG="${FIXTURE}/scp.log" \
+  REMOTE_SCRIPT_LOG="${FIXTURE}/remote-script.log" \
+  SOURCE_ROOT="${FIXTURE}" \
+  LOCAL_SECRETS_ROOT="${FIXTURE}/infra/ovh/secrets-test" \
+  SECRETS_PROFILE=staging \
+  REMOTE_SECRETS_ROOT=/opt/leon-platform/secrets-test \
+  PATH="${FIXTURE}/bin:${PATH}" \
+  bash "${SYNC_SCRIPT}" ubuntu@example.test "${FIXTURE}/identity" >/dev/null
+grep -Fq 'secrets-test/.env' "${FIXTURE}/scp.log" || fail_test 'staging sync used the production compose environment'
+if grep -Fq "${FIXTURE}/infra/ovh/.env" "${FIXTURE}/scp.log"; then
+  fail_test 'staging sync copied the production compose environment'
+fi
+pass 'staging sync uses the isolated compose environment'
 
 echo "1..${PASS_COUNT}"

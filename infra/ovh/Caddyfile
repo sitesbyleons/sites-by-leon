@@ -30,7 +30,7 @@
 	}
 
 	@dashboard {
-		host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN} {$TEST_DOMAIN}
+		host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}
 		path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/* /admin-assets/*
 	}
 	handle @dashboard {
@@ -48,7 +48,12 @@
 		file_server
 	}
 
-	@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN} {$TEST_DOMAIN}
+	@test host {$TEST_DOMAIN}
+	handle @test {
+		reverse_proxy gateway-test:80
+	}
+
+	@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}
 	handle @marketing {
 		root * /srv/marketing
 		try_files {path} {path}/index.html /404.html

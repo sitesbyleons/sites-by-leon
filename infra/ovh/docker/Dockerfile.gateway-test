@@ -1,0 +1,15 @@
+FROM node:24-bookworm-slim AS marketing-build
+WORKDIR /workspace
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY dashboard/package.json dashboard/package.json
+COPY domain-worker/package.json domain-worker/package.json
+COPY platform-core/package.json platform-core/package.json
+COPY photographer-site/package.json photographer-site/package.json
+RUN pnpm install --frozen-lockfile
+COPY . .
+RUN pnpm --filter sites-by-leon build
+
+FROM caddy:2.11.4-alpine
+COPY infra/ovh/Caddyfile.test /etc/caddy/Caddyfile
+COPY --from=marketing-build /workspace/dist /srv/marketing

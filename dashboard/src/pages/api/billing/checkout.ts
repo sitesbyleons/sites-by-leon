@@ -7,6 +7,10 @@ import { resolveTrustedOrigin } from '../../../lib/request-security';
 import { resolveClientWorkspace } from '../../../lib/workspaces';
 
 export const POST: APIRoute = async ({ request, locals, url }) => {
+  const wantsJson = request.headers.get('accept')?.includes('application/json') ?? false;
+  const checkoutResponse = (checkoutUrl: string) => wantsJson
+    ? Response.json({ url: checkoutUrl })
+    : Response.redirect(checkoutUrl, 303);
   const publicOrigin = resolveTrustedOrigin(request.headers.get('origin'), url.origin);
   if (!publicOrigin) {
     return Response.json({ message: 'This request could not be verified.' }, { status: 403 });
@@ -70,7 +74,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       .maybeSingle<{ attempt_key: string; plan_key: string; checkout_url: string | null }>();
     if (existing.error || !existing.data) return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
     if (existing.data.plan_key !== plan.key) return Response.json({ message: 'Another plan checkout is already open. Finish it or wait for it to expire.' }, { status: 409 });
-    if (existing.data.checkout_url) return Response.redirect(existing.data.checkout_url, 303);
+    if (existing.data.checkout_url) return checkoutResponse(existing.data.checkout_url);
     return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
   }
 
@@ -112,7 +116,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
           : 'A newer checkout replaced this one. Retry to continue safely.',
       }, { status: saved.error ? 503 : 409 });
     }
-    return Response.redirect(session.url, 303);
+    return checkoutResponse(session.url);
   } catch {
     return Response.json({ message: 'Checkout could not start. Nothing was charged.' }, { status: 502 });
   }

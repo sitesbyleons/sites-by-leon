@@ -19,7 +19,9 @@ describe('fully self-hosted production stack', () => {
     const resolver = read('photographer-site/src/lib/site-context.ts');
     const middleware = read('photographer-site/src/middleware.ts');
 
-    expect(caddy).toMatch(/@marketing host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\} \{\$TEST_DOMAIN\}/);
+    expect(caddy).toMatch(/@marketing host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\}/);
+    expect(caddy).toContain('@test host {$TEST_DOMAIN}');
+    expect(caddy).toContain('reverse_proxy gateway-test:80');
     expect(caddy).toContain('handle_path /media/*');
     expect(caddy).toContain('root * /srv/uploads');
     expect(caddy).toContain('reverse_proxy photographer:4321');
@@ -48,11 +50,38 @@ describe('fully self-hosted production stack', () => {
     expect(caddy).toMatch(/@coming_soon\s*\{[\s\S]*host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\}[\s\S]*path \/[\s\S]*\}/);
     expect(caddy).toContain('rewrite * /coming-soon/index.html');
     expect(caddy).toContain('expression {env.PUBLIC_SITE_MODE} == "coming-soon"');
-    expect(caddy).toMatch(/@marketing host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\} \{\$TEST_DOMAIN\}/);
+    expect(caddy).toMatch(/@marketing host \{\$MARKETING_DOMAIN\} \{\$MARKETING_WWW_DOMAIN\}/);
+    expect(caddy).toContain('@test host {$TEST_DOMAIN}');
     expect(fullMarketing).not.toContain('ComingSoon');
     expect(fullMarketing).not.toContain('hostSwitch');
     expect(comingSoon).toContain('<ComingSoon />');
     expect(comingSoon).not.toMatch(/Hero|ConceptShowcase|Pricing|Services|Contact/);
+  });
+
+  it('runs the test hostname on an isolated release and database stack', () => {
+    const compose = read('infra/ovh/docker-compose.test.yml');
+    const gateway = read('infra/ovh/Caddyfile.test');
+    const deploy = read('infra/ovh/scripts/deploy-test.sh');
+    const activate = read('infra/ovh/scripts/activate-test-release.sh');
+    const configureRole = read('infra/ovh/scripts/configure-test-runtime-role.sh');
+    const promote = read('infra/ovh/scripts/promote-tested-release.sh');
+
+    expect(compose).toContain('name: leon-platform-test');
+    expect(compose).toMatch(/\n  database-test:\n/);
+    expect(compose).toMatch(/\n  dashboard-test:\n/);
+    expect(compose).toMatch(/\n  gateway-test:\n/);
+    expect(compose).toContain('leon-postgres-test:');
+    expect(gateway).toContain('reverse_proxy dashboard-test:4321');
+    expect(deploy).toContain('/opt/leon-platform/current-test');
+    expect(deploy).toContain('configure-test-runtime-role.sh');
+    expect(activate).toContain('current-test.new');
+    expect(activate).toContain('automatic rollback protection');
+    expect(activate).toContain('flock -u 9');
+    expect(configureRole).toContain('leon_test_dashboard');
+    expect(configureRole).toContain('grant leon_runtime to leon_test_dashboard');
+    expect(promote).toContain('Only the currently deployed staging release can be promoted.');
+    expect(promote).toContain('MAINTENANCE_LOCK_HELD=1');
+    expect(promote).toContain('/infra/ovh/scripts/deploy.sh');
   });
 
   it('defines the application schema without Supabase roles or auth functions', () => {

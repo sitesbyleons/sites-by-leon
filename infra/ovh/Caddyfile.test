@@ -1,0 +1,40 @@
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+	request_body {
+		max_size 16MB
+	}
+
+	header {
+		-Server
+		+Content-Security-Policy "base-uri 'self'; form-action 'self' mailto: https://accounts.google.com; frame-ancestors 'none'; object-src 'none'"
+		Cross-Origin-Opener-Policy same-origin
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Cross-Origin-Resource-Policy same-site
+	}
+
+	@private path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/*
+	header @private Cache-Control "private, no-store"
+
+	handle /healthz {
+		respond 200
+	}
+
+	@dashboard path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/* /admin-assets/*
+	handle @dashboard {
+		reverse_proxy dashboard-test:4321
+	}
+
+	handle {
+		root * /srv/marketing
+		try_files {path} {path}/index.html /404.html
+		file_server
+	}
+}

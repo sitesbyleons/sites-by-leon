@@ -113,6 +113,20 @@ describe('checkout reservation recovery', () => {
     expect(checkout).toContain('workspace.error || subscription.error');
     expect(checkout).toContain('project.data.plan_key !== plan.key');
     expect(checkout).toContain('This is not the hosting plan assigned to your website.');
+    expect(checkout).toContain("request.headers.get('accept')?.includes('application/json')");
+    expect(checkout).toContain('Response.json({ url: checkoutUrl })');
+  });
+});
+
+describe('test checkout isolation', () => {
+  it('uses test-only keys and prices without writing live subscription records', () => {
+    const checkout = read('src/pages/api/billing/test-checkout.ts');
+    expect(checkout).toContain("url.hostname !== 'test.leonsites.org'");
+    expect(checkout).toContain('STRIPE_TEST_SECRET_KEY');
+    expect(checkout).toContain('STRIPE_TEST_PRICE_ESSENTIAL');
+    expect(checkout).toContain("environment: 'test'");
+    expect(checkout).not.toContain("from('subscriptions').upsert");
+    expect(checkout).not.toContain('stripe_customer_id:');
   });
 });
 

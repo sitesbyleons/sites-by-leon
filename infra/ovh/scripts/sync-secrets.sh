@@ -8,8 +8,21 @@ LOCAL_SECRETS_ROOT=${LOCAL_SECRETS_ROOT:-${LOCAL_OVH_ROOT}/secrets}
 KNOWN_HOSTS=${KNOWN_HOSTS:-${LOCAL_OVH_ROOT}/ssh_known_hosts}
 REMOTE_SECRETS_ROOT=${REMOTE_SECRETS_ROOT:-/opt/leon-platform/secrets}
 REMOTE_SECRET_OWNER=${REMOTE_SECRET_OWNER:-ubuntu}
-required_names=(.env postgres.env dashboard.env northline.env cloudflare-tunnel-token)
-optional_names=(domain-worker.env)
+SECRETS_PROFILE=${SECRETS_PROFILE:-production}
+case "${SECRETS_PROFILE}" in
+  production)
+    required_names=(.env postgres.env dashboard.env northline.env cloudflare-tunnel-token)
+    optional_names=(domain-worker.env)
+    ;;
+  staging)
+    required_names=(.env postgres.env dashboard.env)
+    optional_names=()
+    ;;
+  *)
+    echo 'Secret sync failed: SECRETS_PROFILE must be production or staging.' >&2
+    exit 1
+    ;;
+esac
 
 fail() {
   echo "Secret sync failed: $1" >&2
@@ -59,7 +72,11 @@ source_paths=()
 remote_names=()
 for name in "${required_names[@]}"; do
   if [[ ${name} == .env ]]; then
-    source=${LOCAL_OVH_ROOT}/.env
+    if [[ ${SECRETS_PROFILE} == staging ]]; then
+      source=${LOCAL_SECRETS_ROOT}/.env
+    else
+      source=${LOCAL_OVH_ROOT}/.env
+    fi
   else
     source=${LOCAL_SECRETS_ROOT}/${name}
   fi
@@ -79,7 +96,11 @@ done
 ssh_options=(
   -i "${IDENTITY_FILE}"
   -o BatchMode=yes
+  -o "ConnectTimeout=${SSH_CONNECT_TIMEOUT_SECONDS:-15}"
+  -o "ConnectionAttempts=${SSH_CONNECTION_ATTEMPTS:-3}"
   -o IdentitiesOnly=yes
+  -o "ServerAliveInterval=${SSH_SERVER_ALIVE_INTERVAL_SECONDS:-10}"
+  -o "ServerAliveCountMax=${SSH_SERVER_ALIVE_COUNT_MAX:-3}"
   -o StrictHostKeyChecking=yes
   -o "UserKnownHostsFile=${KNOWN_HOSTS}"
 )
@@ -137,4 +158,4 @@ REMOTE
 
 trap - EXIT
 cleanup
-echo 'Stable production secrets were synchronized without exposing their values.'
+echo "Stable ${SECRETS_PROFILE} secrets were synchronized without exposing their values."

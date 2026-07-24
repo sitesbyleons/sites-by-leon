@@ -1,0 +1,76 @@
+name: leon-platform-test
+
+services:
+  database-test:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    env_file:
+      - ${TEST_SECRETS_ROOT:-./secrets-test}/postgres.env
+    volumes:
+      - leon-postgres-test:/var/lib/postgresql/data
+      - ./postgres/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - leon-test-internal
+    mem_limit: 1g
+    cpus: 1
+    pids_limit: 150
+
+  dashboard-test:
+    build:
+      context: ../..
+      dockerfile: infra/ovh/docker/Dockerfile.dashboard
+      args:
+        PUBLIC_CLERK_PUBLISHABLE_KEY: ${PUBLIC_CLERK_PUBLISHABLE_KEY}
+        RELEASE_SHA: ${RELEASE_SHA:-development}
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    env_file:
+      - ${TEST_SECRETS_ROOT:-./secrets-test}/dashboard.env
+    environment:
+      DEPLOYMENT_ENVIRONMENT: staging
+      CUSTOM_DOMAIN_AUTOMATION_ENABLED: "false"
+    depends_on:
+      database-test:
+        condition: service_healthy
+    networks:
+      - leon-test-internal
+      - egress
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 160
+
+  gateway-test:
+    build:
+      context: ../..
+      dockerfile: infra/ovh/docker/Dockerfile.gateway-test
+    restart: unless-stopped
+    depends_on:
+      dashboard-test:
+        condition: service_healthy
+    networks:
+      leon-edge:
+        aliases:
+          - gateway-test
+      leon-test-internal:
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 100
+
+volumes:
+  leon-postgres-test:
+
+networks:
+  leon-edge:
+    external: true
+  leon-test-internal:
+    internal: true
+  egress:
