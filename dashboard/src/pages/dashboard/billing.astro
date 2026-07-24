@@ -27,6 +27,9 @@ const checkoutReady = canStartCheckout({
   workspaceStatus: data.workspace?.status ?? null,
   subscriptionStatus: data.subscription?.status ?? null,
 });
+const isTestHost = Astro.url.hostname === 'test.leonsites.org';
+const checkoutAction = isTestHost ? '/api/billing/test-checkout' : '/api/billing/checkout';
+const testCheckoutState = isTestHost ? Astro.url.searchParams.get('test_checkout') : null;
 ---
 
 <DashboardLayout title="Billing" shell>
@@ -40,6 +43,9 @@ const checkoutReady = canStartCheckout({
       <section class="client-intro"><p>Client dashboard</p><h1>Billing</h1><span>View your plan and manage billing with Stripe.</span></section>
       <article class="simple-panel client-page-panel">
         {data.error && <p class="simple-notice" role="status">{data.error}</p>}
+        {isTestHost && <p class="simple-notice" role="status">Stripe test mode. No real payment will be made.</p>}
+        {testCheckoutState === 'success' && <p class="simple-notice" role="status">Test subscription completed. No real payment was made.</p>}
+        {testCheckoutState === 'cancelled' && <p class="simple-notice" role="status">Test checkout cancelled.</p>}
         {manageableSubscription ? (
           <>
             <span class="simple-label">Current plan</span>
@@ -55,7 +61,7 @@ const checkoutReady = canStartCheckout({
             <span class="simple-label">Assigned hosting plan</span>
             <h2>{assignedPlan?.name ?? 'Plan pending'}</h2>
             <div class="simple-plan-list">
-              {assignedPlan ? <form method="POST" action="/api/billing/checkout" data-checkout-form><input type="hidden" name="plan" value={assignedPlan.key} /><span><strong>{assignedPlan.name}</strong><small>${assignedPlan.monthlyUsd}/month</small></span><button type="submit" disabled={!checkoutReady}>{checkoutReady ? `Pay $${assignedPlan.monthlyUsd}/month` : 'Not ready'}</button></form> : <p class="simple-notice">Leon is finishing your hosting setup.</p>}
+              {assignedPlan ? <form method="POST" action={checkoutAction} data-checkout-form><input type="hidden" name="plan" value={assignedPlan.key} /><span><strong>{assignedPlan.name}</strong><small>${assignedPlan.monthlyUsd}/month</small></span><button type="submit" disabled={!checkoutReady}>{checkoutReady ? `${isTestHost ? 'Test' : 'Pay'} $${assignedPlan.monthlyUsd}/month` : 'Not ready'}</button></form> : <p class="simple-notice">Leon is finishing your hosting setup.</p>}
             </div>
             <p class="checkout-status" data-checkout-status aria-live="polite"></p>
           </>

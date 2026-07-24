@@ -118,6 +118,18 @@ describe('checkout reservation recovery', () => {
   });
 });
 
+describe('test checkout isolation', () => {
+  it('uses test-only keys and prices without writing live subscription records', () => {
+    const checkout = read('src/pages/api/billing/test-checkout.ts');
+    expect(checkout).toContain("url.hostname !== 'test.leonsites.org'");
+    expect(checkout).toContain('STRIPE_TEST_SECRET_KEY');
+    expect(checkout).toContain('STRIPE_TEST_PRICE_ESSENTIAL');
+    expect(checkout).toContain("environment: 'test'");
+    expect(checkout).not.toContain("from('subscriptions').upsert");
+    expect(checkout).not.toContain('stripe_customer_id:');
+  });
+});
+
 describe('subscription webhook isolation', () => {
   it('acknowledges unrelated Stripe subscriptions and only cleans up known workspaces', () => {
     const webhook = read('src/pages/api/webhooks/stripe.ts');
