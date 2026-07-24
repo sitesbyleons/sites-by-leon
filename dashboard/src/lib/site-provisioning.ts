@@ -66,7 +66,10 @@ export function normalizeSiteDomain(value: unknown) {
   return withoutProtocol.replace(/\/$/, '').replace(/\.$/, '');
 }
 
-export function validateSiteProvisioningInput(input: unknown): SiteProvisioningValidation {
+export function validateSiteProvisioningInput(
+  input: unknown,
+  options: { adminDomainSuffix?: string } = {},
+): SiteProvisioningValidation {
   const source = input && typeof input === 'object' ? input as Record<string, unknown> : {};
   const ownerUserId = text(source.owner_user_id ?? source.ownerUserId);
   const studioName = text(source.studio_name ?? source.studioName);
@@ -87,8 +90,9 @@ export function validateSiteProvisioningInput(input: unknown): SiteProvisioningV
   if (!domainPattern.test(adminDomain)) errors.admin_domain = 'Enter a full admin domain such as studio.leonsites.org.';
   if (reservedLeonDomains.has(primaryDomain)) errors.primary_domain = 'That Leon Sites address is reserved.';
   if (reservedLeonDomains.has(adminDomain)) errors.admin_domain = 'That Leon Sites address is reserved.';
-  if (adminDomain !== 'leonsites.org' && !adminDomain.endsWith('.leonsites.org')) {
-    errors.admin_domain = 'Private site administration must use a leonsites.org address.';
+  const adminDomainSuffix = options.adminDomainSuffix ?? 'leonsites.org';
+  if (adminDomain !== adminDomainSuffix && !adminDomain.endsWith(`.${adminDomainSuffix}`)) {
+    errors.admin_domain = `Private site administration must use a ${adminDomainSuffix} address.`;
   }
   if (!templateKeys.has(templateKey)) errors.template_key = 'Choose a supported starter design.';
   if (!planKeys.has(planKey)) errors.plan_key = 'Choose a supported monthly plan.';

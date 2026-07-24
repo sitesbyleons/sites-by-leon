@@ -4,7 +4,7 @@ import type { APIRoute } from 'astro';
 import { checkAppAdmin } from '../../../lib/admin';
 import { createPlatformDatabase } from '../../../lib/database';
 import { isTrustedOrigin } from '../../../lib/request-security';
-import { validateSiteProvisioningInput } from '../../../lib/site-provisioning';
+import { normalizeSiteSlug, validateSiteProvisioningInput } from '../../../lib/site-provisioning';
 
 const DEFAULT_CAPACITY_BYTES = 20 * 1024 * 1024 * 1024;
 const MAX_BODY_BYTES = 16 * 1024;
@@ -32,8 +32,18 @@ export const POST: APIRoute = async (context) => {
   const admin = await checkAppAdmin(database, auth.userId);
   if (!admin.isAdmin || !database) return Response.json({ message: 'Admin access required.' }, { status: 403 });
 
-  const body = await request.json().catch(() => null);
-  const validation = validateSiteProvisioningInput(body);
+  const submittedBody = await request.json().catch(() => null);
+  const isTestHost = url.hostname === 'test.leonsites.org';
+  const body = isTestHost && submittedBody && typeof submittedBody === 'object'
+    ? {
+        ...submittedBody,
+        primary_domain: `${normalizeSiteSlug((submittedBody as Record<string, unknown>).slug)}.staging.invalid`,
+        admin_domain: `${normalizeSiteSlug((submittedBody as Record<string, unknown>).slug)}.staging.invalid`,
+      }
+    : submittedBody;
+  const validation = validateSiteProvisioningInput(body, {
+    adminDomainSuffix: isTestHost ? 'staging.invalid' : 'leonsites.org',
+  });
   if (!validation.ok) {
     return Response.json({ message: 'Check the highlighted details.', errors: validation.errors }, { status: 400 });
   }
@@ -65,7 +75,7 @@ export const POST: APIRoute = async (context) => {
     primary_domain: value.primaryDomain,
     admin_domain: value.adminDomain,
     site_key: `${value.slug}-site`,
-    deployment_target: 'ovh:leon-platform-photographer',
+    deployment_target: isTestHost ? 'staging:leon-platform-dashboard' : 'ovh:leon-platform-photographer',
     github_repository: value.githubRepository,
     quota_bytes: value.quotaBytes,
     capacity_limit_bytes: platformCapacityBytes(),
