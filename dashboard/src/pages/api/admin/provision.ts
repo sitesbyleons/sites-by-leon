@@ -37,12 +37,12 @@ export const POST: APIRoute = async (context) => {
   const body = isTestHost && submittedBody && typeof submittedBody === 'object'
     ? {
         ...submittedBody,
-        primary_domain: `${normalizeSiteSlug((submittedBody as Record<string, unknown>).slug)}.staging.invalid`,
-        admin_domain: `${normalizeSiteSlug((submittedBody as Record<string, unknown>).slug)}.staging.invalid`,
+        primary_domain: `${normalizeSiteSlug((submittedBody as Record<string, unknown>).slug)}-test.leonsites.org`,
+        admin_domain: `${normalizeSiteSlug((submittedBody as Record<string, unknown>).slug)}-test.leonsites.org`,
       }
     : submittedBody;
   const validation = validateSiteProvisioningInput(body, {
-    adminDomainSuffix: isTestHost ? 'staging.invalid' : 'leonsites.org',
+    adminDomainSuffix: 'leonsites.org',
   });
   if (!validation.ok) {
     return Response.json({ message: 'Check the highlighted details.', errors: validation.errors }, { status: 400 });

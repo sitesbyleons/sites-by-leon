@@ -48,6 +48,33 @@ services:
     cpus: 1
     pids_limit: 160
 
+  photographer-test:
+    build:
+      context: ../..
+      dockerfile: infra/ovh/docker/Dockerfile.photographer
+      args:
+        PUBLIC_CLERK_PUBLISHABLE_KEY: ${PUBLIC_CLERK_PUBLISHABLE_KEY}
+        RELEASE_SHA: ${RELEASE_SHA:-development}
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    env_file:
+      - ${TEST_SECRETS_ROOT:-./secrets-test}/photographer.env
+    volumes:
+      - ${TEST_UPLOADS_PATH:-/opt/leon-platform/uploads-test}:/data/uploads
+    depends_on:
+      database-test:
+        condition: service_healthy
+    networks:
+      - leon-test-internal
+      - egress
+    mem_limit: 1g
+    cpus: 2
+    pids_limit: 200
+
   gateway-test:
     build:
       context: ../..
@@ -56,6 +83,12 @@ services:
     depends_on:
       dashboard-test:
         condition: service_healthy
+      photographer-test:
+        condition: service_healthy
+    environment:
+      TEST_DOMAIN: ${TEST_DOMAIN:-test.leonsites.org}
+    volumes:
+      - ${TEST_UPLOADS_PATH:-/opt/leon-platform/uploads-test}:/srv/uploads:ro
     networks:
       leon-edge:
         aliases:

@@ -23,13 +23,14 @@ const requestedOwner = Astro.url.searchParams.get('owner') ?? '';
 const selectedOwnerId = session.users.some((user) => user.id === requestedOwner && !connectedUserIds.has(user.id)) ? requestedOwner : '';
 const idempotencyKey = crypto.randomUUID();
 const isTestHost = Astro.url.hostname === 'test.leonsites.org';
-const siteDomainSuffix = isTestHost ? 'staging.invalid' : 'leonsites.org';
+const siteDomainSuffix = 'leonsites.org';
+const siteDomainJoiner = isTestHost ? '-test.' : '.';
 ---
 
 <AdminFrame active="sites" title="Add client site" eyebrow="Provisioning" description="Create the customer, owner access, starter site, and storage limit together." isPreview={isPreview} error={session.error}>
   <div class="provision-back"><a href={`/admin/sites${isPreview ? '?preview=true' : ''}`}>← Back to sites</a></div>
 
-  <form class="provision-form" data-provision-site data-preview={isPreview ? 'true' : 'false'} data-domain-suffix={siteDomainSuffix}>
+  <form class="provision-form" data-provision-site data-preview={isPreview ? 'true' : 'false'} data-domain-suffix={siteDomainSuffix} data-domain-joiner={siteDomainJoiner}>
     <input type="hidden" name="idempotency_key" value={idempotencyKey} />
 
     <section class="provision-section" aria-labelledby="customer-heading">
@@ -44,8 +45,8 @@ const siteDomainSuffix = isTestHost ? 'staging.invalid' : 'leonsites.org';
       <header><span>02</span><div><h2 id="address-heading">Site addresses</h2><p>The private editor stays on Leon Sites even when the public site uses a custom domain.</p></div></header>
       <div class="provision-fields provision-fields--two">
         <label><span>Short name</span><input name="slug" required minlength="3" maxlength="48" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="vow-and-light" /><small data-field-error="slug"></small></label>
-        <label><span>Public domain</span><input name="primary_domain" required inputmode="url" placeholder={`vow-and-light.${siteDomainSuffix}`} readonly={isTestHost} /><small data-field-error="primary_domain"></small></label>
-        <label><span>Private editor domain</span><input name="admin_domain" required inputmode="url" placeholder={`vow-and-light.${siteDomainSuffix}`} readonly={isTestHost} /><small data-field-error="admin_domain"></small></label>
+        <label><span>Public domain</span><input name="primary_domain" required inputmode="url" placeholder={`vow-and-light${siteDomainJoiner}${siteDomainSuffix}`} readonly={isTestHost} /><small data-field-error="primary_domain"></small></label>
+        <label><span>Private editor domain</span><input name="admin_domain" required inputmode="url" placeholder={`vow-and-light${siteDomainJoiner}${siteDomainSuffix}`} readonly={isTestHost} /><small data-field-error="admin_domain"></small></label>
         <label><span>Private GitHub repository <em>optional</em></span><input name="github_repository" placeholder="sitesbyleons/vow-and-light" /><small data-field-error="github_repository"></small></label>
       </div>
     </section>
@@ -80,6 +81,7 @@ const siteDomainSuffix = isTestHost ? 'staging.invalid' : 'leonsites.org';
       const primaryDomain = form.elements.namedItem('primary_domain') as HTMLInputElement;
       const adminDomain = form.elements.namedItem('admin_domain') as HTMLInputElement;
       const domainSuffix = form.dataset.domainSuffix ?? 'leonsites.org';
+      const domainJoiner = form.dataset.domainJoiner ?? '.';
       const result = form.querySelector<HTMLElement>('[data-provision-result]')!;
       let addressWasEdited = false;
 
@@ -87,13 +89,13 @@ const siteDomainSuffix = isTestHost ? 'staging.invalid' : 'leonsites.org';
       const syncAddress = () => {
         if (addressWasEdited) return;
         slug.value = toSlug(studio.value);
-        primaryDomain.value = slug.value ? `${slug.value}.${domainSuffix}` : '';
+        primaryDomain.value = slug.value ? `${slug.value}${domainJoiner}${domainSuffix}` : '';
         adminDomain.value = primaryDomain.value;
       };
       studio.addEventListener('input', syncAddress);
       slug.addEventListener('input', () => {
         addressWasEdited = true;
-        primaryDomain.value = slug.value ? `${toSlug(slug.value)}.${domainSuffix}` : '';
+        primaryDomain.value = slug.value ? `${toSlug(slug.value)}${domainJoiner}${domainSuffix}` : '';
         adminDomain.value = primaryDomain.value;
       });
       primaryDomain.addEventListener('input', () => { addressWasEdited = true; });

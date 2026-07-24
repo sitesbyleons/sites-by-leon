@@ -148,7 +148,7 @@ pass 'optional domain-worker secret is included only when present'
 
 mkdir -p "${FIXTURE}/infra/ovh/secrets-test"
 printf 'STAGING_MARKER=true\n' > "${FIXTURE}/infra/ovh/secrets-test/.env"
-for file in postgres.env dashboard.env; do
+for file in postgres.env dashboard.env photographer.env; do
   printf 'SAFE_VALUE=%s\n' "${VALID_SECRET}" > "${FIXTURE}/infra/ovh/secrets-test/${file}"
 done
 chmod 600 "${FIXTURE}/infra/ovh/secrets-test/.env" "${FIXTURE}/infra/ovh/secrets-test/"*.env

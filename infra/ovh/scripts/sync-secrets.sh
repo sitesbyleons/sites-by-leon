@@ -15,7 +15,7 @@ case "${SECRETS_PROFILE}" in
     optional_names=(domain-worker.env)
     ;;
   staging)
-    required_names=(.env postgres.env dashboard.env)
+    required_names=(.env postgres.env dashboard.env photographer.env)
     optional_names=()
     ;;
   *)
@@ -138,7 +138,7 @@ install -d -m 700 -o "${owner}" -g "${owner}" -- "${destination}"
 
 for name in "$@"; do
   case "${name}" in
-    .env|postgres.env|dashboard.env|northline.env|cloudflare-tunnel-token|domain-worker.env) ;;
+    .env|postgres.env|dashboard.env|photographer.env|northline.env|cloudflare-tunnel-token|domain-worker.env) ;;
     *) echo 'Remote secret allowlist validation failed.' >&2; exit 1 ;;
   esac
   source_file=${staging}/${name}

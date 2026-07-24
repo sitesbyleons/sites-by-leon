@@ -69,9 +69,12 @@ describe('fully self-hosted production stack', () => {
     expect(compose).toContain('name: leon-platform-test');
     expect(compose).toMatch(/\n  database-test:\n/);
     expect(compose).toMatch(/\n  dashboard-test:\n/);
+    expect(compose).toMatch(/\n  photographer-test:\n/);
     expect(compose).toMatch(/\n  gateway-test:\n/);
     expect(compose).toContain('leon-postgres-test:');
     expect(gateway).toContain('reverse_proxy dashboard-test:4321');
+    expect(gateway).toContain('reverse_proxy photographer-test:4321');
+    expect(gateway).toContain('-test\\.leonsites\\.org$');
     expect(deploy).toContain('/opt/leon-platform/current-test');
     expect(deploy).toContain('configure-test-runtime-role.sh');
     expect(activate).toContain('current-test.new');
@@ -79,6 +82,7 @@ describe('fully self-hosted production stack', () => {
     expect(activate).toContain('flock -u 9');
     expect(configureRole).toContain('leon_test_dashboard');
     expect(configureRole).toContain('grant leon_runtime to leon_test_dashboard');
+    expect(configureRole).toContain('grant leon_photographer_runtime to leon_test_photographer');
     expect(promote).toContain('Only the currently deployed staging release can be promoted.');
     expect(promote).toContain('MAINTENANCE_LOCK_HELD=1');
     expect(promote).toContain('/infra/ovh/scripts/deploy.sh');

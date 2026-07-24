@@ -28,6 +28,8 @@ describe('production gateway routing contract', () => {
     expect(comingSoon).not.toMatch(/\/admin|\/dashboard|\/sign-in|\/sign-up|\/api/);
     expect(caddyfile).toContain('@test host {$TEST_DOMAIN}');
     expect(caddyfile).toContain('reverse_proxy gateway-test:80');
+    expect(caddyfile).toContain('@test_customer host_regexp');
+    expect(caddyfile).toContain('-test\\.leonsites\\.org$');
     expect(caddyfile).toContain('@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}');
     expect(dashboard).toContain('host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}');
     expect(dashboard).not.toContain('{$TEST_DOMAIN}');

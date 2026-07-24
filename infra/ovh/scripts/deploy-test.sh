@@ -35,7 +35,7 @@ SQL
   < "${SOURCE_ROOT}/infra/ovh/postgres/schema.sql"
 SOURCE_ROOT="${SOURCE_ROOT}" TEST_SECRETS_ROOT="${TEST_SECRETS_ROOT}" TEST_COMPOSE_ENV_FILE="${TEST_COMPOSE_ENV_FILE}" \
   /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/configure-test-runtime-role.sh"
-"${compose[@]}" build gateway-test dashboard-test
+"${compose[@]}" build gateway-test dashboard-test photographer-test
 "${compose[@]}" up -d --no-build --remove-orphans
 SOURCE_ROOT="${SOURCE_ROOT}" TEST_SECRETS_ROOT="${TEST_SECRETS_ROOT}" TEST_COMPOSE_ENV_FILE="${TEST_COMPOSE_ENV_FILE}" \
   /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/healthcheck-test.sh"

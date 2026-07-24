@@ -63,18 +63,18 @@ describe('site provisioning validation', () => {
     });
   });
 
-  it('accepts staging-only administration domains for isolated test provisioning', () => {
+  it('accepts public preview administration domains for isolated test provisioning', () => {
     const result = validateSiteProvisioningInput({
       ...valid,
-      primary_domain: 'vow-and-light.staging.invalid',
-      admin_domain: 'vow-and-light.staging.invalid',
-    }, { adminDomainSuffix: 'staging.invalid' });
+      primary_domain: 'vow-and-light-test.leonsites.org',
+      admin_domain: 'vow-and-light-test.leonsites.org',
+    });
 
     expect(result).toMatchObject({
       ok: true,
       value: {
-        primaryDomain: 'vow-and-light.staging.invalid',
-        adminDomain: 'vow-and-light.staging.invalid',
+        primaryDomain: 'vow-and-light-test.leonsites.org',
+        adminDomain: 'vow-and-light-test.leonsites.org',
       },
     });
   });
@@ -86,5 +86,6 @@ describe('site provisioning validation', () => {
     expect(page).toContain('summary.textContent');
     expect(page).toContain("button.textContent = 'Site created'");
     expect(page).toContain("form.dataset.domainSuffix ?? 'leonsites.org'");
+    expect(page).toContain("form.dataset.domainJoiner ?? '.'");
   });
 });

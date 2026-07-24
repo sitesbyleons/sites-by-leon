@@ -14,11 +14,20 @@ if [ -z "${POSTGRES_DASHBOARD_PASSWORD:-}" ] || [ "${#POSTGRES_DASHBOARD_PASSWOR
   echo 'POSTGRES_DASHBOARD_PASSWORD must contain at least 32 characters.' >&2
   exit 1
 fi
+if [ -z "${POSTGRES_PHOTOGRAPHER_PASSWORD:-}" ] || [ "${#POSTGRES_PHOTOGRAPHER_PASSWORD}" -lt 32 ]; then
+  echo 'POSTGRES_PHOTOGRAPHER_PASSWORD must contain at least 32 characters.' >&2
+  exit 1
+fi
+if [ "${POSTGRES_DASHBOARD_PASSWORD}" = "${POSTGRES_PHOTOGRAPHER_PASSWORD}" ]; then
+  echo 'Staging dashboard and photographer passwords must be different.' >&2
+  exit 1
+fi
 
 psql --set ON_ERROR_STOP=1 \
   --username "$POSTGRES_USER" \
   --dbname "$POSTGRES_DB" \
-  --set dashboard_password="$POSTGRES_DASHBOARD_PASSWORD" <<'SQL'
+  --set dashboard_password="$POSTGRES_DASHBOARD_PASSWORD" \
+  --set photographer_password="$POSTGRES_PHOTOGRAPHER_PASSWORD" <<'SQL'
 select format(
   'create role leon_test_dashboard login nosuperuser nocreatedb nocreaterole noreplication password %L',
   :'dashboard_password'
@@ -29,7 +38,18 @@ select format('alter role leon_test_dashboard password %L', :'dashboard_password
 alter role leon_test_dashboard login inherit nosuperuser nocreatedb nocreaterole noreplication;
 revoke leon_photographer_runtime from leon_test_dashboard;
 grant leon_runtime to leon_test_dashboard;
+
+select format(
+  'create role leon_test_photographer login nosuperuser nocreatedb nocreaterole noreplication password %L',
+  :'photographer_password'
+)
+where not exists (select 1 from pg_roles where rolname = 'leon_test_photographer') \gexec
+
+select format('alter role leon_test_photographer password %L', :'photographer_password') \gexec
+alter role leon_test_photographer login inherit nosuperuser nocreatedb nocreaterole noreplication;
+revoke leon_runtime from leon_test_photographer;
+grant leon_photographer_runtime to leon_test_photographer;
 SQL
 CONTAINER_SH
 
-echo 'The staging dashboard database login is least-privilege.'
+echo 'The staging dashboard and photographer database logins are least-privilege.'

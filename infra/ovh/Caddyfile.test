@@ -27,14 +27,40 @@
 		respond 200
 	}
 
-	@dashboard path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/* /admin-assets/*
+	@dashboard {
+		host {$TEST_DOMAIN}
+		path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/* /admin-assets/*
+	}
 	handle @dashboard {
 		reverse_proxy dashboard-test:4321
 	}
 
-	handle {
+	@media {
+		host {$TEST_DOMAIN}
+		path /media/*
+	}
+	handle @media {
+		header Cross-Origin-Resource-Policy cross-origin
+		handle_path /media/* {
+			root * /srv/uploads
+			header Cache-Control "public, max-age=300, must-revalidate"
+			file_server
+		}
+	}
+
+	@marketing host {$TEST_DOMAIN}
+	handle @marketing {
 		root * /srv/marketing
 		try_files {path} {path}/index.html /404.html
 		file_server
+	}
+
+	@test_customer host_regexp test_customer ^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?-test\.leonsites\.org$
+	handle @test_customer {
+		reverse_proxy photographer-test:4321
+	}
+
+	handle {
+		respond "Not found" 404
 	}
 }

@@ -8,11 +8,13 @@
 | Active release | `/opt/leon-platform/current-test` | `/opt/leon-platform/current` |
 | Compose project | `leon-platform-test` | `leon-platform` |
 | PostgreSQL database | `leon_platform_test` | `leon_platform` |
-| Application login | `leon_test_dashboard` | `leon_dashboard` |
+| Application logins | `leon_test_dashboard`, `leon_test_photographer` | `leon_dashboard`, `leon_photographer` |
 | Runtime secrets | `/opt/leon-platform/secrets-test` | `/opt/leon-platform/secrets` |
 | Stripe mode | Test products, webhook, and Portal | Live resources only |
 
 Both environments run the same immutable source release. They do not share application data, database credentials, Stripe customers, subscriptions, webhook secrets, or price IDs. Clerk is currently the shared development identity provider; use dedicated test users and never place production-only identity metadata in a staging account.
+
+Customer sites created from `test.leonsites.org/admin` use public preview hostnames such as `studio-test.leonsites.org`. Those hostnames resolve through the staging gateway and renderer only; they never read the production database.
 
 ## Release acceptance
 
@@ -40,5 +42,6 @@ For a healthy but behaviorally rejected production release, first verify the des
 
 - Staging Stripe secret keys must begin with `sk_test_`; preflight rejects live keys.
 - The staging dashboard URL must use `leon_test_dashboard` and match `POSTGRES_DASHBOARD_PASSWORD`.
+- The staging photographer URL must use `leon_test_photographer` and match the distinct `POSTGRES_PHOTOGRAPHER_PASSWORD`.
 - Secret directories use mode `700`; files use mode `600` and are never stored in a release.
 - Rotate a key exposed in chat, screenshots, shell history, or logs, then synchronize only the affected environment.
