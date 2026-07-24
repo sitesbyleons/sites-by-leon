@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "load:production:10": "node scripts/load-test-production.mjs --concurrency=10 --requests=100",
-    "load:production:50": "node scripts/load-test-production.mjs --concurrency=50 --requests=500"
+    "load:production:50": "node scripts/load-test-production.mjs --concurrency=50 --requests=500",
+    "smoke:production:auth": "node scripts/smoke-authenticated-production.mjs"
   },
   "dependencies": {
     "@fontsource-variable/anybody": "5.2.7",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@astrojs/check": "0.9.9",
     "@axe-core/playwright": "4.12.1",
+    "@clerk/testing": "^2.2.11",
     "@playwright/test": "1.61.1",
     "@types/node": "24.10.1",
     "postgres": "3.4.9",

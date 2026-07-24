@@ -120,6 +120,17 @@ describe('fully self-hosted production stack', () => {
     expect(verifier).not.toMatch(/console\.(?:log|error)\([^\n]*(?:SECRET_KEY|WEBHOOK_SECRET)/);
   });
 
+  it('ships a credential-free authenticated production smoke harness', () => {
+    const smoke = read('scripts/smoke-authenticated-production.mjs');
+    const manifest = read('package.json');
+
+    expect(manifest).toContain('smoke:production:auth');
+    expect(smoke).toContain('setupClerkTestingTokenOptions: { frontendApiUrl }');
+    expect(smoke).toContain("required('CLERK_SECRET_KEY')");
+    expect(smoke).toContain("required('CLERK_PUBLISHABLE_KEY')");
+    expect(smoke).not.toMatch(/(?:sk|pk)_(?:live|test)_/);
+  });
+
   it('ships an idempotent Stripe resource repair command with atomic secret persistence', () => {
     const configurePath = new URL('../infra/ovh/scripts/configure-stripe-resources.mjs', import.meta.url);
     expect(fs.existsSync(configurePath)).toBe(true);

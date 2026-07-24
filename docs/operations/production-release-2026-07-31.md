@@ -25,7 +25,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Release-candidate tree `b74bc6998d75340a3deb52830c3160c85f531804` published to private GitHub `main` as commit `a3f26a717150cf1d221d074c300f0453b679ac02` through a non-forced fast-forward.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
-- [ ] Complete one authenticated customer acceptance smoke test with a short-lived Clerk owner session.
+- [x] Authenticated production owner smoke passed for `/admin`, `/admin/sites`, `/admin/subscriptions`, `/admin/tickets`, and `/admin/users` using Clerk's short-lived official Playwright testing helper; no credentials or browser state were persisted.
 - [ ] Complete a controlled live Stripe lifecycle: real checkout, webhook receipt, cancellation, refund, Connect invoice payment, payout confirmation, and webhook replay/idempotency check. Use real owner-approved payment details; never fictional identity data.
 - [ ] In the authenticated Stripe Dashboard, set the live public business website to `https://leonsites.org/`, support email to `sites.by.leon@gmail.com`, and terms URL to `https://leonsites.org/terms`; then enable required terms-of-service consent in Checkout and prove the checkbox appears during the live lifecycle test. Stripe's API refuses changes to the platform's own public profile.
 - [ ] Confirm final launch copy, prices, support email, privacy policy, and terms with the business owner.
