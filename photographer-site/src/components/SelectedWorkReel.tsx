@@ -1,4 +1,3 @@
-import { animated, to, useSpring as useReactSpring } from '@react-spring/web';
 import {
   motion,
   useScroll,
@@ -10,7 +9,6 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type PointerEvent,
   type ReactNode,
 } from 'react';
 
@@ -127,47 +125,6 @@ function WorkProject({
     target: projectRef,
     offset: ['start end', 'end start'],
   });
-  const [tilt, tiltApi] = useReactSpring(() => ({
-    rotateX: 0,
-    rotateY: 0,
-    scale: 1,
-    lightX: 50,
-    lightY: 50,
-    config: { mass: 0.7, tension: 235, friction: 24 },
-  }));
-
-  const resetTilt = () => tiltApi.start({
-    rotateX: 0,
-    rotateY: 0,
-    scale: 1,
-    lightX: 50,
-    lightY: 50,
-  });
-  useEffect(() => {
-    if (!reducedMotion) return;
-    tiltApi.start({
-      rotateX: 0,
-      rotateY: 0,
-      scale: 1,
-      lightX: 50,
-      lightY: 50,
-      immediate: true,
-    });
-  }, [reducedMotion, tiltApi]);
-
-  const moveTilt = (event: PointerEvent<HTMLAnchorElement>) => {
-    if (reducedMotion || event.pointerType === 'touch') return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-    tiltApi.start({
-      rotateX: y * -1.8,
-      rotateY: x * 2.4,
-      scale: 1.006,
-      lightX: (x + 0.5) * 100,
-      lightY: (y + 0.5) * 100,
-    });
-  };
 
   const number = String(index + 1).padStart(2, '0');
   const href = `/work/${gallery.slug}`;
@@ -198,35 +155,12 @@ function WorkProject({
         </div>
       </header>
 
-      <animated.a
+      <a
         className="work-project__media"
         data-frame-count={frames.length}
         href={href}
         aria-label={`Open ${gallery.title} gallery`}
-        onPointerMove={moveTilt}
-        onPointerLeave={resetTilt}
-        onFocus={() => {
-          if (!reducedMotion) tiltApi.start({ scale: 1.006 });
-        }}
-        onBlur={resetTilt}
-        style={{
-          transform: to(
-            [tilt.rotateX, tilt.rotateY, tilt.scale],
-            (rotateX, rotateY, scale) =>
-              `perspective(1400px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale})`,
-          ),
-        }}
       >
-        <animated.span
-          className="work-project__light"
-          aria-hidden="true"
-          style={{
-            background: to(
-              [tilt.lightX, tilt.lightY],
-              (x, y) => `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,.14), transparent 34%)`,
-            ),
-          }}
-        />
         {frames.map((frame, frameIndex) => (
           <ReelFrame
             key={`${gallery.id}-${frame.id}-${frameIndex}`}
@@ -236,7 +170,7 @@ function WorkProject({
             reducedMotion={reducedMotion}
           />
         ))}
-      </animated.a>
+      </a>
     </motion.article>
   );
 }
@@ -271,7 +205,7 @@ export default function SelectedWorkReel({ galleries, tone }: Props) {
       className="work-reel"
       data-tone={tone}
       data-project-count={galleries.length}
-      data-motion-libraries="skiper-ui react-spring motion"
+      data-motion-libraries="skiper-ui motion"
       aria-labelledby="selected-work-title"
     >
       <div className="work-reel__intro">

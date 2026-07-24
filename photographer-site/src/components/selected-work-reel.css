@@ -1,37 +1,13 @@
 .work-reel {
-  --reel-paper: color-mix(in srgb, var(--paper) 96%, white);
-  --reel-ink: color-mix(in srgb, var(--ink) 94%, black);
-  --reel-muted: color-mix(in srgb, var(--paper) 62%, transparent);
+  --reel-paper: var(--paper);
+  --reel-ink: var(--ink);
+  --reel-muted: var(--muted);
   position: relative;
-  isolation: isolate;
   overflow: clip;
   padding: clamp(4rem, 7vw, 7rem) var(--gutter) clamp(5rem, 9vw, 9rem);
   scroll-margin-top: 4.5rem;
-  background: var(--reel-ink);
-  color: var(--reel-paper);
-}
-
-.work-reel::before,
-.work-reel::after {
-  position: absolute;
-  z-index: -1;
-  content: '';
-  pointer-events: none;
-}
-
-.work-reel::before {
-  inset: 0;
-  background:
-    linear-gradient(115deg, transparent 0 63%, color-mix(in srgb, var(--accent) 8%, transparent) 63% 64%, transparent 64% 100%),
-    radial-gradient(circle at 92% 6%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 24rem);
-}
-
-.work-reel::after {
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  background: color-mix(in srgb, var(--paper) 6%, transparent);
+  background: var(--reel-paper);
+  color: var(--reel-ink);
 }
 
 .work-reel__intro,
@@ -46,7 +22,6 @@
   align-items: end;
   gap: clamp(1rem, 3vw, 3rem);
   padding: clamp(0.5rem, 1vw, 1rem) 0 clamp(3.5rem, 7vw, 7rem);
-  border-top: 1px solid color-mix(in srgb, var(--paper) 23%, transparent);
 }
 
 .work-reel__label,
@@ -75,7 +50,7 @@
   display: grid;
   width: max-content;
   margin: 0 auto;
-  color: var(--reel-paper);
+  color: var(--reel-ink);
   font-family: var(--font-display);
   font-size: clamp(4.8rem, 10.2vw, 11rem);
   font-weight: 450;
@@ -91,7 +66,7 @@
 
 .work-reel h2 em {
   margin-left: 0.72em;
-  color: color-mix(in srgb, var(--accent) 74%, var(--reel-paper));
+  color: var(--accent);
   font-size: 0.66em;
   font-style: italic;
   font-weight: 400;
@@ -126,7 +101,7 @@
 .work-project__title h3 {
   min-width: 0;
   margin: 0;
-  color: var(--reel-paper);
+  color: var(--reel-ink);
   font-size: clamp(2.3rem, 5vw, 5.4rem);
   letter-spacing: -0.05em;
 }
@@ -153,8 +128,6 @@
   gap: clamp(0.55rem, 1vw, 1rem);
   color: inherit;
   text-decoration: none;
-  transform-origin: center;
-  will-change: transform;
 }
 
 .work-project__frame {
@@ -163,7 +136,7 @@
   min-width: 0;
   min-height: 0;
   margin: 0;
-  background: color-mix(in srgb, var(--paper) 7%, var(--reel-ink));
+  background: color-mix(in srgb, var(--paper) 90%, var(--ink));
 }
 
 .work-project__frame--1 {
@@ -228,19 +201,6 @@
   transition: filter var(--motion-medium) ease;
 }
 
-.work-project__light {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--motion-medium) ease;
-}
-
-.work-project__media:focus-visible .work-project__light {
-  opacity: 1;
-}
-
 .work-project__media:focus-visible .work-project__frame img {
   filter: saturate(1.06) contrast(1.025);
 }
@@ -251,7 +211,7 @@
   align-items: center;
   gap: 0.45em;
   padding: 0.4rem 0 0.55rem;
-  color: var(--reel-paper);
+  color: var(--reel-ink);
   font-size: 0.78rem;
   font-weight: 650;
   text-decoration: none;
@@ -274,7 +234,7 @@
 }
 
 .skiper-link::before {
-  background: color-mix(in srgb, var(--paper) 30%, transparent);
+  background: color-mix(in srgb, var(--ink) 24%, transparent);
 }
 
 .skiper-link::after {
@@ -310,10 +270,6 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .work-project__media:hover .work-project__light {
-    opacity: 1;
-  }
-
   .work-project__media:hover .work-project__frame img {
     filter: saturate(1.06) contrast(1.025);
   }
@@ -346,10 +302,6 @@
   gap: 0.28rem;
 }
 
-.work-reel[data-tone='athletic'] .work-project__frame--1 {
-  clip-path: polygon(0 0, 100% 0, 97% 100%, 0 100%);
-}
-
 .work-reel[data-tone='modern'] h2 em {
   font-style: normal;
   font-weight: 250;
@@ -358,10 +310,6 @@
 @media (max-width: 47.99rem) {
   .work-reel {
     padding: 3.5rem var(--gutter) 5rem;
-  }
-
-  .work-reel::after {
-    display: none;
   }
 
   .work-reel__intro {
@@ -412,7 +360,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: minmax(0, 60vw) minmax(0, 30vw);
     gap: 0.55rem;
-    transform: none !important;
   }
 
   .work-project__frame--1,
@@ -421,7 +368,6 @@
   .work-project:nth-child(even) .work-project__media[data-frame-count] .work-project__frame--1 {
     grid-column: 1 / 3;
     grid-row: 1;
-    clip-path: none;
   }
 
   .work-project__frame--2,
@@ -451,17 +397,9 @@
     margin-top: -1.5rem;
   }
 
-  .work-project__light {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .work-project__frame img,
-  .work-project__light {
-    transition-duration: var(--motion-fast);
-  }
-
   .skiper-link {
     transition: opacity var(--motion-fast) ease;
   }
@@ -494,10 +432,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
-  .work-project__media:hover .work-project__light {
-    opacity: 1;
-  }
-
   .skiper-link:hover::after {
     opacity: 1;
     transform: none;
