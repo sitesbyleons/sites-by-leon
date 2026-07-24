@@ -4,7 +4,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Verified July 24
 
-- [x] Immutable release `8e21b6cd0738f8c542207507c32c91eb5d609546` passed staging and production deployment gates in `coming-soon` mode, with release `58262bbbae5e0c2c5ca964afc7ebfa5ec40b8e8b` preserved for rollback.
+- [x] Immutable release `fae52962a47faf00ba89687fd4d1407a06ac9f64` passed staging and production deployment gates in `coming-soon` mode, with release `8e21b6cd0738f8c542207507c32c91eb5d609546` preserved for rollback.
 - [x] Marketing, dashboard, the two intended production customer sites, the isolated staging customer site, API, and PostgreSQL health checks pass after an OS update and reboot.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
 - [x] Dependency audit reports no known vulnerabilities.
@@ -13,6 +13,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Live Billing Portal links to `https://leonsites.org/privacy` and `https://leonsites.org/terms`; the release verifier rejects drift in either URL.
 - [x] Displayed Essential and Studio prices are approved at $25 and $35 per month. Test and live Stripe both use active monthly prices at exactly those amounts; unused $30 and $40 prices are inactive.
 - [x] Test Stripe has one enabled platform webhook at `https://test.leonsites.org/api/webhooks/stripe`; the stale duplicate endpoint and orphaned test subscription/customer are disabled or removed.
+- [x] Authenticated staging billing opened a real Stripe Sandbox Checkout for Studio at exactly $35 per month with required Terms consent. The unpaid session was expired and its temporary Stripe customer and database fixture were removed afterward.
 - [x] Public, dashboard, and photographer support fallbacks consistently use the established `sites.by.leon@gmail.com` inbox.
 - [x] Nightly encrypted offsite backup timer is enabled and successful.
 - [x] Fresh snapshot `e9f1d4be7b149a9e0c30ed4252c8b30e187ace1f2b51c1b2de7f54de75974188` restores and validates PostgreSQL plus uploaded media.
@@ -26,7 +27,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [ ] Publish local `main` through `8e21b6cd0738f8c542207507c32c91eb5d609546` to the private GitHub repository. The local branch is ahead of the remote and the connected GitHub account currently cannot read that private repository.
+- [ ] Publish local `main` through `fae52962a47faf00ba89687fd4d1407a06ac9f64` to the private GitHub repository. The local branch is ahead of the remote and the connected GitHub account currently cannot read that private repository.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
 - [ ] Add application-scoped object storage or expand the upload volume before assigning the advertised 50 GB or 100 GB customer quotas. The current VPS has a 96 GB root filesystem with 71 GB free and a conservative 20 GB provisioning ceiling, so a 100 GB Studio allocation cannot be honored safely yet.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
@@ -76,3 +77,10 @@ Results at `2026-07-24T20:32:03Z`:
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 10 | 100 | 0 | 63 ms | 394 ms | 86.0 |
 | 50 | 500 | 0 | 62 ms | 747 ms | 345.3 |
+
+Results after promoting `fae52962a47faf00ba89687fd4d1407a06ac9f64` at `2026-07-24T21:01:22Z`:
+
+| Concurrency | Requests | Failures | p50 | p95 | Requests/second |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 100 | 0 | 65 ms | 309 ms | 90.8 |
+| 50 | 500 | 0 | 66 ms | 1,067 ms | 283.8 |
