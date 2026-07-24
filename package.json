@@ -11,7 +11,9 @@
     "check": "astro check",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "load:production:10": "node scripts/load-test-production.mjs --concurrency=10 --requests=100",
+    "load:production:50": "node scripts/load-test-production.mjs --concurrency=50 --requests=500"
   },
   "dependencies": {
     "@fontsource-variable/anybody": "5.2.7",
