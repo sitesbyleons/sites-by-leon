@@ -113,6 +113,8 @@ describe('checkout reservation recovery', () => {
     expect(checkout).toContain('workspace.error || subscription.error');
     expect(checkout).toContain('project.data.plan_key !== plan.key');
     expect(checkout).toContain('This is not the hosting plan assigned to your website.');
+    expect(checkout).toContain("request.headers.get('accept')?.includes('application/json')");
+    expect(checkout).toContain('Response.json({ url: checkoutUrl })');
   });
 });
 

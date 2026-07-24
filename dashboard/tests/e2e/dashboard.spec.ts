@@ -48,6 +48,7 @@ test('support and billing are real dashboard pages', async ({ page }) => {
     inputs.map((input) => (input as HTMLInputElement).value),
   )).toEqual(['studio']);
   await expect(page.getByRole('button', { name: 'Pay $30/month' })).toBeEnabled();
+  await expect(page.locator('[data-checkout-status]')).toHaveAttribute('aria-live', 'polite');
 
   await page.goto('/dashboard/billing?preview=true&subscription=canceled');
   await expect(page.getByRole('heading', { name: 'Studio' })).toBeVisible();

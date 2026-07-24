@@ -160,13 +160,14 @@ const periodEnd = dashboardData.subscription?.current_period_end
               ) : (
                 <div class="simple-plan-list">
                   {assignedPlan ? (
-                    <form method="POST" action="/api/billing/checkout">
+                    <form method="POST" action="/api/billing/checkout" data-checkout-form>
                       <input type="hidden" name="plan" value={assignedPlan.key} />
                       <span><strong>{assignedPlan.name}</strong><small>${assignedPlan.monthlyUsd}/month</small></span>
                       <button type="submit" disabled={!checkoutReady}>{checkoutReady ? `Pay $${assignedPlan.monthlyUsd}/month` : 'Not ready'}</button>
                     </form>
                   ) : <p class="simple-notice">Leon is finishing your hosting setup.</p>}
                 </div>
+                <p class="checkout-status" data-checkout-status aria-live="polite"></p>
               )}
               <small>Stripe processes payments.</small>
             </article>
@@ -201,4 +202,5 @@ const periodEnd = dashboardData.subscription?.current_period_end
       status.textContent = 'Ticket sent.';
     });
   </script>
+  <script is:inline src="/admin-assets/checkout.js"></script>
 </DashboardLayout>
