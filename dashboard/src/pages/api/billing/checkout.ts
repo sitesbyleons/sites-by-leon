@@ -82,6 +82,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       mode: 'subscription',
       customer: customerId,
       client_reference_id: workspace.data.id,
+      consent_collection: { terms_of_service: 'required' },
       line_items: [{ price: priceId, quantity: 1 }],
       expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
       success_url: `${publicOrigin}/dashboard?checkout=success`,

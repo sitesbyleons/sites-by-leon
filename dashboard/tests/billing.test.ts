@@ -109,6 +109,7 @@ describe('checkout reservation recovery', () => {
     expect(checkout).toContain(".eq('attempt_key', attemptKey)");
     expect(checkout).toContain('!saved.data.length');
     expect(checkout).toContain('stripe.checkout.sessions.expire(session.id)');
+    expect(checkout).toContain("consent_collection: { terms_of_service: 'required' }");
     expect(checkout).toContain('workspace.error || subscription.error');
   });
 });

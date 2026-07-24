@@ -27,9 +27,9 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
 - [x] Authenticated production owner smoke passed for `/admin`, `/admin/sites`, `/admin/subscriptions`, `/admin/tickets`, and `/admin/users` using Clerk's short-lived official Playwright testing helper; no credentials or browser state were persisted.
 - [ ] Complete a controlled live Stripe lifecycle: real checkout, webhook receipt, cancellation, refund, Connect invoice payment, payout confirmation, and webhook replay/idempotency check. Use real owner-approved payment details; never fictional identity data.
-- [ ] In the authenticated Stripe Dashboard, set the live support email to `sites.by.leon@gmail.com` and Terms URL to `https://leonsites.org/terms`; the business website is set. A no-charge live Checkout preview on July 24 was rejected because the Terms URL remains unset. After saving it, enable required terms consent in Checkout and prove the checkbox appears during the live lifecycle test. Stripe's API refuses changes to the platform's own public profile.
+- [x] Live Stripe public settings include the business website and Terms URL. A no-charge Checkout preview returned HTTP 200 and visibly rendered required Terms consent; the application now requires that consent for every subscription checkout.
 - [ ] Confirm final launch copy, prices, support email, privacy policy, and terms with the business owner.
-- [ ] If branded email is desired, verify a real `@leonsites.org` mailbox end to end before replacing the established Gmail address. Never use `@leonsites.com`; that domain belongs to an unrelated site and has no mail exchanger.
+- [ ] Stripe now displays `leon@leonsites.org` as its support email. Verify that mailbox end to end before replacing the established Gmail address in application fallbacks. Never use `@leonsites.com`; that domain belongs to an unrelated site and has no mail exchanger.
 - [ ] On July 31, run the launch procedure below, rerun this checklist, and keep the previous release plus DNS rollback available.
 
 ## Launch and rollback
