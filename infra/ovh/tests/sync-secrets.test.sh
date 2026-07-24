@@ -125,6 +125,8 @@ if grep -Eq 'backup\.env|\.example' "${FIXTURE}/scp.log"; then
   fail_test 'sync copied a file outside the allowlist'
 fi
 grep -Fq 'StrictHostKeyChecking=yes' "${FIXTURE}/ssh.log" || fail_test 'sync did not pin SSH host checking'
+grep -Fq 'ConnectTimeout=15' "${FIXTURE}/ssh.log" || fail_test 'sync did not bound SSH connection time'
+grep -Fq 'ServerAliveInterval=10' "${FIXTURE}/ssh.log" || fail_test 'sync did not configure SSH keepalives'
 grep -Fq 'install -m 600' "${FIXTURE}/remote-script.log" || fail_test 'remote install is not mode 600'
 grep -Fq 'mv --' "${FIXTURE}/remote-script.log" || fail_test 'remote install is not atomically renamed'
 if grep -Fq 'set -x' "${SYNC_SCRIPT}" || [[ ${sync_output} == *"${VALID_SECRET}"* ]]; then

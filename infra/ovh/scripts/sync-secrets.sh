@@ -92,7 +92,11 @@ done
 ssh_options=(
   -i "${IDENTITY_FILE}"
   -o BatchMode=yes
+  -o "ConnectTimeout=${SSH_CONNECT_TIMEOUT_SECONDS:-15}"
+  -o "ConnectionAttempts=${SSH_CONNECTION_ATTEMPTS:-3}"
   -o IdentitiesOnly=yes
+  -o "ServerAliveInterval=${SSH_SERVER_ALIVE_INTERVAL_SECONDS:-10}"
+  -o "ServerAliveCountMax=${SSH_SERVER_ALIVE_COUNT_MAX:-3}"
   -o StrictHostKeyChecking=yes
   -o "UserKnownHostsFile=${KNOWN_HOSTS}"
 )
