@@ -44,6 +44,15 @@ Production runtime secrets live in `/opt/leon-platform/secrets`, outside release
 infra/ovh/scripts/sync-secrets.sh ubuntu@vps-aa71e2f6.vps.ovh.us ~/.ssh/leonsites_ovh
 ```
 
+Staging runtime secrets live separately in `/opt/leon-platform/secrets-test`. Synchronize them with the staging allowlist:
+
+```bash
+SECRETS_PROFILE=staging \
+LOCAL_SECRETS_ROOT=infra/ovh/secrets-test \
+REMOTE_SECRETS_ROOT=/opt/leon-platform/secrets-test \
+infra/ovh/scripts/sync-secrets.sh ubuntu@vps-aa71e2f6.vps.ovh.us ~/.ssh/leonsites_ovh
+```
+
 The sync command validates local ownership and mode `600`, uses the pinned host key, stages files under a private temporary directory, and atomically renames mode-`600` files into the stable root. It never copies `backup.env` or prints secret values.
 Generate `CONTACT_HASH_SALT` independently with `openssl rand -hex 32`; it is required for privacy-preserving inquiry rate limits.
 Each application uses at most four PostgreSQL connections by default. Set `DATABASE_POOL_MAX` to a value from 1 through 20 only when capacity planning shows that a different limit is safe. Set `PLATFORM_PROVISIONABLE_STORAGE_BYTES` in the dashboard environment to the amount of the media disk that customer quotas may reserve; provisioning rejects requests that would exceed it. Keep operating-system, database, deployment, backup staging, and free-space headroom outside that number.
@@ -112,6 +121,29 @@ Then run:
 ```bash
 infra/ovh/scripts/healthcheck.sh
 ```
+
+## Staging and promotion
+
+`test.leonsites.org` runs the same dashboard and marketing source as production but uses its own Docker project, PostgreSQL volume, database login, environment files, Stripe test products, test webhook, and Billing Portal configuration. Its active release is `/opt/leon-platform/current-test`; production remains `/opt/leon-platform/current`. Authentication currently uses the shared Clerk development instance, so test users must still be treated as real identities even though application and payment data are isolated.
+
+After uploading an immutable 40-character release directory, activate it only in staging:
+
+```bash
+/opt/leon-platform/releases/<sha>/infra/ovh/scripts/activate-test-release.sh <sha>
+TEST_EXTERNAL_URL=https://test.leonsites.org \
+  /opt/leon-platform/current-test/infra/ovh/scripts/healthcheck-test.sh
+```
+
+The activation command holds the platform maintenance lock and restores the previous staging release automatically if deployment or health checks fail. Test sign-in, assigned-plan checkout with a Stripe test card, webhook persistence, Billing Portal, and cancellation before promotion. Confirm production data did not change.
+
+Promote the exact currently active staging SHA; the command rejects any other release and rolls production back automatically on failure:
+
+```bash
+/opt/leon-platform/current-test/infra/ovh/scripts/promote-tested-release.sh <sha>
+/opt/leon-platform/current/infra/ovh/scripts/healthcheck.sh
+```
+
+Never copy staging database rows or `secrets-test` files into production. Rotate staging credentials independently. See `docs/operations/staging-release-workflow.md` for the acceptance and rollback checklist.
 
 ## Public launch switch
 

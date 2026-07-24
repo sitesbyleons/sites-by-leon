@@ -30,6 +30,9 @@ read_value() {
 stripe_key=$(read_value STRIPE_SECRET_KEY "${TEST_SECRETS_ROOT}/dashboard.env")
 [[ ${stripe_key} == sk_test_* ]] || fail 'staging STRIPE_SECRET_KEY must be a Stripe test key.'
 database_url=$(read_value DATABASE_URL "${TEST_SECRETS_ROOT}/dashboard.env")
-[[ ${database_url} == *'@database-test:5432/leon_platform_test' ]] || fail 'staging DATABASE_URL must use the isolated staging database.'
+[[ ${database_url} == 'postgresql://leon_test_dashboard:'*'@database-test:5432/leon_platform_test' ]] || fail 'staging DATABASE_URL must use its least-privilege login and isolated database.'
+dashboard_password=$(read_value POSTGRES_DASHBOARD_PASSWORD "${TEST_SECRETS_ROOT}/postgres.env")
+[[ ${#dashboard_password} -ge 32 ]] || fail 'POSTGRES_DASHBOARD_PASSWORD must contain at least 32 characters.'
+[[ ${database_url} == "postgresql://leon_test_dashboard:${dashboard_password}@database-test:5432/leon_platform_test" ]] || fail 'staging dashboard database credentials must match.'
 
 echo 'Staging secret preflight passed.'

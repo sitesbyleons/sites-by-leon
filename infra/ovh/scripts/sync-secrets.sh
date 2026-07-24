@@ -150,4 +150,4 @@ REMOTE
 
 trap - EXIT
 cleanup
-echo 'Stable production secrets were synchronized without exposing their values.'
+echo "Stable ${SECRETS_PROFILE} secrets were synchronized without exposing their values."

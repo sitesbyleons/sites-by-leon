@@ -2,8 +2,10 @@
 set -euo pipefail
 
 MAINTENANCE_LOCK=${MAINTENANCE_LOCK:-/run/lock/leon-platform-maintenance.lock}
-exec 9>"${MAINTENANCE_LOCK}"
-flock -w "${MAINTENANCE_LOCK_TIMEOUT:-900}" 9 || { echo 'Another platform deployment is running.' >&2; exit 1; }
+if [[ ${MAINTENANCE_LOCK_HELD:-0} != 1 ]]; then
+  exec 9>"${MAINTENANCE_LOCK}"
+  flock -w "${MAINTENANCE_LOCK_TIMEOUT:-900}" 9 || { echo 'Another platform deployment is running.' >&2; exit 1; }
+fi
 
 SOURCE_ROOT=${SOURCE_ROOT:-/opt/leon-platform/current-test}
 SOURCE_ROOT=$(readlink -f "${SOURCE_ROOT}")
@@ -31,6 +33,8 @@ SQL
 "${compose[@]}" exec -T database-test sh -c \
   'psql --set ON_ERROR_STOP=1 --single-transaction --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"' \
   < "${SOURCE_ROOT}/infra/ovh/postgres/schema.sql"
+SOURCE_ROOT="${SOURCE_ROOT}" TEST_SECRETS_ROOT="${TEST_SECRETS_ROOT}" TEST_COMPOSE_ENV_FILE="${TEST_COMPOSE_ENV_FILE}" \
+  /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/configure-test-runtime-role.sh"
 "${compose[@]}" build gateway-test dashboard-test
 "${compose[@]}" up -d --no-build --remove-orphans
 SOURCE_ROOT="${SOURCE_ROOT}" TEST_SECRETS_ROOT="${TEST_SECRETS_ROOT}" TEST_COMPOSE_ENV_FILE="${TEST_COMPOSE_ENV_FILE}" \
