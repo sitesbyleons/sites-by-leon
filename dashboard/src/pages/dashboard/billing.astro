@@ -17,9 +17,10 @@ const access = isPreview
   : decideDashboardAccess({ userId: auth?.userId ?? null, orgId: auth?.orgId ?? null });
 if (access.kind === 'redirect') return Astro.redirect('/sign-in?redirect_url=%2Fdashboard%2Fbilling');
 const data = isPreview
-  ? { workspace: { id: 'preview', name: 'Northline Sports', status: 'active' }, subscription: previewSubscription, project: null, error: null }
+  ? { workspace: { id: 'preview', name: 'Northline Sports', status: 'active' }, subscription: previewSubscription, project: { plan_key: 'studio' }, error: null }
   : await loadDashboardData(createPlatformDatabase(), { userId: access.userId, orgId: access.orgId });
 const selectedPlan = plans.find((plan) => plan.key === data.subscription?.plan_key);
+const assignedPlan = plans.find((plan) => plan.key === data.project?.plan_key);
 const manageableSubscription = data.subscription && canManageSubscription(data.subscription.status) ? data.subscription : null;
 const checkoutReady = canStartCheckout({
   userId: access.userId,
@@ -51,10 +52,10 @@ const checkoutReady = canStartCheckout({
           </>
         ) : (
           <>
-            <span class="simple-label">Hosting plans</span>
-            <h2>Choose a plan</h2>
+            <span class="simple-label">Assigned hosting plan</span>
+            <h2>{assignedPlan?.name ?? 'Plan pending'}</h2>
             <div class="simple-plan-list">
-              {plans.map((plan) => <form method="POST" action="/api/billing/checkout"><input type="hidden" name="plan" value={plan.key} /><span><strong>{plan.name}</strong><small>${plan.monthlyUsd}/month</small></span><button type="submit" disabled={!checkoutReady}>{checkoutReady ? 'Choose' : data.workspace ? 'Not ready' : 'Contact Leon'}</button></form>)}
+              {assignedPlan ? <form method="POST" action="/api/billing/checkout"><input type="hidden" name="plan" value={assignedPlan.key} /><span><strong>{assignedPlan.name}</strong><small>${assignedPlan.monthlyUsd}/month</small></span><button type="submit" disabled={!checkoutReady}>{checkoutReady ? `Pay $${assignedPlan.monthlyUsd}/month` : 'Not ready'}</button></form> : <p class="simple-notice">Leon is finishing your hosting setup.</p>}
             </div>
           </>
         )}

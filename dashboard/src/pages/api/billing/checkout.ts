@@ -40,10 +40,19 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     .select<{ status: string }>('status')
     .eq('workspace_id', resolved.workspace.id)
     .maybeSingle();
-  if (workspace.error || subscription.error) return Response.json({ message: 'Billing status could not be verified. Try again.' }, { status: 503 });
+  const project = await database
+    .from('website_projects')
+    .select<{ plan_key: string | null }>('plan_key')
+    .eq('workspace_id', resolved.workspace.id)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (workspace.error || subscription.error || project.error) return Response.json({ message: 'Billing status could not be verified. Try again.' }, { status: 503 });
   if (!workspace.data || !canStartCheckout({ userId: auth.userId, workspaceStatus: workspace.data.status, subscriptionStatus: subscription.data?.status ?? null })) {
     return Response.json({ message: 'This workspace cannot start another subscription.' }, { status: 409 });
   }
+  if (!project.data?.plan_key) return Response.json({ message: 'Leon has not assigned a hosting plan yet.' }, { status: 409 });
+  if (project.data.plan_key !== plan.key) return Response.json({ message: 'This is not the hosting plan assigned to your website.' }, { status: 409 });
 
   const attemptKey = crypto.randomUUID();
   const checkoutExpiresAt = new Date(Date.now() + 35 * 60 * 1000);

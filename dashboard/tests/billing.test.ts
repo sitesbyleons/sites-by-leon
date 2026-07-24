@@ -111,6 +111,8 @@ describe('checkout reservation recovery', () => {
     expect(checkout).toContain('stripe.checkout.sessions.expire(session.id)');
     expect(checkout).toContain("consent_collection: { terms_of_service: 'required' }");
     expect(checkout).toContain('workspace.error || subscription.error');
+    expect(checkout).toContain('project.data.plan_key !== plan.key');
+    expect(checkout).toContain('This is not the hosting plan assigned to your website.');
   });
 });
 

@@ -43,6 +43,7 @@ if (isPreview) {
       next_step: 'Review the mobile gallery and send Leon your final image order.',
       live_url: null,
       updated_at: new Date().toISOString(),
+      plan_key: 'studio',
     },
     subscription: {
       plan_key: 'studio',
@@ -60,6 +61,7 @@ if (isPreview) {
 }
 
 const state = normalizeDashboardState(dashboardData);
+const assignedPlan = plans.find((plan) => plan.key === dashboardData.project?.plan_key);
 const hasWorkspace = Boolean(dashboardData.workspace);
 const checkoutReady = canStartCheckout({
   userId: auth?.userId ?? (isPreview ? 'preview_user' : null),
@@ -144,7 +146,7 @@ const periodEnd = dashboardData.subscription?.current_period_end
 
             <article class="simple-panel" id="billing">
               <span class="simple-label">Subscription</span>
-              <h2>{portalReady ? state.planName : 'Choose a plan'}</h2>
+              <h2>{portalReady ? state.planName : assignedPlan?.name ?? 'Plan pending'}</h2>
               {portalReady ? (
                 <>
                   <dl class="subscription-facts">
@@ -157,13 +159,13 @@ const periodEnd = dashboardData.subscription?.current_period_end
                 </>
               ) : (
                 <div class="simple-plan-list">
-                  {plans.map((plan) => (
+                  {assignedPlan ? (
                     <form method="POST" action="/api/billing/checkout">
-                      <input type="hidden" name="plan" value={plan.key} />
-                      <span><strong>{plan.name}</strong><small>${plan.monthlyUsd}/month</small></span>
-                      <button type="submit" disabled={!checkoutReady}>{checkoutReady ? 'Choose' : 'Not ready'}</button>
+                      <input type="hidden" name="plan" value={assignedPlan.key} />
+                      <span><strong>{assignedPlan.name}</strong><small>${assignedPlan.monthlyUsd}/month</small></span>
+                      <button type="submit" disabled={!checkoutReady}>{checkoutReady ? `Pay $${assignedPlan.monthlyUsd}/month` : 'Not ready'}</button>
                     </form>
-                  ))}
+                  ) : <p class="simple-notice">Leon is finishing your hosting setup.</p>}
                 </div>
               )}
               <small>Stripe processes payments.</small>

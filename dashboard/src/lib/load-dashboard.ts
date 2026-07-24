@@ -16,6 +16,7 @@ export type ProjectRow = {
   next_step: string | null;
   live_url: string | null;
   updated_at: string;
+  plan_key: string | null;
 };
 
 export type SubscriptionRow = {
@@ -72,7 +73,7 @@ export async function loadDashboardData(
   const [projectResult, subscriptionResult] = await Promise.all([
     database
       .from('website_projects')
-      .select('id,name,status,progress,next_step,live_url,updated_at')
+      .select('id,name,status,progress,next_step,live_url,updated_at,plan_key')
       .eq('workspace_id', workspace.id)
       .order('updated_at', { ascending: false })
       .limit(1)
