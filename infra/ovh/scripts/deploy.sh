@@ -86,10 +86,12 @@ DISABLE_LEGACY_RUNTIME_ROLE=true SOURCE_ROOT="${SOURCE_ROOT}" \
   /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/configure-runtime-role.sh"
 
 BUILD_CACHE_RETENTION_HOURS=${BUILD_CACHE_RETENTION_HOURS:-72}
-if [[ ${BUILD_CACHE_RETENTION_HOURS} =~ ^[1-9][0-9]*$ ]]; then
+BUILD_CACHE_MAX_SIZE=${BUILD_CACHE_MAX_SIZE:-8GB}
+if [[ ${BUILD_CACHE_RETENTION_HOURS} =~ ^[1-9][0-9]*$ && ${BUILD_CACHE_MAX_SIZE} =~ ^[1-9][0-9]*(B|KB|MB|GB)$ ]]; then
   docker builder prune --force --filter "until=${BUILD_CACHE_RETENTION_HOURS}h" >/dev/null
+  docker builder prune --force --max-used-space "${BUILD_CACHE_MAX_SIZE}" >/dev/null
   docker image prune --force --filter "until=${BUILD_CACHE_RETENTION_HOURS}h" >/dev/null
 else
-  echo "BUILD_CACHE_RETENTION_HOURS must be a positive whole number." >&2
+  echo "Build-cache retention and maximum size settings are invalid." >&2
   exit 1
 fi

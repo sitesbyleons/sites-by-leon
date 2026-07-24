@@ -55,7 +55,7 @@ infra/ovh/scripts/sync-secrets.sh ubuntu@vps-aa71e2f6.vps.ovh.us ~/.ssh/leonsite
 
 The sync command validates local ownership and mode `600`, uses the pinned host key, stages files under a private temporary directory, and atomically renames mode-`600` files into the stable root. It never copies `backup.env` or prints secret values.
 Generate `CONTACT_HASH_SALT` independently with `openssl rand -hex 32`; it is required for privacy-preserving inquiry rate limits.
-Each application uses at most four PostgreSQL connections by default. Set `DATABASE_POOL_MAX` to a value from 1 through 20 only when capacity planning shows that a different limit is safe. Set `PLATFORM_PROVISIONABLE_STORAGE_BYTES` in the dashboard environment to the amount of the media disk that customer quotas may reserve; provisioning rejects requests that would exceed it. Keep operating-system, database, deployment, backup staging, and free-space headroom outside that number.
+Each application uses at most four PostgreSQL connections by default. Set `DATABASE_POOL_MAX` to a value from 1 through 20 only when capacity planning shows that a different limit is safe. Set `PLATFORM_PROVISIONABLE_STORAGE_BYTES` in the dashboard environment to the amount of the media disk that customer quotas may reserve; provisioning rejects requests that would exceed it. Keep operating-system, database, deployment, backup staging, and free-space headroom outside that number. Both staging and production deployments prune unused BuildKit data older than `BUILD_CACHE_RETENTION_HOURS` and enforce `BUILD_CACHE_MAX_SIZE` (default `8GB`) so frequent releases cannot consume the media headroom.
 
 ## Adding a customer
 

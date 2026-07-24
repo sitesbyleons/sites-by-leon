@@ -404,7 +404,7 @@ test('keeps contact direct and email-only', async ({ page }) => {
   await expect(page.locator('[data-contact-form]')).toHaveCount(0);
   await expect(page.locator('#contact').getByRole('link', { name: 'Email Leon' })).toHaveAttribute(
     'href',
-    'mailto:leon@leonsites.com',
+    'mailto:sites.by.leon@gmail.com',
   );
 });
 
@@ -433,14 +433,21 @@ test('publishes correct metadata for the full marketing preview', async ({ page 
 test('shows a minimal standalone coming-soon page for production', async ({ page }) => {
   await page.goto('/coming-soon');
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Coming soon.' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'July 31' })).toBeVisible();
+  await expect(page.getByText('We will be going public July 31st at 12:00 PM EST.')).toBeVisible();
   await expect(page.locator('.coming-soon')).toHaveAttribute('data-motion-surface', 'coming-soon');
+  await expect(page.locator('.coming-soon')).toHaveAttribute('data-launch-at', '2026-07-31T12:00:00-04:00');
   await expect(page.locator('[data-coming-image]')).toHaveCount(3);
   await expect(page.locator('[data-coming-content]')).toHaveCount(2);
-  await expect(page.getByRole('link', { name: 'leon@leonsites.com' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /sites\.by\.leon@gmail\.com/ })).toHaveAttribute(
     'href',
-    'mailto:leon@leonsites.com',
+    'mailto:sites.by.leon@gmail.com',
   );
+  await expect(page.getByRole('link', { name: /Instagram/ })).toHaveAttribute(
+    'href',
+    'https://www.instagram.com/sites.by.leon/',
+  );
+  await expect(page.getByText('Photography websites from')).toContainText('$25/month');
   await expect(page.locator('.coming-soon')).not.toContainText('Websites for photographers');
   await expect(page.locator('.host-preview,.hero,.website-concept,.pricing,.services')).toHaveCount(0);
   await expect(page.locator('.coming-soon__gallery img')).toHaveCount(3);
@@ -464,7 +471,7 @@ test('orchestrates the coming-soon entrance', async ({ page }) => {
   await expect(veil).toHaveCSS('transform', 'none');
   await expect(page.locator('.coming-soon__content .brand-mark')).toHaveCSS('animation-delay', '0.22s');
   await expect(page.locator('.coming-soon__message')).toHaveCSS('animation-delay', '0.3s');
-  await expect(page.locator('.coming-soon__content > a')).toHaveCSS('animation-delay', '0.38s');
+  await expect(page.locator('.coming-soon__links')).toHaveCSS('animation-delay', '0.38s');
 });
 
 test('uses a fade-only coming-soon entrance for reduced motion', async ({ page }) => {
@@ -474,12 +481,12 @@ test('uses a fade-only coming-soon entrance for reduced motion', async ({ page }
   const images = page.locator('[data-coming-image]');
   const content = page.locator('[data-coming-content]');
   const message = page.locator('.coming-soon__message[data-coming-content]');
-  const email = page.locator('.coming-soon__content > a[data-coming-content]');
+  const links = page.locator('.coming-soon__links[data-coming-content]');
   await expect(images).toHaveCount(3);
   await expect(content).toHaveCount(2);
 
   for (const element of [
-    email,
+    links,
     images.nth(0),
     images.nth(1),
     images.nth(2),
@@ -494,6 +501,33 @@ test('uses a fade-only coming-soon entrance for reduced motion', async ({ page }
   await expect(page.locator('html')).toHaveCSS('scroll-behavior', 'auto');
 });
 
+test('counts down to noon Eastern on July 31', async ({ page }) => {
+  await page.clock.install();
+  await page.clock.pauseAt(new Date('2026-07-30T15:59:55.000Z'));
+  await page.goto('/coming-soon');
+
+  await expect(page.locator('[data-countdown-value="days"]')).toHaveText('01');
+  await expect(page.locator('[data-countdown-value="hours"]')).toHaveText('00');
+  await expect(page.locator('[data-countdown-value="minutes"]')).toHaveText('00');
+  await expect(page.locator('[data-countdown-value="seconds"]')).toHaveText('05');
+  await expect(page.getByRole('timer')).toHaveAttribute(
+    'aria-label',
+    '1 day, 0 hours, 0 minutes, and 5 seconds until launch',
+  );
+
+  await page.clock.runFor(1_000);
+  await expect(page.locator('[data-countdown-value="seconds"]')).toHaveText('04');
+});
+
+test('settles into a launched state after the deadline', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-07-31T16:00:01.000Z') });
+  await page.goto('/coming-soon');
+
+  await expect(page.locator('.coming-soon')).toHaveAttribute('data-launched', 'true');
+  await expect(page.getByText('Sites By Leon is now public.')).toBeVisible();
+  await expect(page.locator('[data-countdown-value]')).toHaveText(['00', '00', '00', '00']);
+});
+
 for (const viewport of [
   { width: 390, height: 844 },
   { width: 1440, height: 900 },
@@ -506,32 +540,29 @@ for (const viewport of [
       await Promise.all(root.getAnimations({ subtree: true }).map((animation) => animation.finished));
       const heading = root.querySelector('h1')!.getBoundingClientRect();
       const logo = root.querySelector('.brand-mark')!.getBoundingClientRect();
-      const email = root.querySelector<HTMLAnchorElement>('.coming-soon__content > a')!;
-      const emailBounds = email.getBoundingClientRect();
-      const emailTransform = getComputedStyle(email).transform;
-      const emailMatrix = emailTransform === 'none' ? new DOMMatrixReadOnly() : new DOMMatrixReadOnly(emailTransform);
+      const message = root.querySelector<HTMLElement>('.coming-soon__message')!.getBoundingClientRect();
+      const links = root.querySelector<HTMLElement>('.coming-soon__links')!.getBoundingClientRect();
       return {
         headingCenterX: heading.left + heading.width / 2,
-        headingCenterY: heading.top + heading.height / 2,
         logoLeft: logo.left,
         logoTop: logo.top,
-        emailCenterX: emailBounds.left + emailBounds.width / 2,
-        emailWidth: emailBounds.width,
-        emailTransform,
-        emailTranslateX: emailMatrix.m41,
-        emailTranslateY: emailMatrix.m42,
+        messageTop: message.top,
+        messageBottom: message.bottom,
+        linksLeft: links.left,
+        linksRight: links.right,
+        linksBottom: links.bottom,
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       };
     });
 
     expect(Math.abs(layout.headingCenterX - viewport.width / 2)).toBeLessThanOrEqual(2);
-    expect(Math.abs(layout.headingCenterY - viewport.height / 2)).toBeLessThanOrEqual(2);
     expect(layout.logoLeft).toBeLessThan(viewport.width / 10);
     expect(layout.logoTop).toBeLessThan(viewport.height / 10);
-    expect(Math.abs(layout.emailCenterX - viewport.width / 2)).toBeLessThanOrEqual(2);
-    expect(layout.emailTransform).not.toBe('none');
-    expect(Math.abs(layout.emailTranslateX + layout.emailWidth / 2)).toBeLessThanOrEqual(1);
-    expect(Math.abs(layout.emailTranslateY)).toBeLessThanOrEqual(0.1);
+    expect(layout.messageTop).toBeGreaterThanOrEqual(0);
+    expect(layout.messageBottom).toBeLessThanOrEqual(viewport.height);
+    expect(layout.linksLeft).toBeGreaterThanOrEqual(0);
+    expect(layout.linksRight).toBeLessThanOrEqual(viewport.width);
+    expect(layout.linksBottom).toBeLessThanOrEqual(viewport.height);
     expect(layout.overflow).toBe(false);
   });
 }

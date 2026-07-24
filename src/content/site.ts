@@ -38,6 +38,7 @@ export type ProcessStep = {
 };
 
 export const contactEmail = 'sites.by.leon@gmail.com';
+export const instagramUrl = 'https://www.instagram.com/sites.by.leon/';
 
 export const navigation: readonly NavigationItem[] = [
   { label: 'Work', href: '#work' },

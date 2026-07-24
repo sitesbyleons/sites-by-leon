@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { concepts, contactEmail, plans } from '../src/content/site';
+import { concepts, contactEmail, instagramUrl, plans } from '../src/content/site';
 
 describe('launch content', () => {
   it('keeps every portfolio example honest', () => {
@@ -52,5 +52,9 @@ describe('launch content', () => {
 
   it('uses the approved contact address', () => {
     expect(contactEmail).toBe('sites.by.leon@gmail.com');
+  });
+
+  it('uses the approved Instagram profile', () => {
+    expect(instagramUrl).toBe('https://www.instagram.com/sites.by.leon/');
   });
 });

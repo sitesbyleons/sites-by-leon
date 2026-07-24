@@ -14,6 +14,20 @@ afterEach(() => {
 });
 
 describe('OVH infrastructure reliability', () => {
+  it('bounds build cache growth in staging and production deployments', () => {
+    const production = read('infra/ovh/scripts/deploy.sh');
+    const staging = read('infra/ovh/scripts/deploy-test.sh');
+
+    for (const deploy of [production, staging]) {
+      expect(deploy).toContain('BUILD_CACHE_RETENTION_HOURS=${BUILD_CACHE_RETENTION_HOURS:-72}');
+      expect(deploy).toContain('BUILD_CACHE_MAX_SIZE=${BUILD_CACHE_MAX_SIZE:-8GB}');
+      expect(deploy).toContain('docker builder prune --force --filter "until=${BUILD_CACHE_RETENTION_HOURS}h"');
+      expect(deploy).toContain('docker builder prune --force --max-used-space "${BUILD_CACHE_MAX_SIZE}"');
+      expect(deploy).toContain('docker image prune --force --filter "until=${BUILD_CACHE_RETENTION_HOURS}h"');
+      expect(deploy.indexOf('docker builder prune')).toBeGreaterThan(deploy.indexOf('healthcheck'));
+    }
+  });
+
   it('keeps the custom-domain worker and deployment safety checks in GitHub CI', () => {
     const workflow = read('.github/workflows/quality.yml');
 

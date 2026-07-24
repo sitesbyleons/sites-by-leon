@@ -40,4 +40,15 @@ SOURCE_ROOT="${SOURCE_ROOT}" TEST_SECRETS_ROOT="${TEST_SECRETS_ROOT}" TEST_COMPO
 SOURCE_ROOT="${SOURCE_ROOT}" TEST_SECRETS_ROOT="${TEST_SECRETS_ROOT}" TEST_COMPOSE_ENV_FILE="${TEST_COMPOSE_ENV_FILE}" \
   /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/healthcheck-test.sh"
 
+BUILD_CACHE_RETENTION_HOURS=${BUILD_CACHE_RETENTION_HOURS:-72}
+BUILD_CACHE_MAX_SIZE=${BUILD_CACHE_MAX_SIZE:-8GB}
+if [[ ${BUILD_CACHE_RETENTION_HOURS} =~ ^[1-9][0-9]*$ && ${BUILD_CACHE_MAX_SIZE} =~ ^[1-9][0-9]*(B|KB|MB|GB)$ ]]; then
+  docker builder prune --force --filter "until=${BUILD_CACHE_RETENTION_HOURS}h" >/dev/null
+  docker builder prune --force --max-used-space "${BUILD_CACHE_MAX_SIZE}" >/dev/null
+  docker image prune --force --filter "until=${BUILD_CACHE_RETENTION_HOURS}h" >/dev/null
+else
+  echo "Build-cache retention and maximum size settings are invalid." >&2
+  exit 1
+fi
+
 echo "Staging release ${RELEASE_SHA} deployed independently."

@@ -1,11 +1,19 @@
 ---
 import BrandMark from './BrandMark.astro';
-import { concepts, contactEmail } from '../content/site';
+import { concepts, contactEmail, instagramUrl, plans } from '../content/site';
 
 const images = [concepts[0].images[0], concepts[1].images[0], concepts[2].images[0]];
+const launchAt = '2026-07-31T12:00:00-04:00';
+const startingPrice = Math.min(...plans.map((plan) => plan.monthlyPrice));
+const countdownUnits = [
+  { key: 'days', label: 'Days' },
+  { key: 'hours', label: 'Hours' },
+  { key: 'minutes', label: 'Minutes' },
+  { key: 'seconds', label: 'Seconds' },
+] as const;
 ---
 
-<main class="coming-soon" id="main" data-motion-surface="coming-soon">
+<main class="coming-soon" id="main" data-motion-surface="coming-soon" data-countdown data-launch-at={launchAt}>
   <div class="coming-soon__gallery" aria-hidden="true">
     {images.map((image, index) => (
       <figure
@@ -23,8 +31,82 @@ const images = [concepts[0].images[0], concepts[1].images[0], concepts[2].images
   <div class="coming-soon__content">
     <BrandMark />
     <div class="coming-soon__message" data-coming-content>
-      <h1>Coming soon.</h1>
+      <p class="coming-soon__eyebrow">Public release</p>
+      <h1>July 31</h1>
+      <p class="coming-soon__launch-copy">We will be going public July 31st at 12:00 PM EST.</p>
+
+      <div
+        class="launch-countdown"
+        role="timer"
+        aria-label="Countdown to the Sites By Leon public release"
+        data-countdown-timer
+      >
+        {countdownUnits.map((unit) => (
+          <div class="launch-countdown__unit">
+            <span class="launch-countdown__value" data-countdown-value={unit.key}>00</span>
+            <span class="launch-countdown__label">{unit.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <p class="coming-soon__price">Photography websites from <strong>${startingPrice}/month</strong></p>
     </div>
-    <a data-coming-content href={`mailto:${contactEmail}`}>{contactEmail} <span aria-hidden="true">↗</span></a>
+    <nav class="coming-soon__links" aria-label="Launch links" data-coming-content>
+      <a href={instagramUrl} target="_blank" rel="noreferrer">Instagram <span aria-hidden="true">↗</span></a>
+      <a href={`mailto:${contactEmail}`}>{contactEmail} <span aria-hidden="true">↗</span></a>
+    </nav>
   </div>
 </main>
+
+<script>
+  const countdown = document.querySelector<HTMLElement>('[data-countdown]');
+  const timer = countdown?.querySelector<HTMLElement>('[data-countdown-timer]');
+  const launchTime = countdown?.dataset.launchAt ? Date.parse(countdown.dataset.launchAt) : Number.NaN;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let intervalId: number | undefined;
+
+  const updateCountdown = () => {
+    if (!countdown || !timer || !Number.isFinite(launchTime)) return;
+
+    const remaining = Math.max(0, launchTime - Date.now());
+    const values = {
+      days: Math.floor(remaining / 86_400_000),
+      hours: Math.floor((remaining / 3_600_000) % 24),
+      minutes: Math.floor((remaining / 60_000) % 60),
+      seconds: Math.floor((remaining / 1_000) % 60),
+    };
+
+    for (const [unit, value] of Object.entries(values)) {
+      const element = timer.querySelector<HTMLElement>(`[data-countdown-value="${unit}"]`);
+      const next = String(value).padStart(2, '0');
+      if (!element || element.textContent === next) continue;
+
+      element.textContent = next;
+      if (!reduceMotion) {
+        element.getAnimations().forEach((animation) => animation.cancel());
+        element.animate(
+          [
+            { opacity: 0.35, transform: 'translateY(-0.18em)' },
+            { opacity: 1, transform: 'translateY(0)' },
+          ],
+          { duration: 380, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' },
+        );
+      }
+    }
+
+    const unitLabel = (value: number, singular: string) => `${value} ${singular}${value === 1 ? '' : 's'}`;
+    const label = `${unitLabel(values.days, 'day')}, ${unitLabel(values.hours, 'hour')}, ${unitLabel(values.minutes, 'minute')}, and ${unitLabel(values.seconds, 'second')} until launch`;
+    timer.setAttribute('aria-label', label);
+
+    if (remaining === 0) {
+      countdown.dataset.launched = 'true';
+      countdown.querySelector<HTMLElement>('.coming-soon__launch-copy')!.textContent = 'Sites By Leon is now public.';
+      if (intervalId !== undefined) window.clearInterval(intervalId);
+    }
+  };
+
+  updateCountdown();
+  if (countdown?.dataset.launched !== 'true') {
+    intervalId = window.setInterval(updateCountdown, 1_000);
+  }
+</script>
