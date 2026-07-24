@@ -26,10 +26,11 @@ describe('production gateway routing contract', () => {
 
     expect(comingSoon).not.toContain('{$TEST_DOMAIN}');
     expect(comingSoon).not.toMatch(/\/admin|\/dashboard|\/sign-in|\/sign-up|\/api/);
-    expect(caddyfile).toContain(
-      '@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN} {$TEST_DOMAIN}',
-    );
-    expect(dashboard).toContain('host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN} {$TEST_DOMAIN}');
+    expect(caddyfile).toContain('@test host {$TEST_DOMAIN}');
+    expect(caddyfile).toContain('reverse_proxy gateway-test:80');
+    expect(caddyfile).toContain('@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}');
+    expect(dashboard).toContain('host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}');
+    expect(dashboard).not.toContain('{$TEST_DOMAIN}');
     expect(dashboard).toContain('/admin');
     expect(dashboard).toContain('/api/*');
     expect(caddyfile.indexOf('handle @dashboard')).toBeLessThan(

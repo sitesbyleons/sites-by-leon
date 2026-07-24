@@ -14,5 +14,6 @@ infra/ovh/.env
 infra/ovh/secrets/*.env
 infra/ovh/secrets/cloudflare-tunnel-token
 infra/ovh/secrets/restic-password
+infra/ovh/secrets-test/*.env
 infra/ovh/migration-artifacts/
 infra/ovh/backups/

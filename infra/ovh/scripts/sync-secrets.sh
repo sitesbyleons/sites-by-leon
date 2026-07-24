@@ -8,8 +8,21 @@ LOCAL_SECRETS_ROOT=${LOCAL_SECRETS_ROOT:-${LOCAL_OVH_ROOT}/secrets}
 KNOWN_HOSTS=${KNOWN_HOSTS:-${LOCAL_OVH_ROOT}/ssh_known_hosts}
 REMOTE_SECRETS_ROOT=${REMOTE_SECRETS_ROOT:-/opt/leon-platform/secrets}
 REMOTE_SECRET_OWNER=${REMOTE_SECRET_OWNER:-ubuntu}
-required_names=(.env postgres.env dashboard.env northline.env cloudflare-tunnel-token)
-optional_names=(domain-worker.env)
+SECRETS_PROFILE=${SECRETS_PROFILE:-production}
+case "${SECRETS_PROFILE}" in
+  production)
+    required_names=(.env postgres.env dashboard.env northline.env cloudflare-tunnel-token)
+    optional_names=(domain-worker.env)
+    ;;
+  staging)
+    required_names=(.env postgres.env dashboard.env)
+    optional_names=()
+    ;;
+  *)
+    echo 'Secret sync failed: SECRETS_PROFILE must be production or staging.' >&2
+    exit 1
+    ;;
+esac
 
 fail() {
   echo "Secret sync failed: $1" >&2
