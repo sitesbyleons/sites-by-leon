@@ -105,6 +105,8 @@ describe('fully self-hosted production stack', () => {
 
     for (const required of [
       'STRIPE_BILLING_PORTAL_CONFIGURATION',
+      'https://leonsites.org/privacy',
+      'https://leonsites.org/terms',
       "events_from",
       "'@accounts'",
       "'@self'",

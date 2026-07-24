@@ -10,6 +10,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Dependency audit reports no known vulnerabilities.
 - [x] Root and workspace type checks, builds, unit tests, infrastructure regressions, and 92 browser tests pass.
 - [x] Live Stripe platform prices, Billing Portal, platform webhook, Connect webhook, and Connect v2 destination verify in live mode.
+- [x] Live Billing Portal links to `https://leonsites.org/privacy` and `https://leonsites.org/terms`; the release verifier rejects drift in either URL.
 - [x] Displayed Essential, Studio, and Signature prices match the active live Stripe prices at $25, $30, and $40 per month.
 - [x] Public, dashboard, and photographer support fallbacks consistently use the established `sites.by.leon@gmail.com` inbox.
 - [x] Nightly encrypted offsite backup timer is enabled and successful.
@@ -21,11 +22,12 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [ ] Publish release-candidate source to the private GitHub `main` branch; repository authentication is currently unavailable from Codex.
+- [ ] Publish release-candidate source to the private GitHub `main` branch. The connected GitHub App can access the older public `LimonLimez/sites-by-leon`, but not the production remote `sitesbyleons/sites-by-leon`; do not publish production history to the older repository.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
 - [ ] Complete one authenticated customer acceptance smoke test with a short-lived Clerk owner session.
 - [ ] Complete a controlled live Stripe lifecycle: real checkout, webhook receipt, cancellation, refund, Connect invoice payment, payout confirmation, and webhook replay/idempotency check. Use real owner-approved payment details; never fictional identity data.
+- [ ] In the authenticated Stripe Dashboard, set the live public business website to `https://leonsites.org/`, support email to `sites.by.leon@gmail.com`, and terms URL to `https://leonsites.org/terms`; then enable required terms-of-service consent in Checkout and prove the checkbox appears during the live lifecycle test. Stripe's API refuses changes to the platform's own public profile.
 - [ ] Confirm final launch copy, prices, support email, privacy policy, and terms with the business owner.
 - [ ] If branded email is desired, verify a real `@leonsites.org` mailbox end to end before replacing the established Gmail address. Never use `@leonsites.com`; that domain belongs to an unrelated site and has no mail exchanger.
 - [ ] On July 31, run the launch procedure below, rerun this checklist, and keep the previous release plus DNS rollback available.
