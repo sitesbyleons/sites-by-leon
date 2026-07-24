@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
-import { canManageBilling, canStartCheckout, getPlan } from '../../../lib/billing';
+import { canManageBilling, canStartCheckout, getCheckoutPlan } from '../../../lib/billing';
 import { createPlatformDatabase } from '../../../lib/database';
 import { resolveTrustedOrigin } from '../../../lib/request-security';
 import { resolveClientWorkspace } from '../../../lib/workspaces';
@@ -9,7 +9,6 @@ import { resolveClientWorkspace } from '../../../lib/workspaces';
 const testPriceEnvironment = {
   essential: 'STRIPE_TEST_PRICE_ESSENTIAL',
   studio: 'STRIPE_TEST_PRICE_STUDIO',
-  signature: 'STRIPE_TEST_PRICE_SIGNATURE',
 } as const;
 
 export const POST: APIRoute = async ({ request, locals, url }) => {
@@ -24,7 +23,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   const auth = locals.auth();
   if (!auth.userId) return auth.redirectToSignIn({ returnBackUrl: '/dashboard/billing' });
   const form = await request.formData();
-  const plan = getPlan(String(form.get('plan') ?? ''));
+  const plan = getCheckoutPlan(String(form.get('plan') ?? ''));
   if (!plan) return Response.json({ message: 'Choose a valid monthly plan.' }, { status: 400 });
 
   const stripeKey = process.env.STRIPE_TEST_SECRET_KEY;

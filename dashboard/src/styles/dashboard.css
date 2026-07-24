@@ -845,6 +845,10 @@ a { -webkit-tap-highlight-color: transparent; }
 .provision-fields input:focus, .provision-fields select:focus { border-color: #5c72e8; outline: 2px solid rgb(92 114 232 / 0.16); outline-offset: 1px; }
 .provision-fields em { color: #5f645e; font-style: normal; font-weight: 500; text-transform: none; }
 .provision-fields label > small, .template-options > small { min-height: 0.8rem; color: #a63832; font-size: 0.55rem; font-weight: 500; text-transform: none; }
+.provision-readout { display: grid; min-height: 4.2rem; padding: 0.65rem 0.75rem; align-content: center; gap: 0.18rem; border: 1px solid #c9ccc5; border-radius: 6px; background: #f7f8f5; }
+.provision-readout span { color: #565b56; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; }
+.provision-readout strong { color: #20221f; font-size: 0.86rem; }
+.provision-readout small { color: #656a64; font-size: 0.56rem; }
 .template-options { display: grid; min-width: 0; padding: 0; margin: 0 0 0.8rem; grid-column: 2; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; border: 0; }
 .template-options legend { margin-bottom: 0.5rem; grid-column: 1 / -1; }
 .template-options label { position: relative; display: block; min-width: 0; cursor: pointer; }

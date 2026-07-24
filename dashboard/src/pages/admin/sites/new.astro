@@ -61,8 +61,8 @@ const siteDomainJoiner = isTestHost ? '-test.' : '.';
         <small data-field-error="template_key"></small>
       </fieldset>
       <div class="provision-fields provision-fields--two">
-        <label><span>Monthly plan</span><select name="plan_key" required>{planOptions.map((option) => <option value={option.key} selected={option.key === 'studio'}>{option.label} · ${option.monthlyUsd}/month</option>)}</select><small data-field-error="plan_key"></small></label>
-        <label><span>Media storage limit (GB)</span><input type="number" name="quota_gb" required min="1" max="100" step="1" value="2" /><small data-field-error="quota_gb"></small></label>
+        <label><span>Monthly plan</span><select name="plan_key" required>{planOptions.map((option) => <option value={option.key} data-storage-gb={option.storageGb} selected={option.key === 'essential'}>{option.label} · ${option.monthlyUsd}/month</option>)}</select><small data-field-error="plan_key"></small></label>
+        <div class="provision-readout"><span>Included media storage</span><strong data-plan-storage>50 GB</strong><small>Storage is assigned from the customer plan.</small></div>
       </div>
     </section>
 
@@ -80,6 +80,8 @@ const siteDomainJoiner = isTestHost ? '-test.' : '.';
       const slug = form.elements.namedItem('slug') as HTMLInputElement;
       const primaryDomain = form.elements.namedItem('primary_domain') as HTMLInputElement;
       const adminDomain = form.elements.namedItem('admin_domain') as HTMLInputElement;
+      const plan = form.elements.namedItem('plan_key') as HTMLSelectElement;
+      const planStorage = form.querySelector<HTMLElement>('[data-plan-storage]')!;
       const domainSuffix = form.dataset.domainSuffix ?? 'leonsites.org';
       const domainJoiner = form.dataset.domainJoiner ?? '.';
       const result = form.querySelector<HTMLElement>('[data-provision-result]')!;
@@ -99,6 +101,11 @@ const siteDomainJoiner = isTestHost ? '-test.' : '.';
         adminDomain.value = primaryDomain.value;
       });
       primaryDomain.addEventListener('input', () => { addressWasEdited = true; });
+      const syncPlanStorage = () => {
+        const selected = plan.selectedOptions[0];
+        planStorage.textContent = `${selected?.dataset.storageGb ?? '50'} GB`;
+      };
+      plan.addEventListener('change', syncPlanStorage);
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();

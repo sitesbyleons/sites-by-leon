@@ -8,10 +8,11 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Marketing, dashboard, the two intended production customer sites, the isolated staging customer site, API, and PostgreSQL health checks pass after an OS update and reboot.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
 - [x] Dependency audit reports no known vulnerabilities.
-- [x] Root and workspace type checks, builds, 416 unit tests, deployment/backup/monitor regressions, and 94 browser tests pass.
+- [x] Root and workspace type checks, builds, 419 unit tests, deployment/backup/monitor regressions, and 94 browser tests pass.
 - [x] Live Stripe platform prices, Billing Portal, platform webhook, Connect webhook, and Connect v2 destination verify in live mode.
 - [x] Live Billing Portal links to `https://leonsites.org/privacy` and `https://leonsites.org/terms`; the release verifier rejects drift in either URL.
-- [x] Displayed Essential, Studio, and Signature prices match the active live Stripe prices at $25, $30, and $40 per month.
+- [x] Displayed Essential and Studio prices are approved at $25 and $35 per month. Test and live Stripe both use active monthly prices at exactly those amounts; unused $30 and $40 prices are inactive.
+- [x] Test Stripe has one enabled platform webhook at `https://test.leonsites.org/api/webhooks/stripe`; the stale duplicate endpoint and orphaned test subscription/customer are disabled or removed.
 - [x] Public, dashboard, and photographer support fallbacks consistently use the established `sites.by.leon@gmail.com` inbox.
 - [x] Nightly encrypted offsite backup timer is enabled and successful.
 - [x] Fresh snapshot `e9f1d4be7b149a9e0c30ed4252c8b30e187ace1f2b51c1b2de7f54de75974188` restores and validates PostgreSQL plus uploaded media.
@@ -27,6 +28,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 - [ ] Publish local `main` through `8e21b6cd0738f8c542207507c32c91eb5d609546` to the private GitHub repository. The local branch is ahead of the remote and the connected GitHub account currently cannot read that private repository.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
+- [ ] Add application-scoped object storage or expand the upload volume before assigning the advertised 50 GB or 100 GB customer quotas. The current VPS has a 96 GB root filesystem with 71 GB free and a conservative 20 GB provisioning ceiling, so a 100 GB Studio allocation cannot be honored safely yet.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
 - [x] Authenticated production owner smoke passed for Overview, Sites, Demos, Subscriptions, Tickets, and Users. Authenticated staging smoke also passed all ten customer Studio routes without an access-denied redirect.
 - [ ] Complete a controlled live Stripe lifecycle: real checkout, webhook receipt, cancellation, refund, Connect invoice payment, payout confirmation, and webhook replay/idempotency check. Use real owner-approved payment details; never fictional identity data.

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   configureConnect,
+  configurePlans,
   configurePlatform,
   setEnvValue,
 } from '../infra/ovh/scripts/configure-stripe-resources.mjs';
@@ -68,7 +69,7 @@ describe('Stripe resource configuration', () => {
     });
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
-      default_return_url: 'https://leonsites.org/dashboard',
+      default_return_url: 'https://leonsites.org/dashboard/billing',
       features: {
         customer_update: { allowed_updates: [], enabled: false },
         invoice_history: { enabled: true },
@@ -92,8 +93,14 @@ describe('Stripe resource configuration', () => {
   it('reuses an existing Billing Portal configuration without mutating Stripe', async () => {
     const file = envFile('STRIPE_BILLING_PORTAL_CONFIGURATION=bpc_existing\n');
     const retrieve = vi.fn(async () => ({ id: 'bpc_existing', active: true, livemode: false }));
+    const update = vi.fn(async (id: string, input: Record<string, unknown>) => ({
+      id,
+      active: true,
+      livemode: false,
+      ...input,
+    }));
     const create = vi.fn();
-    const stripe = { billingPortal: { configurations: { create, retrieve } } };
+    const stripe = { billingPortal: { configurations: { create, retrieve, update } } };
 
     const result = await configurePlatform(stripe, file, {
       STRIPE_EXPECTED_MODE: 'test',
@@ -102,7 +109,91 @@ describe('Stripe resource configuration', () => {
 
     expect(retrieve).toHaveBeenCalledWith('bpc_existing');
     expect(create).not.toHaveBeenCalled();
-    expect(result).toEqual({ created: false, portal_configuration: 'bpc_existing' });
+    expect(update).toHaveBeenCalledWith('bpc_existing', expect.objectContaining({
+      default_return_url: 'https://test.leonsites.org/dashboard/billing',
+      business_profile: expect.objectContaining({
+        privacy_policy_url: 'https://test.leonsites.org/privacy',
+        terms_of_service_url: 'https://test.leonsites.org/terms',
+      }),
+    }));
+    expect(result).toEqual({ created: false, updated: true, portal_configuration: 'bpc_existing' });
+  });
+
+  it('replaces retired public prices atomically while preserving the current $25 price', async () => {
+    const file = envFile([
+      'STRIPE_PRICE_ESSENTIAL=price_essential',
+      'STRIPE_PRICE_STUDIO=price_studio_old',
+      'STRIPE_PRICE_SIGNATURE=price_signature',
+      'STRIPE_TEST_PRICE_ESSENTIAL=price_essential_old_alias',
+      'STRIPE_TEST_PRICE_STUDIO=price_studio_old',
+      '',
+    ].join('\n'));
+    const records: Record<string, Record<string, unknown>> = {
+      price_essential: {
+        id: 'price_essential', active: true, livemode: false, currency: 'usd',
+        unit_amount: 2_500, type: 'recurring', recurring: { interval: 'month' },
+        product: { id: 'prod_essential', livemode: false },
+      },
+      price_studio_old: {
+        id: 'price_studio_old', active: true, livemode: false, currency: 'usd',
+        unit_amount: 3_000, type: 'recurring', recurring: { interval: 'month' },
+        product: { id: 'prod_studio', livemode: false },
+      },
+      price_signature: {
+        id: 'price_signature', active: true, livemode: false, currency: 'usd',
+        unit_amount: 4_000, type: 'recurring', recurring: { interval: 'month' },
+        product: 'prod_signature',
+      },
+    };
+    const retrieve = vi.fn(async (id: string) => records[id]);
+    const create = vi.fn(async () => ({
+      id: 'price_studio_35',
+      active: true,
+      livemode: false,
+      currency: 'usd',
+      unit_amount: 3_500,
+      type: 'recurring',
+      recurring: { interval: 'month' },
+      product: 'prod_studio',
+    }));
+    const updatePrice = vi.fn(async (id: string, input: Record<string, unknown>) => ({ id, ...input }));
+    const updateProduct = vi.fn(async (id: string, input: Record<string, unknown>) => ({ id, ...input }));
+    const stripe = {
+      prices: { create, retrieve, update: updatePrice },
+      products: {
+        create: vi.fn(),
+        search: vi.fn(),
+        update: updateProduct,
+      },
+    };
+
+    const result = await configurePlans(stripe, file, {
+      STRIPE_EXPECTED_MODE: 'test',
+      STRIPE_PRICE_ESSENTIAL: 'price_essential',
+      STRIPE_PRICE_STUDIO: 'price_studio_old',
+      STRIPE_PRICE_SIGNATURE: 'price_signature',
+      STRIPE_TEST_PRICE_ESSENTIAL: 'price_essential_old_alias',
+      STRIPE_TEST_PRICE_STUDIO: 'price_studio_old',
+    });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      currency: 'usd',
+      product: 'prod_studio',
+      recurring: { interval: 'month' },
+      unit_amount: 3_500,
+    }), expect.objectContaining({ idempotencyKey: expect.stringContaining('studio:3500:test') }));
+    expect(updatePrice).toHaveBeenCalledWith('price_studio_old', { active: false });
+    expect(updatePrice).toHaveBeenCalledWith('price_signature', { active: false });
+    expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_PRICE_STUDIO=price_studio_35');
+    expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_TEST_PRICE_STUDIO=price_studio_35');
+    expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_TEST_PRICE_ESSENTIAL=price_essential');
+    expect(result).toMatchObject({
+      plans: [
+        { key: 'essential', price_id: 'price_essential', amount: 2_500, created: false },
+        { key: 'studio', price_id: 'price_studio_35', amount: 3_500, created: true },
+      ],
+      legacy_signature_retired: true,
+    });
   });
 
   it('replaces the wrong Connect origin only after persisting the new signing secret', async () => {

@@ -39,15 +39,25 @@ describe('launch content', () => {
   });
 
   it('publishes the approved monthly range without a build fee', () => {
-    expect(plans.map((plan) => plan.monthlyPrice)).toEqual([25, 30, 40]);
+    expect(plans.map((plan) => plan.monthlyPrice)).toEqual([25, 35]);
     expect(plans.every((plan) => plan.buildFee === 0)).toBe(true);
   });
 
-  it('includes domains and payments in every plan while reserving custom design for Signature', () => {
-    expect(plans.every((plan) => plan.features.includes('Domain setup'))).toBe(true);
-    expect(plans.every((plan) => plan.features.includes('Payment setup'))).toBe(true);
-    expect(plans.slice(0, 2).every((plan) => plan.features.some((feature) => /template/i.test(feature)))).toBe(true);
-    expect(plans[2].features).toContain('Custom site');
+  it('publishes the approved storage and business tools for both plans', () => {
+    expect(plans[0].features).toEqual([
+      'Custom domain',
+      'Control panel',
+      'Invoicing',
+      'Secure client payments',
+      '50 GB photo storage',
+    ]);
+    expect(plans[1].features).toEqual([
+      'Everything in Essential',
+      'Early access to new features',
+      'Advanced settings',
+      '100 GB photo storage',
+      'Social media post gallery',
+    ]);
   });
 
   it('uses the approved contact address', () => {

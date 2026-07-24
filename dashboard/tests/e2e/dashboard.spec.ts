@@ -47,13 +47,13 @@ test('support and billing are real dashboard pages', async ({ page }) => {
   expect(await page.locator('form[action="/api/billing/checkout"] input[name="plan"]').evaluateAll((inputs) =>
     inputs.map((input) => (input as HTMLInputElement).value),
   )).toEqual(['studio']);
-  await expect(page.getByRole('button', { name: 'Pay $30/month' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Pay $35/month' })).toBeEnabled();
   await expect(page.locator('[data-checkout-status]')).toHaveAttribute('aria-live', 'polite');
 
   await page.goto('/dashboard/billing?preview=true&subscription=canceled');
   await expect(page.getByRole('heading', { name: 'Studio' })).toBeVisible();
   await expect(page.locator('form[action="/api/billing/checkout"]')).toHaveCount(1);
-  await expect(page.getByRole('button', { name: 'Pay $30/month' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Pay $35/month' })).toBeEnabled();
 });
 
 test('dashboard writes accept the HTTPS browser origin behind the private HTTP proxy', async ({ request }) => {

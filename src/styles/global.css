@@ -1392,7 +1392,7 @@ h2 em {
 
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--ink);
   perspective: 1800px;
 }
@@ -1415,11 +1415,6 @@ h2 em {
 
 .pricing-card--featured {
   background: var(--amber);
-}
-
-.pricing-card--custom {
-  background: var(--ink);
-  color: var(--bone-bright);
 }
 
 .pricing-card__header {
@@ -1485,9 +1480,7 @@ h2 em {
   line-height: 1.35;
 }
 
-.pricing-card--featured .pricing-card__description,
-.pricing-card--custom .pricing-card__description,
-.pricing-card--custom li {
+.pricing-card--featured .pricing-card__description {
   color: currentColor;
 }
 
@@ -1506,8 +1499,7 @@ h2 em {
   font-size: 0.68rem;
 }
 
-.pricing-card--featured li,
-.pricing-card--custom li {
+.pricing-card--featured li {
   color: currentColor;
 }
 
@@ -2466,7 +2458,7 @@ h2 em {
   .pricing-grid {
     width: calc(100% + var(--gutter));
     padding-right: var(--gutter);
-    grid-template-columns: repeat(3, minmax(17rem, 82vw));
+    grid-template-columns: repeat(2, minmax(17rem, 82vw));
     border: 0;
     overflow-x: auto;
     scroll-snap-type: x mandatory;

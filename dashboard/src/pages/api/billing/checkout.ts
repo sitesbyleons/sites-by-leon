@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
-import { canManageBilling, canStartCheckout, getPlan } from '../../../lib/billing';
+import { canManageBilling, canStartCheckout, getCheckoutPlan } from '../../../lib/billing';
 import { createPlatformDatabase } from '../../../lib/database';
 import { resolveTrustedOrigin } from '../../../lib/request-security';
 import { resolveClientWorkspace } from '../../../lib/workspaces';
@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   if (!auth.userId) return auth.redirectToSignIn({ returnBackUrl: '/dashboard' });
 
   const form = await request.formData();
-  const plan = getPlan(String(form.get('plan') ?? ''));
+  const plan = getCheckoutPlan(String(form.get('plan') ?? ''));
   const priceId = plan ? process.env[plan.priceEnv] : null;
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   const database = createPlatformDatabase();

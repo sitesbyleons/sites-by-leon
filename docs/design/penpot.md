@@ -53,7 +53,7 @@ Penpot requires dot-separated token names. They map directly to the slash-separa
 - Desktop and mobile boards follow the approved eleven-section page order.
 - The primary action is always `Contact`.
 - All three portfolio examples visibly say `Concept Project`.
-- The approved `$25`, `$30`, and `$40` monthly packages are present with no separate build fee.
+- The approved `$25` and `$35` monthly packages are present with no separate build fee.
 - No element implies Leon is a photographer.
 - Focus states, 44-pixel controls, readable contrast, and reduced motion are represented.
 

@@ -15,8 +15,7 @@ const valid = {
   primary_domain: 'vow.leonsites.org',
   admin_domain: 'vow.leonsites.org',
   template_key: 'editorial',
-  plan_key: 'signature',
-  quota_gb: 20,
+  plan_key: 'studio',
   github_repository: 'sitesbyleons/vow-and-light',
   idempotency_key: '7ed0f9c4-7262-4b44-a8c3-47f56b515f41',
 };
@@ -37,20 +36,20 @@ describe('site provisioning validation', () => {
         primaryDomain: 'vow.leonsites.org',
         adminDomain: 'vow.leonsites.org',
         templateKey: 'editorial',
-        planKey: 'signature',
-        quotaBytes: 20 * 1024 * 1024 * 1024,
+        planKey: 'studio',
+        quotaBytes: 100 * 1024 * 1024 * 1024,
         githubRepository: 'sitesbyleons/vow-and-light',
         idempotencyKey: '7ed0f9c4-7262-4b44-a8c3-47f56b515f41',
       },
     });
   });
 
-  it('rejects custom admin domains, invalid choices, and unreasonable quotas', () => {
+  it('rejects custom admin domains and retired plan choices', () => {
     const result = validateSiteProvisioningInput({
       ...valid,
       admin_domain: 'admin.customer.example',
       template_key: 'unknown',
-      quota_gb: 10_000,
+      plan_key: 'signature',
     });
 
     expect(result).toMatchObject({
@@ -58,7 +57,23 @@ describe('site provisioning validation', () => {
       errors: {
         admin_domain: expect.stringContaining('leonsites.org'),
         template_key: expect.any(String),
-        quota_gb: expect.any(String),
+        plan_key: expect.any(String),
+      },
+    });
+  });
+
+  it('derives storage from the selected plan instead of trusting submitted quota data', () => {
+    const result = validateSiteProvisioningInput({
+      ...valid,
+      plan_key: 'essential',
+      quota_gb: 1,
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        planKey: 'essential',
+        quotaBytes: 50 * 1024 * 1024 * 1024,
       },
     });
   });

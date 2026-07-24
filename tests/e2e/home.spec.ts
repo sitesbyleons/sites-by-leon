@@ -377,25 +377,26 @@ test('keeps all three website examples visual and concise', async ({ page }) => 
   await expect(page.locator('#work article')).toHaveCount(3);
 });
 
-test('shows three side-by-side monthly plans from $25 to $40 with domains and payments', async ({ page }) => {
+test('shows the two approved monthly plans and included features', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
 
   const cards = page.locator('.pricing-card');
-  await expect(cards).toHaveCount(3);
-  await expect(cards.filter({ hasText: 'Essential' })).toContainText('$25');
-  await expect(cards.filter({ hasText: 'Studio' })).toContainText('$30');
-  await expect(cards.filter({ hasText: 'Signature' })).toContainText('$40');
-  await expect(cards.getByText('Domain setup', { exact: true })).toHaveCount(3);
-  await expect(cards.getByText('Payment setup', { exact: true })).toHaveCount(3);
-  await expect(cards.getByText(/template/i)).toHaveCount(2);
-  await expect(cards.getByText('Custom site', { exact: true })).toHaveCount(1);
+  const essentialCard = cards.filter({ has: page.getByRole('heading', { name: 'Essential', exact: true }) });
+  const studioCard = cards.filter({ has: page.getByRole('heading', { name: 'Studio', exact: true }) });
+  await expect(cards).toHaveCount(2);
+  await expect(essentialCard).toContainText('$25');
+  await expect(studioCard).toContainText('$35');
+  await expect(cards.getByText('Custom domain', { exact: true })).toHaveCount(1);
+  await expect(cards.getByText('Secure client payments', { exact: true })).toHaveCount(1);
+  await expect(cards.getByText('50 GB photo storage', { exact: true })).toHaveCount(1);
+  await expect(cards.getByText('100 GB photo storage', { exact: true })).toHaveCount(1);
+  await expect(cards.getByText('Social media post gallery', { exact: true })).toHaveCount(1);
   const cardPositions = await cards.evaluateAll((items) =>
     items.map((item) => ({ x: (item as HTMLElement).offsetLeft, y: (item as HTMLElement).offsetTop })),
   );
   expect(new Set(cardPositions.map((position) => position.y)).size).toBe(1);
   expect(cardPositions[0].x).toBeLessThan(cardPositions[1].x);
-  expect(cardPositions[1].x).toBeLessThan(cardPositions[2].x);
   await expect(page.getByText(/i am a photographer/i)).toHaveCount(0);
 });
 

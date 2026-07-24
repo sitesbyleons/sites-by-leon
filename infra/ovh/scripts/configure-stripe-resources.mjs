@@ -124,13 +124,16 @@ const assertResourceMode = (resource, livemode, label) => {
   assertConfiguration(resource.livemode === livemode, `${label} was created or selected in the wrong mode.`);
 };
 
-const portalInput = {
+const portalBaseUrl = (environment, livemode) => environment.STRIPE_PORTAL_BASE_URL?.trim()
+  || (livemode ? 'https://leonsites.org' : 'https://test.leonsites.org');
+
+const portalInput = (environment, livemode) => ({
   name: 'Leon Sites subscription management',
-  default_return_url: 'https://leonsites.org/dashboard',
+  default_return_url: `${portalBaseUrl(environment, livemode)}/dashboard/billing`,
   business_profile: {
     headline: 'Manage your Leon Sites subscription and payment method.',
-    privacy_policy_url: 'https://leonsites.org/privacy',
-    terms_of_service_url: 'https://leonsites.org/terms',
+    privacy_policy_url: `${portalBaseUrl(environment, livemode)}/privacy`,
+    terms_of_service_url: `${portalBaseUrl(environment, livemode)}/terms`,
   },
   features: {
     customer_update: { allowed_updates: [], enabled: false },
@@ -147,21 +150,141 @@ const portalInput = {
     },
     subscription_update: { enabled: false },
   },
+});
+
+const platformPlans = [
+  {
+    key: 'essential',
+    name: 'Sites By Leon Essential',
+    description: 'Custom domain, control panel, invoicing, secure client payments, and 50 GB photo storage.',
+    amount: 2_500,
+    environmentKey: 'STRIPE_PRICE_ESSENTIAL',
+    testEnvironmentKey: 'STRIPE_TEST_PRICE_ESSENTIAL',
+  },
+  {
+    key: 'studio',
+    name: 'Sites By Leon Studio',
+    description: 'Essential features plus early access, advanced settings, 100 GB photo storage, and a social media post gallery.',
+    amount: 3_500,
+    environmentKey: 'STRIPE_PRICE_STUDIO',
+    testEnvironmentKey: 'STRIPE_TEST_PRICE_STUDIO',
+  },
+];
+
+const priceMatchesPlan = (price, plan, livemode) => price
+  && price.active
+  && price.livemode === livemode
+  && price.currency === 'usd'
+  && price.unit_amount === plan.amount
+  && price.type === 'recurring'
+  && price.recurring?.interval === 'month';
+
+const productIdFromPrice = (price) => typeof price?.product === 'string'
+  ? price.product
+  : price?.product?.id;
+
+const persistPriceId = (envFile, environment, key, priceId) => {
+  setEnvValue(envFile, key, priceId);
+  environment[key] = priceId;
+};
+
+export const configurePlans = async (stripe, envFile, environment = process.env) => {
+  const livemode = expectedLivemode(environment);
+  const configured = [];
+
+  for (const plan of platformPlans) {
+    inspectEnvFile(envFile, plan.environmentKey);
+    const existingId = environment[plan.environmentKey]?.trim();
+    const existing = existingId
+      ? await stripe.prices.retrieve(existingId, { expand: ['product'] })
+      : null;
+    if (existing) assertResourceMode(existing, livemode, `${plan.name} price`);
+
+    let productId = productIdFromPrice(existing);
+    if (!productId) {
+      const matches = await stripe.products.search({
+        query: `metadata['leon_plan_key']:'${plan.key}'`,
+        limit: 2,
+      });
+      assertConfiguration(matches.data.length <= 1, `Multiple Stripe products are tagged for ${plan.key}.`);
+      const product = matches.data[0] ?? await stripe.products.create({
+        name: plan.name,
+        description: plan.description,
+        metadata: { leon_plan_key: plan.key },
+      }, { idempotencyKey: `leon-plan-product:${plan.key}:${livemode ? 'live' : 'test'}` });
+      assertResourceMode(product, livemode, `${plan.name} product`);
+      productId = product.id;
+    }
+
+    await stripe.products.update(productId, {
+      active: true,
+      name: plan.name,
+      description: plan.description,
+      metadata: { leon_plan_key: plan.key },
+    });
+
+    let price = existing;
+    let created = false;
+    if (!priceMatchesPlan(existing, plan, livemode)) {
+      price = await stripe.prices.create({
+        active: true,
+        currency: 'usd',
+        nickname: `${plan.name} monthly`,
+        product: productId,
+        recurring: { interval: 'month' },
+        unit_amount: plan.amount,
+      }, { idempotencyKey: `leon-plan-price:${plan.key}:${plan.amount}:${livemode ? 'live' : 'test'}` });
+      assertConfiguration(priceMatchesPlan(price, plan, livemode), `Stripe created an invalid ${plan.key} price.`);
+      persistPriceId(envFile, environment, plan.environmentKey, price.id);
+      if (existing?.active) await stripe.prices.update(existing.id, { active: false });
+      created = true;
+    }
+
+    const testAlias = environment[plan.testEnvironmentKey];
+    if (!livemode && testAlias !== undefined && testAlias.trim() !== price.id) {
+      persistPriceId(envFile, environment, plan.testEnvironmentKey, price.id);
+    }
+
+    configured.push({
+      key: plan.key,
+      price_id: price.id,
+      product_id: productId,
+      amount: plan.amount,
+      created,
+    });
+  }
+
+  const legacyPriceId = environment.STRIPE_PRICE_SIGNATURE?.trim();
+  let legacySignatureRetired = false;
+  if (legacyPriceId) {
+    const legacy = await stripe.prices.retrieve(legacyPriceId);
+    assertResourceMode(legacy, livemode, 'Legacy Signature price');
+    if (legacy.active) {
+      await stripe.prices.update(legacy.id, { active: false });
+      legacySignatureRetired = true;
+    }
+  }
+
+  return { plans: configured, legacy_signature_retired: legacySignatureRetired };
 };
 
 export const configurePlatform = async (stripe, envFile, environment = process.env) => {
   const livemode = expectedLivemode(environment);
   inspectEnvFile(envFile, 'STRIPE_BILLING_PORTAL_CONFIGURATION');
   const existingId = environment.STRIPE_BILLING_PORTAL_CONFIGURATION?.trim();
+  const input = portalInput(environment, livemode);
 
   if (existingId) {
     const existing = await stripe.billingPortal.configurations.retrieve(existingId);
     assertResourceMode(existing, livemode, 'Billing Portal configuration');
     assertConfiguration(existing.active, 'Billing Portal configuration is not active.');
-    return { created: false, portal_configuration: existing.id };
+    const updated = await stripe.billingPortal.configurations.update(existing.id, input);
+    assertResourceMode(updated, livemode, 'Billing Portal configuration');
+    assertConfiguration(updated.active, 'Updated Billing Portal configuration is not active.');
+    return { created: false, updated: true, portal_configuration: updated.id };
   }
 
-  const configuration = await stripe.billingPortal.configurations.create(portalInput);
+  const configuration = await stripe.billingPortal.configurations.create(input);
   assertResourceMode(configuration, livemode, 'Billing Portal configuration');
   assertConfiguration(configuration.active, 'New Billing Portal configuration is not active.');
   setEnvValue(envFile, 'STRIPE_BILLING_PORTAL_CONFIGURATION', configuration.id);
@@ -283,20 +406,22 @@ const isMain = process.argv[1]
 if (isMain) {
   const profile = process.argv[2];
   const envFile = process.argv[3];
-  if (!['platform', 'connect'].includes(profile) || !envFile) {
-    console.error('Usage: configure-stripe-resources.mjs platform|connect /path/to/runtime.env');
+  if (!['plans', 'platform', 'connect'].includes(profile) || !envFile) {
+    console.error('Usage: configure-stripe-resources.mjs plans|platform|connect /path/to/runtime.env');
     process.exit(2);
   }
 
   try {
     process.loadEnvFile(envFile);
-    const key = profile === 'platform'
+    const key = profile === 'platform' || profile === 'plans'
       ? required(process.env, 'STRIPE_SECRET_KEY')
       : process.env.STRIPE_CONNECT_SECRET_KEY?.trim() || required(process.env, 'STRIPE_SECRET_KEY');
     const stripe = new Stripe(key, { maxNetworkRetries: 2, timeout: 20_000 });
-    const result = profile === 'platform'
-      ? await configurePlatform(stripe, envFile)
-      : await configureConnect(stripe, envFile);
+    const result = profile === 'plans'
+      ? await configurePlans(stripe, envFile)
+      : profile === 'platform'
+        ? await configurePlatform(stripe, envFile)
+        : await configureConnect(stripe, envFile);
     console.log(JSON.stringify({ profile, mode: process.env.STRIPE_EXPECTED_MODE, configured: true, ...result }, null, 2));
   } catch (error) {
     console.error(error instanceof ConfigurationError ? error.message : 'Stripe resource configuration failed.');

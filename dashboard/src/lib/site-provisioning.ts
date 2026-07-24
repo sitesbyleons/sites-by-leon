@@ -5,9 +5,8 @@ export const siteTemplateOptions = [
 ] as const;
 
 export const planOptions = [
-  { key: 'essential', label: 'Essential', monthlyUsd: 25 },
-  { key: 'studio', label: 'Studio', monthlyUsd: 30 },
-  { key: 'signature', label: 'Signature', monthlyUsd: 40 },
+  { key: 'essential', label: 'Essential', monthlyUsd: 25, storageGb: 50 },
+  { key: 'studio', label: 'Studio', monthlyUsd: 35, storageGb: 100 },
 ] as const;
 
 export type SiteTemplateKey = (typeof siteTemplateOptions)[number]['key'];
@@ -78,7 +77,6 @@ export function validateSiteProvisioningInput(
   const adminDomain = normalizeSiteDomain(source.admin_domain ?? source.adminDomain);
   const templateKey = text(source.template_key ?? source.templateKey);
   const planKey = text(source.plan_key ?? source.planKey);
-  const quotaGbValue = Number(source.quota_gb ?? source.quotaGb);
   const githubRepositoryValue = text(source.github_repository ?? source.githubRepository);
   const idempotencyKey = text(source.idempotency_key ?? source.idempotencyKey);
   const errors: Record<string, string> = {};
@@ -96,15 +94,13 @@ export function validateSiteProvisioningInput(
   }
   if (!templateKeys.has(templateKey)) errors.template_key = 'Choose a supported starter design.';
   if (!planKeys.has(planKey)) errors.plan_key = 'Choose a supported monthly plan.';
-  if (!Number.isSafeInteger(quotaGbValue) || quotaGbValue < 1 || quotaGbValue > 100) {
-    errors.quota_gb = 'Choose a storage limit from 1 to 100 GB.';
-  }
   if (githubRepositoryValue && !repositoryPattern.test(githubRepositoryValue)) {
     errors.github_repository = 'Use the GitHub owner/repository format.';
   }
   if (!idempotencyPattern.test(idempotencyKey)) errors.idempotency_key = 'Refresh the page and try again.';
 
   if (Object.keys(errors).length) return { ok: false, errors };
+  const selectedPlan = planOptions.find((option) => option.key === planKey)!;
   return {
     ok: true,
     value: {
@@ -115,7 +111,7 @@ export function validateSiteProvisioningInput(
       adminDomain,
       templateKey: templateKey as SiteTemplateKey,
       planKey: planKey as SitePlanKey,
-      quotaBytes: quotaGbValue * 1024 * 1024 * 1024,
+      quotaBytes: selectedPlan.storageGb * 1024 * 1024 * 1024,
       githubRepository: githubRepositoryValue || null,
       idempotencyKey,
     },

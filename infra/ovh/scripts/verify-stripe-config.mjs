@@ -24,14 +24,8 @@ const connectThinEvents = [
 ];
 const prices = [
   ['essential', 'STRIPE_PRICE_ESSENTIAL', 2_500],
-  ['studio', 'STRIPE_PRICE_STUDIO', 3_000],
-  ['signature', 'STRIPE_PRICE_SIGNATURE', 4_000],
+  ['studio', 'STRIPE_PRICE_STUDIO', 3_500],
 ];
-const legalUrls = {
-  privacy: 'https://leonsites.org/privacy',
-  terms: 'https://leonsites.org/terms',
-};
-
 class ConfigurationError extends Error {}
 
 const required = (name) => {
@@ -100,6 +94,12 @@ const verifyDestination = (destination, input) => {
 };
 
 const verifyPlatform = async (stripe, livemode) => {
+  const portalBaseUrl = process.env.STRIPE_PORTAL_BASE_URL?.trim()
+    || (livemode ? 'https://leonsites.org' : 'https://test.leonsites.org');
+  const legalUrls = {
+    privacy: `${portalBaseUrl}/privacy`,
+    terms: `${portalBaseUrl}/terms`,
+  };
   const verifiedPrices = [];
   for (const [plan, variable, amount] of prices) {
     const price = await stripe.prices.retrieve(required(variable));
@@ -119,14 +119,18 @@ const verifyPlatform = async (stripe, livemode) => {
   assertConfig(portal.features.subscription_cancel.enabled, 'Billing Portal cancellation is disabled.');
   assertConfig(portal.features.subscription_cancel.mode === 'at_period_end', 'Billing Portal must cancel at period end.');
   assertConfig(!portal.features.subscription_update.enabled, 'Billing Portal subscription updates must be disabled.');
+  assertConfig(portal.default_return_url === `${portalBaseUrl}/dashboard/billing`,
+    'Billing Portal return URL is incorrect.');
   assertConfig(portal.business_profile.privacy_policy_url === legalUrls.privacy,
     'Billing Portal privacy policy URL is incorrect.');
   assertConfig(portal.business_profile.terms_of_service_url === legalUrls.terms,
     'Billing Portal terms of service URL is incorrect.');
 
   const destinations = await listEventDestinations(stripe);
+  const platformWebhookUrl = process.env.STRIPE_PLATFORM_WEBHOOK_URL?.trim()
+    || `${portalBaseUrl}/api/webhooks/stripe`;
   const endpoint = verifyDestination(
-    destinationAt(destinations, process.env.STRIPE_PLATFORM_WEBHOOK_URL ?? 'https://leonsites.org/api/webhooks/stripe'),
+    destinationAt(destinations, platformWebhookUrl),
     { livemode, payload: 'snapshot', origin: 'self', events: platformEvents },
   );
 
