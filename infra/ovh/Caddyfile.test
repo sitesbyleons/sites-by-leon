@@ -17,8 +17,10 @@
 		X-Frame-Options DENY
 		Referrer-Policy strict-origin-when-cross-origin
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
-		Cross-Origin-Resource-Policy same-site
 	}
+
+	@same_site_resources not path /media/*
+	header @same_site_resources Cross-Origin-Resource-Policy same-site
 
 	@private path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/*
 	header @private Cache-Control "private, no-store"
@@ -40,7 +42,7 @@
 		path /media/*
 	}
 	handle @media {
-		header >Cross-Origin-Resource-Policy cross-origin
+		header Cross-Origin-Resource-Policy cross-origin
 		handle_path /media/* {
 			rewrite * /api/media{path}
 			reverse_proxy photographer-test:4321

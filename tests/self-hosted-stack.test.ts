@@ -24,7 +24,8 @@ describe('fully self-hosted production stack', () => {
     expect(caddy).toContain('reverse_proxy gateway-test:80');
     expect(caddy).toContain('handle_path /media/*');
     expect(caddy).toContain('rewrite * /api/media{path}');
-    expect(caddy).toContain('header >Cross-Origin-Resource-Policy cross-origin');
+    expect(caddy).toContain('@same_site_resources not path /media/*');
+    expect(caddy).toContain('header Cross-Origin-Resource-Policy cross-origin');
     expect(caddy).toContain('reverse_proxy photographer:4321');
     expect(caddy).not.toContain('root * /srv/uploads');
     expect(caddy).not.toMatch(/DEMO_DOMAIN|@test_site|reverse_proxy northline:/);
