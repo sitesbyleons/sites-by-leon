@@ -4,7 +4,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Verified July 24
 
-- [x] Immutable release `fae52962a47faf00ba89687fd4d1407a06ac9f64` passed staging and production deployment gates in `coming-soon` mode, with release `8e21b6cd0738f8c542207507c32c91eb5d609546` preserved for rollback.
+- [x] Immutable release `1088fc5c11f9cce4e7c5dc9937cec775975bc888` passed staging and production deployment gates in `coming-soon` mode, with prior production release `fae52962a47faf00ba89687fd4d1407a06ac9f64` preserved for rollback.
 - [x] Storage release `1088fc5c11f9cce4e7c5dc9937cec775975bc888` passed isolated staging deployment and health gates. The staging fallback directory is owned by the non-root runtime user with mode `0750`; a disposable PNG streamed through the media proxy with the exact 1,274,400-byte payload and SHA-256 `7b100d77b3658c89a81ccc3298902c707165faef36e81171dfa934186f1b2f86`, returned `image/png`, passed `Last-Modified` revalidation, and was removed from origin storage.
 - [x] Marketing, dashboard, the two intended production customer sites, the isolated staging customer site, API, and PostgreSQL health checks pass after an OS update and reboot.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
@@ -87,3 +87,10 @@ Results after promoting `fae52962a47faf00ba89687fd4d1407a06ac9f64` at `2026-07-2
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 10 | 100 | 0 | 65 ms | 309 ms | 90.8 |
 | 50 | 500 | 0 | 66 ms | 1,067 ms | 283.8 |
+
+Results after promoting managed-media release `1088fc5c11f9cce4e7c5dc9937cec775975bc888` at `2026-07-24T22:06:59Z`:
+
+| Concurrency | Requests | Failures | p50 | p95 | Requests/second |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 100 | 0 | 64 ms | 322 ms | 95.3 |
+| 50 | 500 | 0 | 64 ms | 617 ms | 377.5 |
