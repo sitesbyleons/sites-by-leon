@@ -5,10 +5,11 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 ## Verified July 24
 
 - [x] Immutable release `fae52962a47faf00ba89687fd4d1407a06ac9f64` passed staging and production deployment gates in `coming-soon` mode, with release `8e21b6cd0738f8c542207507c32c91eb5d609546` preserved for rollback.
+- [x] Storage release `1088fc5c11f9cce4e7c5dc9937cec775975bc888` passed isolated staging deployment and health gates. The staging fallback directory is owned by the non-root runtime user with mode `0750`; a disposable PNG streamed through the media proxy with the exact 1,274,400-byte payload and SHA-256 `7b100d77b3658c89a81ccc3298902c707165faef36e81171dfa934186f1b2f86`, returned `image/png`, passed `Last-Modified` revalidation, and was removed from origin storage.
 - [x] Marketing, dashboard, the two intended production customer sites, the isolated staging customer site, API, and PostgreSQL health checks pass after an OS update and reboot.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
 - [x] Dependency audit reports no known vulnerabilities.
-- [x] Root and workspace type checks, builds, 419 unit tests, deployment/backup/monitor regressions, and 94 browser tests pass.
+- [x] Root and workspace type checks, builds, 432 unit tests, deployment/backup/monitor regressions, and 94 browser tests pass.
 - [x] Live Stripe platform prices, Billing Portal, platform webhook, Connect webhook, and Connect v2 destination verify in live mode.
 - [x] Live Billing Portal links to `https://leonsites.org/privacy` and `https://leonsites.org/terms`; the release verifier rejects drift in either URL.
 - [x] Displayed Essential and Studio prices are approved at $25 and $35 per month. Test and live Stripe both use active monthly prices at exactly those amounts; unused $30 and $40 prices are inactive.
@@ -28,8 +29,9 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [ ] Publish local `main` through `fae52962a47faf00ba89687fd4d1407a06ac9f64` to `sitesbyleons/sites-by-leon`. The local branch is ahead of the remote; HTTPS has no credential, and the connected GitHub App is installed only on the different public repository `LimonLimez/sites-by-leon`.
+- [ ] Publish local `main` through `1088fc5c11f9cce4e7c5dc9937cec775975bc888` to `sitesbyleons/sites-by-leon`. The local branch is ahead of the remote; HTTPS has no credential, and the connected GitHub App is installed only on the different public repository `LimonLimez/sites-by-leon`.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
+- [ ] Correct the Cloudflare edge rules that override managed media responses. Direct origin verification returns `Cache-Control: public, max-age=300, must-revalidate` and `Cross-Origin-Resource-Policy: cross-origin`, while Cloudflare currently changes them to `max-age=14400` and `same-site`. Set the browser cache TTL to respect the origin and remove the response-header transform, purge the three disposable `media-proxy-smoke-*` URLs plus the existing production media URL, and repeat edge assertions before production promotion.
 - [ ] Configure the implemented application-scoped S3-compatible media backend before assigning the advertised 50 GB or 100 GB customer quotas. Create separate private versioned production/staging buckets, install scoped credentials, pass the deploy write/read/delete verifier, migrate existing files with zero failures, and configure an independent replica/export. The current VPS has a 96 GB root filesystem with 71 GB free and a conservative 20 GB provisioning ceiling, so code support alone cannot honor a 100 GB Studio allocation.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
 - [x] Authenticated production owner smoke passed for Overview, Sites, Demos, Subscriptions, Tickets, and Users. Authenticated staging smoke also passed all ten customer Studio routes without an access-denied redirect.
