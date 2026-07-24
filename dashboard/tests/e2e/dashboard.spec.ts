@@ -46,13 +46,13 @@ test('support and billing are real dashboard pages', async ({ page }) => {
   await page.goto('/dashboard/billing?preview=true&subscription=none');
   expect(await page.locator('form[action="/api/billing/checkout"] input[name="plan"]').evaluateAll((inputs) =>
     inputs.map((input) => (input as HTMLInputElement).value),
-  )).toEqual(['essential', 'studio', 'signature']);
+  )).toEqual(['studio']);
+  await expect(page.getByRole('button', { name: 'Pay $30/month' })).toBeEnabled();
 
   await page.goto('/dashboard/billing?preview=true&subscription=canceled');
-  await expect(page.getByRole('heading', { name: 'Choose a plan' })).toBeVisible();
-  await expect(page.locator('form[action="/api/billing/checkout"]')).toHaveCount(3);
-  await expect(page.getByRole('button', { name: 'Choose' })).toHaveCount(3);
-  for (const button of await page.getByRole('button', { name: 'Choose' }).all()) await expect(button).toBeEnabled();
+  await expect(page.getByRole('heading', { name: 'Studio' })).toBeVisible();
+  await expect(page.locator('form[action="/api/billing/checkout"]')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Pay $30/month' })).toBeEnabled();
 });
 
 test('dashboard writes accept the HTTPS browser origin behind the private HTTP proxy', async ({ request }) => {
