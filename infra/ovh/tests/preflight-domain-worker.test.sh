@@ -5,6 +5,7 @@ REPOSITORY_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)
 PREFLIGHT_SCRIPT=${REPOSITORY_ROOT}/infra/ovh/scripts/preflight-domain-worker.sh
 RUNTIME_PREFLIGHT_SCRIPT=${REPOSITORY_ROOT}/infra/ovh/scripts/preflight-runtime-secrets.sh
 DEPLOY_SCRIPT=${REPOSITORY_ROOT}/infra/ovh/scripts/deploy.sh
+UPLOAD_DIRECTORY_SCRIPT=${REPOSITORY_ROOT}/infra/ovh/scripts/ensure-upload-directory.sh
 VALID_PASSWORD=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 OTHER_PASSWORD=fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
 VALID_TOKEN=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN
@@ -118,6 +119,7 @@ remove_line() {
 prepare_deploy_fixture() {
   mkdir -p "${FIXTURE}/infra/ovh/tests" "${FIXTURE}/bin"
   cp "${DEPLOY_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/deploy.sh"
+  cp "${UPLOAD_DIRECTORY_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/ensure-upload-directory.sh"
   cp "${PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-domain-worker.sh"
   cp "${RUNTIME_PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-runtime-secrets.sh"
   cat > "${FIXTURE}/bin/docker" <<'EOF'
@@ -125,7 +127,11 @@ prepare_deploy_fixture() {
 printf '%s\n' "$*" >> "${DOCKER_CALL_LOG}"
 exit 91
 EOF
-  chmod +x "${FIXTURE}/bin/docker"
+  cat > "${FIXTURE}/bin/sudo" <<'EOF'
+#!/usr/bin/env bash
+"$@"
+EOF
+  chmod +x "${FIXTURE}/bin/docker" "${FIXTURE}/bin/sudo"
 }
 
 run_deploy() {
@@ -146,11 +152,16 @@ run_deploy() {
 prepare_complete_deploy_fixture() {
   mkdir -p "${FIXTURE}/bin"
   cp "${DEPLOY_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/deploy.sh"
+  cp "${UPLOAD_DIRECTORY_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/ensure-upload-directory.sh"
   cp "${PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-domain-worker.sh"
   cp "${RUNTIME_PREFLIGHT_SCRIPT}" "${FIXTURE}/infra/ovh/scripts/preflight-runtime-secrets.sh"
   cat > "${FIXTURE}/bin/docker" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${DOCKER_CALL_LOG}"
+EOF
+  cat > "${FIXTURE}/bin/sudo" <<'EOF'
+#!/usr/bin/env bash
+"$@"
 EOF
   cat > "${FIXTURE}/infra/ovh/scripts/migrate-database.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -170,7 +181,7 @@ printf '%s\n%s\n' \
 [[ ${COMPOSE_PROFILES:-} == tunnel,domains ]]
 [[ ${CUSTOM_DOMAIN_AUTOMATION_ENABLED:-} == true ]]
 EOF
-  chmod +x "${FIXTURE}/bin/docker" "${FIXTURE}/infra/ovh/scripts/"*.sh
+  chmod +x "${FIXTURE}/bin/docker" "${FIXTURE}/bin/sudo" "${FIXTURE}/infra/ovh/scripts/"*.sh
 }
 
 new_fixture

@@ -15,6 +15,10 @@ export TEST_SECRETS_ROOT RELEASE_SHA=${RELEASE_SHA:-$(basename "${SOURCE_ROOT}")
 
 TEST_SECRETS_ROOT="${TEST_SECRETS_ROOT}" TEST_COMPOSE_ENV_FILE="${TEST_COMPOSE_ENV_FILE}" \
   /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/preflight-test-secrets.sh"
+test_uploads_path=$(sed -n 's/^TEST_UPLOADS_PATH=//p' "${TEST_COMPOSE_ENV_FILE}" | tail -n 1 | tr -d '\r')
+test_uploads_path=${test_uploads_path:-/opt/leon-platform/uploads-test}
+/usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/ensure-upload-directory.sh" \
+  TEST_UPLOADS_PATH "${test_uploads_path}" /opt/leon-platform
 cd "${SOURCE_ROOT}/infra/ovh"
 compose=(docker compose --env-file "${TEST_COMPOSE_ENV_FILE}" -f docker-compose.test.yml)
 

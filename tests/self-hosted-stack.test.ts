@@ -81,6 +81,7 @@ describe('fully self-hosted production stack', () => {
     expect(deploy).toContain('/opt/leon-platform/current-test');
     expect(deploy).toContain('configure-test-runtime-role.sh');
     expect(deploy).toContain('verify-media-storage.mjs');
+    expect(deploy).toContain('ensure-upload-directory.sh');
     expect(activate).toContain('current-test.new');
     expect(activate).toContain('automatic rollback protection');
     expect(activate).toContain('flock -u 9');
@@ -105,6 +106,20 @@ describe('fully self-hosted production stack', () => {
     expect(verifier).toContain('GetObjectCommand');
     expect(verifier).toContain('DeleteObjectCommand');
     expect(verifier).toContain('crypto.timingSafeEqual');
+  });
+
+  it('creates private host upload volumes for the non-root media runtime', () => {
+    const productionDeploy = read('infra/ovh/scripts/deploy.sh');
+    const stagingDeploy = read('infra/ovh/scripts/deploy-test.sh');
+    const provisioner = read('infra/ovh/scripts/ensure-upload-directory.sh');
+
+    expect(productionDeploy).toContain('UPLOADS_PATH "${uploads_path}" "${PLATFORM_ROOT}"');
+    expect(stagingDeploy).toContain('TEST_UPLOADS_PATH "${test_uploads_path}" /opt/leon-platform');
+    expect(provisioner).toContain('${platform_root}/uploads');
+    expect(provisioner).toContain('/mnt/*');
+    expect(provisioner).toContain('/srv/*');
+    expect(provisioner).toContain('${upload_path} != "${normalized_path}"');
+    expect(provisioner).toContain('sudo install -d -o "$(id -u)" -g "$(id -g)" -m 0750 "${upload_path}"');
   });
 
   it('defines the application schema without Supabase roles or auth functions', () => {

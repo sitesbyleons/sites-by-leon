@@ -61,6 +61,8 @@ Each application uses at most four PostgreSQL connections by default. Set `DATAB
 
 `MEDIA_STORAGE_BACKEND=local` keeps the current disk-backed behavior. `MEDIA_STORAGE_BACKEND=s3` writes optimized uploads to a private S3-compatible bucket while reading existing disk files first, so the backend can be changed without breaking old URLs. Caddy proxies `/media/*` through the photographer runtime; it no longer mounts or reads the upload directory.
 
+Both deployment paths create the configured local fallback directory as the deployment user with mode `0750` before Docker starts. The path must be the platform `uploads` directory, a platform `uploads-*` directory, or a dedicated subdirectory of `/mnt` or `/srv`. Relative, non-normalized, and symlink-resolved paths are rejected so a bad environment value cannot change ownership on a system directory.
+
 Use separate production and staging buckets. Keep public access disabled, enable bucket versioning, and issue different app credentials for each environment. Limit each credential to bucket versioning status plus get, put, and delete access under its configured `S3_KEY_PREFIX`; do not use account-wide object-storage credentials. Put the endpoint, region, bucket, access key, secret, path-style setting, and prefix only in the owner-readable photographer environment file. Deployment rejects malformed configuration and performs a temporary write/read/delete check against the real versioned bucket before accepting the release.
 
 Roll out one environment at a time:

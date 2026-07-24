@@ -31,6 +31,11 @@ read_env_setting() {
   printf '%s' "${value}"
 }
 
+uploads_path=$(read_env_setting UPLOADS_PATH)
+uploads_path=${uploads_path:-${PLATFORM_ROOT}/uploads}
+/usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/ensure-upload-directory.sh" \
+  UPLOADS_PATH "${uploads_path}" "${PLATFORM_ROOT}"
+
 domain_api_enabled=${CUSTOM_DOMAIN_AUTOMATION_ENABLED:-$(read_env_setting CUSTOM_DOMAIN_AUTOMATION_ENABLED)}
 domain_api_enabled=${domain_api_enabled:-false}
 compose_profiles=${COMPOSE_PROFILES:-$(read_env_setting COMPOSE_PROFILES)}
