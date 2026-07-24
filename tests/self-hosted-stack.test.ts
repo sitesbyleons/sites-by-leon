@@ -76,6 +76,7 @@ describe('fully self-hosted production stack', () => {
     expect(deploy).toContain('configure-test-runtime-role.sh');
     expect(activate).toContain('current-test.new');
     expect(activate).toContain('automatic rollback protection');
+    expect(activate).toContain('flock -u 9');
     expect(configureRole).toContain('leon_test_dashboard');
     expect(configureRole).toContain('grant leon_runtime to leon_test_dashboard');
     expect(promote).toContain('Only the currently deployed staging release can be promoted.');

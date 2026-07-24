@@ -19,7 +19,10 @@ if ! MAINTENANCE_LOCK_HELD=1 RELEASE_SHA="${sha}" SOURCE_ROOT="${release}" \
   if [[ -n ${previous} && -d ${previous} ]]; then
     sudo ln -sfn "${previous}" "${platform_root}/current-test.new"
     sudo mv -Tf "${platform_root}/current-test.new" "${platform_root}/current-test"
-    MAINTENANCE_LOCK_HELD=1 RELEASE_SHA=$(basename "${previous}") SOURCE_ROOT="${previous}" \
+    # Older staging releases acquire the lock themselves and do not understand
+    # MAINTENANCE_LOCK_HELD, so release it before invoking their rollback deploy.
+    flock -u 9
+    RELEASE_SHA=$(basename "${previous}") SOURCE_ROOT="${previous}" \
       /usr/bin/bash "${previous}/infra/ovh/scripts/deploy-test.sh" || true
   fi
   exit 1
