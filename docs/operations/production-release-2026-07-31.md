@@ -22,7 +22,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [ ] Publish release-candidate source to the private GitHub `main` branch. The connected GitHub App can access the older public `LimonLimez/sites-by-leon`, but not the production remote `sitesbyleons/sites-by-leon`; do not publish production history to the older repository.
+- [x] Release-candidate tree `b74bc6998d75340a3deb52830c3160c85f531804` published to private GitHub `main` as commit `a3f26a717150cf1d221d074c300f0453b679ac02` through a non-forced fast-forward.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
 - [ ] Complete one authenticated customer acceptance smoke test with a short-lived Clerk owner session.
