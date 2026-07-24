@@ -19,7 +19,7 @@ compose=(docker compose --env-file "${TEST_COMPOSE_ENV_FILE}" -f docker-compose.
 docker network inspect leon-edge >/dev/null 2>&1 || docker network create leon-edge >/dev/null
 "${compose[@]}" up -d database-test
 "${compose[@]}" exec -T database-test sh -c \
-  'until pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"; do sleep 1; done'
+  'until psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --command "select 1" >/dev/null 2>&1; do sleep 1; done'
 "${compose[@]}" exec -T database-test sh -c \
   'psql --set ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"' <<'SQL'
 do $$
