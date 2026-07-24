@@ -64,6 +64,7 @@ describe('fully self-hosted production stack', () => {
     const deploy = read('infra/ovh/scripts/deploy-test.sh');
     const activate = read('infra/ovh/scripts/activate-test-release.sh');
     const configureRole = read('infra/ovh/scripts/configure-test-runtime-role.sh');
+    const healthcheck = read('infra/ovh/scripts/healthcheck-test.sh');
     const promote = read('infra/ovh/scripts/promote-tested-release.sh');
 
     expect(compose).toContain('name: leon-platform-test');
@@ -84,6 +85,7 @@ describe('fully self-hosted production stack', () => {
     expect(configureRole).toContain('leon_test_dashboard');
     expect(configureRole).toContain('grant leon_runtime to leon_test_dashboard');
     expect(configureRole).toContain('grant leon_photographer_runtime to leon_test_photographer');
+    expect(healthcheck).toContain('--header="Host: ${TEST_DOMAIN}"');
     expect(promote).toContain('Only the currently deployed staging release can be promoted.');
     expect(promote).toContain('MAINTENANCE_LOCK_HELD=1');
     expect(promote).toContain('/infra/ovh/scripts/deploy.sh');

@@ -16,7 +16,8 @@ done
 
 "${compose[@]}" exec -T database-test sh -c \
   'pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" >/dev/null && psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --tuples-only --command "select count(*) from client_workspaces;" >/dev/null'
-health=$("${compose[@]}" exec -T gateway-test wget -qO- http://127.0.0.1/api/health)
+health=$("${compose[@]}" exec -T gateway-test sh -c \
+  'wget -qO- --header="Host: ${TEST_DOMAIN}" http://127.0.0.1/api/health')
 printf '%s' "${health}" | grep -q '"ok":true' || { echo 'Staging dashboard health response is invalid.' >&2; exit 1; }
 photographer_health=$("${compose[@]}" exec -T photographer-test node -e "fetch('http://127.0.0.1:4321/api/health').then(async r=>{process.stdout.write(await r.text());if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))")
 printf '%s' "${photographer_health}" | grep -q '"service":"leon-photographer-runtime"' \
