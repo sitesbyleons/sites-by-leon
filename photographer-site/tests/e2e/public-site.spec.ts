@@ -267,40 +267,20 @@ test('reduced motion keeps editorial content visible without drift', async ({ pa
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
-test('reduced motion resets and suppresses selected work focus scale', async ({ page }) => {
+test('selected work stays on a flat media plane across motion preferences', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
 
   const media = page.locator('.work-project__media').first();
   await expectSelectedWorkHydrated(page);
   await media.focus();
-  await expect.poll(() => media.evaluate((element) => {
-    const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
-    return Number(matrix.a.toFixed(3));
-  })).toBe(1.006);
+  await expect(media).toHaveCSS('transform', 'none');
+  await expect(page.locator('.work-project__light')).toHaveCount(0);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect.poll(() => media.evaluate((element) => {
-    const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
-    return Number(matrix.a.toFixed(3));
-  })).toBe(1);
-
-  const reducedFocusScales = await media.evaluate(async (element) => {
-    const readScale = () => Number(
-      new DOMMatrixReadOnly(getComputedStyle(element).transform).a.toFixed(3),
-    );
-    element.blur();
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    (element as HTMLElement).focus();
-
-    const samples: number[] = [];
-    for (let frame = 0; frame < 12; frame += 1) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      samples.push(readScale());
-    }
-    return samples;
-  });
-  expect(reducedFocusScales).toEqual(Array(12).fill(1));
+  await media.blur();
+  await media.focus();
+  await expect(media).toHaveCSS('transform', 'none');
 });
 
 test('live motion preference clears and restores resolved drift targets', async ({ context, page }) => {

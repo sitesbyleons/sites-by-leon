@@ -7,6 +7,7 @@ import SelectedWorkReel from '../src/components/SelectedWorkReel';
 import { demoPortfolio } from '../src/lib/content/demo';
 
 const selectedWorkSourceUrl = new URL('../src/components/SelectedWorkReel.tsx', import.meta.url);
+const selectedWorkStylesUrl = new URL('../src/components/selected-work-reel.css', import.meta.url);
 
 type MotionElementTarget = {
   tagName: string;
@@ -443,7 +444,8 @@ describe('SelectedWorkReel', () => {
     expect(html).toContain('data-frame-count="3"');
     expect(html.match(/class="work-project__frame/g)).toHaveLength(3);
     expect(html).toContain('data-tone="editorial"');
-    expect(html).toContain('data-motion-libraries="skiper-ui react-spring motion"');
+    expect(html).toContain('data-motion-libraries="skiper-ui motion"');
+    expect(html).not.toContain('work-project__light');
     expect(html).toContain(`href="/work/${gallery.slug}"`);
     expect(html).toContain('1 project');
     expect(html).toContain('3 photographs');
@@ -453,6 +455,21 @@ describe('SelectedWorkReel', () => {
     const source = await readFile(selectedWorkSourceUrl, 'utf8');
 
     expectSelectedWorkMotionContracts(source);
+  });
+
+  it('keeps the shared portfolio surface clean and tenant-led', async () => {
+    const [source, styles] = await Promise.all([
+      readFile(selectedWorkSourceUrl, 'utf8'),
+      readFile(selectedWorkStylesUrl, 'utf8'),
+    ]);
+
+    expect(styles).toContain('--reel-paper: var(--paper)');
+    expect(styles).toContain('background: var(--reel-paper)');
+    expect(styles).not.toMatch(/\.work-reel::(?:before|after)/);
+    expect(styles).not.toMatch(/(?:linear|radial)-gradient/);
+    expect(styles).not.toContain('clip-path: polygon');
+    expect(source).not.toContain('work-project__light');
+    expect(source).not.toContain('@react-spring/web');
   });
 
   it.each(structuralPropertyMutations)(
