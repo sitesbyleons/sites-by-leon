@@ -2,8 +2,11 @@
 
 This is the evidence checklist for the public Sites by Leon release. A checked item must have current command or external-state evidence; implementation alone does not count.
 
-## Verified July 24
+## Verified July 25
 
+- [x] Immutable release `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06` is published on `origin/main`, passed isolated staging and production deployment gates, and is active in both environments. Production remains in `coming-soon` mode; the prior release remains available for rollback.
+- [x] The upgraded countdown is live and actively flip-animating at 1440x900 and 390x844. Both viewports show the exact `2026-07-31T12:00:00-04:00` target, `$25/month`, approved Instagram and support links, zero horizontal overflow, and no console, page, or failed-request errors.
+- [x] Fresh encrypted snapshot `9c9931ef073510e8d02a9022b8842a254d1b6d338dfb9c36cc0c53bfc0bd78d1` restores and validates successfully. The five-minute monitor reports healthy production, backup age, and disk headroom; root disk and inode use are 15% and 4%.
 - [x] Immutable release `4dd723b35e4578a54bc28e8c555a35eda6d881ea` passed isolated staging and production deployment gates in `coming-soon` mode. All production health checks pass, and the prior production release remains preserved for rollback.
 - [x] Cloudflare Browser Cache TTL now respects origin headers, no custom response-header transform rules exist, and the managed security-header transform is disabled. Targeted purges succeeded for all disposable media URLs and the production media URL.
 - [x] A purged production media response returned the exact 1,274,400-byte PNG with `Cache-Control: public, max-age=300, must-revalidate`, exactly one `Cross-Origin-Resource-Policy: cross-origin` header, `MISS` then `HIT`, and a conditional HTTP 304. The staging edge passed the same header, cache, and revalidation assertions with a disposable WebP, which was purged and removed afterward.
@@ -12,7 +15,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Fresh live rendering at 1440x900 and 390x844 shows the actively ticking July 31 countdown, exact noon-Eastern timestamp and launch copy, `$25/month` starting price, approved Instagram URL, four successfully loaded images, zero horizontal overflow, and no browser console, page, or failed-request errors.
 - [x] Fresh live/test Stripe verification confirms active $25 and $35 monthly prices, correct Billing Portal legal and return URLs, one enabled platform webhook per environment, and both required live Connect event destinations with the correct payload and event-origin modes.
 - [x] Mail DNS now has Zoho MX, SPF, DKIM, and a monitoring-only DMARC policy with strict alignment and aggregate reports sent to the established Gmail inbox. Keep `p=none` until legitimate mail alignment has been observed, then review moving to enforcement.
-- [x] The production firewall, key-only SSH policy, secret-file permissions, encrypted backup, five-minute health/backup-age/disk monitor, and 28% root-disk usage were reverified. Fourteen GiB of unused Docker build cache was removed without affecting production or staging health.
+- [x] The production firewall, key-only SSH policy, secret-file permissions, encrypted backup, five-minute health/backup-age/disk monitor, and 15% root-disk usage were reverified. Fourteen GiB of unused Docker build cache was removed without affecting production or staging health.
 - [x] Immutable release `1088fc5c11f9cce4e7c5dc9937cec775975bc888` passed staging and production deployment gates in `coming-soon` mode, with prior production release `fae52962a47faf00ba89687fd4d1407a06ac9f64` preserved for rollback.
 - [x] Storage release `1088fc5c11f9cce4e7c5dc9937cec775975bc888` passed isolated staging deployment and health gates. The staging fallback directory is owned by the non-root runtime user with mode `0750`; a disposable PNG streamed through the media proxy with the exact 1,274,400-byte payload and SHA-256 `7b100d77b3658c89a81ccc3298902c707165faef36e81171dfa934186f1b2f86`, returned `image/png`, passed `Last-Modified` revalidation, and was removed from origin storage.
 - [x] Marketing, dashboard, the two intended production customer sites, the isolated staging customer site, API, and PostgreSQL health checks pass after an OS update and reboot.
@@ -38,7 +41,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [ ] Publish the current local `main` to `sitesbyleons/sites-by-leon`. The deployed application release remains `4dd723b35e4578a54bc28e8c555a35eda6d881ea`. HTTPS has no credential, and the connected GitHub App is installed only for the `LimonLimez` user, not the intended `sitesbyleons` organization.
+- [x] Publish the current local `main` to `sitesbyleons/sites-by-leon`. Local `main`, `origin/main`, staging, and production all resolve to `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06`.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove external delivery. The monitor itself is healthy and runs every five minutes, but the optional environment file and external destination are currently absent.
 - [x] Correct Cloudflare managed-media behavior and purge stale edge objects. Browser caching respects origin headers, no conflicting transform is active, and production now returns the intended five-minute cache policy with exactly one cross-origin resource-policy header.
 - [x] Align advertised and enforced media storage with the VPS: every customer workspace receives a hard 15 GB quota, and aggregate reservations are capped at 60 GB. With roughly 83 GB free on July 25, this supports at most four fully allocated workspaces while reserving about 23 GB for the operating system, database, deployments, and working space. Provisioning fails closed beyond that ceiling; expand storage and add an independent media replica before admitting another workspace.
