@@ -86,10 +86,11 @@ const countdownUnits = [
         element.getAnimations().forEach((animation) => animation.cancel());
         element.animate(
           [
-            { opacity: 0.35, transform: 'translateY(-0.18em)' },
-            { opacity: 1, transform: 'translateY(0)' },
+            { transform: 'perspective(600px) rotateX(-88deg)', opacity: 0, filter: 'brightness(1.9)' },
+            { transform: 'perspective(600px) rotateX(6deg)', opacity: 1, filter: 'brightness(1.35)', offset: 0.7 },
+            { transform: 'perspective(600px) rotateX(0deg)', opacity: 1, filter: 'brightness(1)' },
           ],
-          { duration: 380, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' },
+          { duration: 560, easing: 'cubic-bezier(0.2, 0.9, 0.25, 1)' },
         );
       }
     }
