@@ -8,12 +8,17 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Cloudflare Browser Cache TTL now respects origin headers, no custom response-header transform rules exist, and the managed security-header transform is disabled. Targeted purges succeeded for all disposable media URLs and the production media URL.
 - [x] A purged production media response returned the exact 1,274,400-byte PNG with `Cache-Control: public, max-age=300, must-revalidate`, exactly one `Cross-Origin-Resource-Policy: cross-origin` header, `MISS` then `HIT`, and a conditional HTTP 304. The staging edge passed the same header, cache, and revalidation assertions with a disposable WebP, which was purged and removed afterward.
 - [x] Authenticated staging customer acceptance passed for `leon-tech-fan-test.leonsites.org` using a fresh short-lived Clerk session token. The test uploaded and optimized two real images; created, read, updated, and deleted gallery, post, service, client, and draft-invoice records; verified disconnected Stripe invoice protection; and confirmed all temporary records, uploads, credentials, and edge fixtures were removed.
+- [x] The current tree passes 433 unit tests and 98 real-browser tests across the marketing, dashboard, photographer, domain-worker, production-CSP, accessibility, responsive-overflow, reduced-motion, billing, admin, and security-boundary suites. Every workspace type-checks and builds, and the production dependency audit reports no known vulnerabilities.
+- [x] Fresh live rendering at 1440x900 and 390x844 shows the actively ticking July 31 countdown, exact noon-Eastern timestamp and launch copy, `$25/month` starting price, approved Instagram URL, four successfully loaded images, zero horizontal overflow, and no browser console, page, or failed-request errors.
+- [x] Fresh live/test Stripe verification confirms active $25 and $35 monthly prices, correct Billing Portal legal and return URLs, one enabled platform webhook per environment, and both required live Connect event destinations with the correct payload and event-origin modes.
+- [x] Mail DNS now has Zoho MX, SPF, DKIM, and a monitoring-only DMARC policy with strict alignment and aggregate reports sent to the established Gmail inbox. Keep `p=none` until legitimate mail alignment has been observed, then review moving to enforcement.
+- [x] The production firewall, key-only SSH policy, secret-file permissions, encrypted backup, five-minute health/backup-age/disk monitor, and 28% root-disk usage were reverified. Fourteen GiB of unused Docker build cache was removed without affecting production or staging health.
 - [x] Immutable release `1088fc5c11f9cce4e7c5dc9937cec775975bc888` passed staging and production deployment gates in `coming-soon` mode, with prior production release `fae52962a47faf00ba89687fd4d1407a06ac9f64` preserved for rollback.
 - [x] Storage release `1088fc5c11f9cce4e7c5dc9937cec775975bc888` passed isolated staging deployment and health gates. The staging fallback directory is owned by the non-root runtime user with mode `0750`; a disposable PNG streamed through the media proxy with the exact 1,274,400-byte payload and SHA-256 `7b100d77b3658c89a81ccc3298902c707165faef36e81171dfa934186f1b2f86`, returned `image/png`, passed `Last-Modified` revalidation, and was removed from origin storage.
 - [x] Marketing, dashboard, the two intended production customer sites, the isolated staging customer site, API, and PostgreSQL health checks pass after an OS update and reboot.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
 - [x] Dependency audit reports no known vulnerabilities.
-- [x] Root and workspace type checks, builds, 432 unit tests, deployment/backup/monitor regressions, and 94 browser tests pass.
+- [x] Root and workspace type checks, builds, 433 unit tests, deployment/backup/monitor regressions, and 98 browser tests pass.
 - [x] Live Stripe platform prices, Billing Portal, platform webhook, Connect webhook, and Connect v2 destination verify in live mode.
 - [x] Live Billing Portal links to `https://leonsites.org/privacy` and `https://leonsites.org/terms`; the release verifier rejects drift in either URL.
 - [x] Displayed Essential and Studio prices are approved at $25 and $35 per month. Test and live Stripe both use active monthly prices at exactly those amounts; unused $30 and $40 prices are inactive.
@@ -33,10 +38,10 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [ ] Publish local `main` through `4dd723b35e4578a54bc28e8c555a35eda6d881ea` to `sitesbyleons/sites-by-leon`. The local branch is ahead of the remote; HTTPS has no credential, and the connected GitHub App is installed only on the different public repository `LimonLimez/sites-by-leon`.
-- [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove alert delivery.
+- [ ] Publish the current local `main` to `sitesbyleons/sites-by-leon`. The deployed application release remains `4dd723b35e4578a54bc28e8c555a35eda6d881ea`. HTTPS has no credential, and the connected GitHub App is installed only for the `LimonLimez` user, not the intended `sitesbyleons` organization.
+- [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove external delivery. The monitor itself is healthy and runs every five minutes, but the optional environment file and external destination are currently absent.
 - [x] Correct Cloudflare managed-media behavior and purge stale edge objects. Browser caching respects origin headers, no conflicting transform is active, and production now returns the intended five-minute cache policy with exactly one cross-origin resource-policy header.
-- [ ] Configure the implemented application-scoped S3-compatible media backend before assigning the advertised 50 GB or 100 GB customer quotas. Create separate private versioned production/staging buckets, install scoped credentials, pass the deploy write/read/delete verifier, migrate existing files with zero failures, and configure an independent replica/export. The current VPS has a 96 GB root filesystem with 71 GB free and a conservative 20 GB provisioning ceiling, so code support alone cannot honor a 100 GB Studio allocation.
+- [ ] Enable Cloudflare R2 in the owner dashboard, then configure the implemented application-scoped S3-compatible media backend before assigning the advertised 50 GB or 100 GB customer quotas. The authenticated R2 API currently returns Cloudflare error `10042`, requiring dashboard activation. After activation, create separate private versioned production/staging buckets, install scoped credentials, pass the deploy write/read/delete verifier, migrate existing files with zero failures, and configure an independent replica/export. The current VPS has a 96 GB root filesystem with 70 GB free and a conservative 20 GB provisioning ceiling, so local storage cannot honor a 100 GB Studio allocation.
 - [x] Complete an authenticated staging image lifecycle through the real application routes. The acceptance run uploaded and publicly read optimized media, exercised references through gallery and post records, deleted those records and uploads through authenticated endpoints, and verified clean final state.
 - [x] Pass the 10- and 50-concurrency read-only production load gates and record results below.
 - [x] Authenticated production owner smoke passed for Overview, Sites, Demos, Subscriptions, Tickets, and Users. Authenticated staging smoke also passed all ten customer Studio routes without an access-denied redirect.
@@ -99,3 +104,10 @@ Results after promoting managed-media release `1088fc5c11f9cce4e7c5dc9937cec7759
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 10 | 100 | 0 | 64 ms | 322 ms | 95.3 |
 | 50 | 500 | 0 | 64 ms | 617 ms | 377.5 |
+
+Results after the final Cloudflare, authenticated-media, and host-cleanup pass at `2026-07-25T03:45:19Z`:
+
+| Concurrency | Requests | Failures | p50 | p95 | Requests/second |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 100 | 0 | 64 ms | 628 ms | 67.3 |
+| 50 | 500 | 0 | 63 ms | 741 ms | 338.6 |
