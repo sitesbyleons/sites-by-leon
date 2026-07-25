@@ -4,7 +4,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Verified July 25
 
-- [x] Immutable release `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06` is published on `origin/main`, passed isolated staging and production deployment gates, and is active in both environments. Production remains in `coming-soon` mode; the prior release remains available for rollback.
+- [x] Immutable application release `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06` is contained in published `origin/main`, passed isolated staging and production deployment gates, and is active in both environments. Production remains in `coming-soon` mode; the prior release remains available for rollback.
 - [x] The upgraded countdown is live and actively flip-animating at 1440x900 and 390x844. Both viewports show the exact `2026-07-31T12:00:00-04:00` target, `$25/month`, approved Instagram and support links, zero horizontal overflow, and no console, page, or failed-request errors.
 - [x] Fresh encrypted snapshot `9c9931ef073510e8d02a9022b8842a254d1b6d338dfb9c36cc0c53bfc0bd78d1` restores and validates successfully. The five-minute monitor reports healthy production, backup age, and disk headroom; root disk and inode use are 15% and 4%.
 - [x] Immutable release `4dd723b35e4578a54bc28e8c555a35eda6d881ea` passed isolated staging and production deployment gates in `coming-soon` mode. All production health checks pass, and the prior production release remains preserved for rollback.
@@ -41,7 +41,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [x] Publish the current local `main` to `sitesbyleons/sites-by-leon`. Local `main`, `origin/main`, staging, and production all resolve to `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06`.
+- [x] Publish the current local `main` to `sitesbyleons/sites-by-leon`. Local `main` and `origin/main` are synchronized; staging and production run application release `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06`, with only release-evidence documentation committed afterward.
 - [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove external delivery. The monitor itself is healthy and runs every five minutes, but the optional environment file and external destination are currently absent.
 - [x] Correct Cloudflare managed-media behavior and purge stale edge objects. Browser caching respects origin headers, no conflicting transform is active, and production now returns the intended five-minute cache policy with exactly one cross-origin resource-policy header.
 - [x] Align advertised and enforced media storage with the VPS: every customer workspace receives a hard 15 GB quota, and aggregate reservations are capped at 60 GB. With roughly 83 GB free on July 25, this supports at most four fully allocated workspaces while reserving about 23 GB for the operating system, database, deployments, and working space. Provisioning fails closed beyond that ceiling; expand storage and add an independent media replica before admitting another workspace.
