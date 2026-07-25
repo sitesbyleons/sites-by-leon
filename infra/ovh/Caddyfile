@@ -69,7 +69,6 @@
 
 	@media host {$MEDIA_DOMAIN}
 	handle @media {
-		header Cross-Origin-Resource-Policy cross-origin
 		handle_path /media/* {
 			rewrite * /api/media{path}
 			reverse_proxy photographer:4321

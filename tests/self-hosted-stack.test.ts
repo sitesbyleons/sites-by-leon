@@ -16,6 +16,8 @@ describe('fully self-hosted production stack', () => {
   it('routes marketing, media, and every customer host through the shared fail-closed runtime', () => {
     const compose = read('infra/ovh/docker-compose.yml');
     const caddy = read('infra/ovh/Caddyfile');
+    const testCaddy = read('infra/ovh/Caddyfile.test');
+    const mediaRoute = read('photographer-site/src/pages/api/media/[...path].ts');
     const resolver = read('photographer-site/src/lib/site-context.ts');
     const middleware = read('photographer-site/src/middleware.ts');
 
@@ -25,7 +27,9 @@ describe('fully self-hosted production stack', () => {
     expect(caddy).toContain('handle_path /media/*');
     expect(caddy).toContain('rewrite * /api/media{path}');
     expect(caddy).toContain('@same_site_resources not path /media/*');
-    expect(caddy).toContain('header Cross-Origin-Resource-Policy cross-origin');
+    expect(mediaRoute).toContain("'cross-origin-resource-policy': 'cross-origin'");
+    expect(caddy).not.toMatch(/handle @media\s*\{\s*header Cross-Origin-Resource-Policy/);
+    expect(testCaddy).not.toMatch(/handle @media\s*\{\s*header Cross-Origin-Resource-Policy/);
     expect(caddy).toContain('reverse_proxy photographer:4321');
     expect(caddy).not.toContain('root * /srv/uploads');
     expect(caddy).not.toMatch(/DEMO_DOMAIN|@test_site|reverse_proxy northline:/);
