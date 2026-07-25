@@ -31,9 +31,10 @@ export const POST: APIRoute = async ({ request }) => {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const signature = request.headers.get('stripe-signature');
   const hostingExecutor = createPostgresHostingQueryExecutor(process.env.DATABASE_URL);
-  if (!database || !hostingExecutor || !stripeKey || !webhookSecret || !signature) {
+  if (!database || !hostingExecutor || !stripeKey || !webhookSecret) {
     return Response.json({ message: 'Webhook verification is not configured.' }, { status: 503 });
   }
+  if (!signature) return Response.json({ message: 'Invalid Stripe signature.' }, { status: 400 });
 
   const stripe = new Stripe(stripeKey);
   let event: Stripe.Event;

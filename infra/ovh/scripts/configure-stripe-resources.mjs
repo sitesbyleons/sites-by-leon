@@ -322,9 +322,15 @@ const isExpectedSnapshot = (destination, livemode) => destination
   && destination.event_payload === 'snapshot'
   && receivesConnectedAccountEvents(destination);
 
+const isExpectedThin = (destination, livemode) => destination
+  && destination.livemode === livemode
+  && destination.event_payload === 'thin'
+  && receivesConnectedAccountEvents(destination);
+
 export const configureConnect = async (stripe, envFile, environment = process.env) => {
   const livemode = expectedLivemode(environment);
   inspectEnvFile(envFile, 'STRIPE_CONNECT_WEBHOOK_SECRET', true);
+  inspectEnvFile(envFile, 'STRIPE_CONNECT_V2_WEBHOOK_SECRET', true);
   const snapshotUrl = environment.STRIPE_CONNECT_WEBHOOK_URL?.trim()
     || 'https://demo.leonsites.org/api/webhooks/stripe-connect';
   const thinUrl = environment.STRIPE_CONNECT_V2_WEBHOOK_URL?.trim()
@@ -333,7 +339,7 @@ export const configureConnect = async (stripe, envFile, environment = process.en
   const snapshots = enabledAt(destinations, snapshotUrl);
   const thinDestinations = enabledAt(destinations, thinUrl);
   assertConfiguration(snapshots.length <= 1, `Expected no more than one enabled Event Destination for ${snapshotUrl}.`);
-  assertConfiguration(thinDestinations.length === 1, `Expected exactly one enabled Event Destination for ${thinUrl}.`);
+  assertConfiguration(thinDestinations.length <= 1, `Expected no more than one enabled Event Destination for ${thinUrl}.`);
 
   const oldSnapshot = snapshots[0];
   let snapshot = oldSnapshot;
@@ -380,16 +386,50 @@ export const configureConnect = async (stripe, envFile, environment = process.en
     });
   }
 
-  const thin = thinDestinations[0];
-  assertResourceMode(thin, livemode, 'Connect thin destination');
-  assertConfiguration(thin.event_payload === 'thin', 'Connect account destination must use thin payloads.');
-  assertConfiguration(receivesConnectedAccountEvents(thin),
-    'Connect account destination must receive events from connected accounts.');
-  const thinUpdated = !includesAll(thin.enabled_events, thinEvents);
-  if (thinUpdated) {
-    await stripe.v2.core.eventDestinations.update(thin.id, {
+  const oldThin = thinDestinations[0];
+  let thin = oldThin;
+  let thinUpdated = false;
+  if (!isExpectedThin(oldThin, livemode)) {
+    const created = await stripe.v2.core.eventDestinations.create({
+      name: 'Connected-account status events',
+      description: 'Thin Accounts v2 status events for the tenant-aware photographer runtime.',
+      enabled_events: thinEvents,
+      event_payload: 'thin',
+      events_from: ['other_accounts'],
+      include: ['webhook_endpoint.signing_secret', 'webhook_endpoint.url'],
+      type: 'webhook_endpoint',
+      webhook_endpoint: { url: thinUrl },
+    });
+    const secret = created.webhook_endpoint?.signing_secret;
+    try {
+      assertResourceMode(created, livemode, 'Connect thin destination');
+      assertConfiguration(created.status === 'enabled', 'New Connect thin destination is not enabled.');
+      assertConfiguration(isExpectedThin(created, livemode),
+        'Stripe did not create a connected-account thin destination. Complete and activate the Connect platform profile before retrying.');
+      assertConfiguration(created.webhook_endpoint?.url === thinUrl,
+        'New Connect thin destination has the wrong URL.');
+      assertConfiguration(includesAll(created.enabled_events, thinEvents),
+        'New Connect thin destination is missing required events.');
+      assertConfiguration(Boolean(secret), 'Stripe did not return the new Connect v2 signing secret.');
+      setEnvValue(envFile, 'STRIPE_CONNECT_V2_WEBHOOK_SECRET', secret);
+    } catch (error) {
+      try {
+        await stripe.v2.core.eventDestinations.del(created.id);
+      } catch {
+        await stripe.v2.core.eventDestinations.disable(created.id);
+      }
+      throw error;
+    }
+
+    environment.STRIPE_CONNECT_V2_WEBHOOK_SECRET = secret;
+    if (oldThin) await stripe.v2.core.eventDestinations.disable(oldThin.id);
+    thin = created;
+    thinUpdated = true;
+  } else if (!includesAll(thin.enabled_events, thinEvents)) {
+    thin = await stripe.v2.core.eventDestinations.update(thin.id, {
       enabled_events: withRequiredEvents(thin.enabled_events, thinEvents),
     });
+    thinUpdated = true;
   }
 
   return {

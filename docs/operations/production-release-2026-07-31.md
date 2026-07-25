@@ -11,7 +11,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Cloudflare Browser Cache TTL now respects origin headers, no custom response-header transform rules exist, and the managed security-header transform is disabled. Targeted purges succeeded for all disposable media URLs and the production media URL.
 - [x] A purged production media response returned the exact 1,274,400-byte PNG with `Cache-Control: public, max-age=300, must-revalidate`, exactly one `Cross-Origin-Resource-Policy: cross-origin` header, `MISS` then `HIT`, and a conditional HTTP 304. The staging edge passed the same header, cache, and revalidation assertions with a disposable WebP, which was purged and removed afterward.
 - [x] Authenticated staging customer acceptance passed for `leon-tech-fan-test.leonsites.org` using a fresh short-lived Clerk session token. The test uploaded and optimized two real images; created, read, updated, and deleted gallery, post, service, client, and draft-invoice records; verified disconnected Stripe invoice protection; and confirmed all temporary records, uploads, credentials, and edge fixtures were removed.
-- [x] The current tree passes 433 unit tests and 98 real-browser tests across the marketing, dashboard, photographer, domain-worker, production-CSP, accessibility, responsive-overflow, reduced-motion, billing, admin, and security-boundary suites. Every workspace type-checks and builds, and the production dependency audit reports no known vulnerabilities.
+- [x] The current tree passes 437 unit tests and 98 real-browser tests across the marketing, dashboard, photographer, domain-worker, production-CSP, accessibility, responsive-overflow, reduced-motion, billing, admin, and security-boundary suites. Every workspace type-checks and builds, and the production dependency audit reports no known vulnerabilities.
 - [x] Fresh live rendering at 1440x900 and 390x844 shows the actively ticking July 31 countdown, exact noon-Eastern timestamp and launch copy, `$25/month` starting price, approved Instagram URL, four successfully loaded images, zero horizontal overflow, and no browser console, page, or failed-request errors.
 - [x] Fresh live/test Stripe verification confirms active $25 and $35 monthly prices, correct Billing Portal legal and return URLs, one enabled platform webhook per environment, and both required live Connect event destinations with the correct payload and event-origin modes.
 - [x] Mail DNS now has Zoho MX, SPF, DKIM, and a monitoring-only DMARC policy with strict alignment and aggregate reports sent to the established Gmail inbox. Keep `p=none` until legitimate mail alignment has been observed, then review moving to enforcement.
@@ -21,11 +21,12 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 - [x] Marketing, dashboard, the two intended production customer sites, the isolated staging customer site, API, and PostgreSQL health checks pass after an OS update and reboot.
 - [x] `leonsites.org`, `test.leonsites.org`, and `demo.leonsites.org` return HTTP 200 with Content Security Policy headers.
 - [x] Dependency audit reports no known vulnerabilities.
-- [x] Root and workspace type checks, builds, 433 unit tests, deployment/backup/monitor regressions, and 98 browser tests pass.
+- [x] Root and workspace type checks, builds, 437 unit tests, deployment/backup/monitor regressions, and 98 browser tests pass.
 - [x] Live Stripe platform prices, Billing Portal, platform webhook, Connect webhook, and Connect v2 destination verify in live mode.
 - [x] Live Billing Portal links to `https://leonsites.org/privacy` and `https://leonsites.org/terms`; the release verifier rejects drift in either URL.
 - [x] Displayed Essential and Studio prices are approved at $25 and $35 per month. Test and live Stripe both use active monthly prices at exactly those amounts; unused $30 and $40 prices are inactive.
 - [x] Test Stripe has one enabled platform webhook at `https://test.leonsites.org/api/webhooks/stripe`; the stale duplicate endpoint and orphaned test subscription/customer are disabled or removed.
+- [x] Stripe Sandbox Connect now has one snapshot and one thin Accounts v2 destination at the exact `leon-tech-fan-test.leonsites.org` tenant routes. Both use connected-account origins, required events, synchronized signing secrets, and fail closed on invalid signatures; the stale test destination at the production demo URL is disabled.
 - [x] Authenticated staging billing opened a real Stripe Sandbox Checkout for Studio at exactly $35 per month with required Terms consent. The unpaid session was expired and its temporary Stripe customer and database fixture were removed afterward.
 - [x] A fresh `customer.subscription.updated` test event reached the staging webhook and was recorded exactly once as `processed`; temporary smoke metadata was removed afterward.
 - [x] Public, dashboard, and photographer support fallbacks consistently use the established `sites.by.leon@gmail.com` inbox.
@@ -42,7 +43,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 ## Required before public launch
 
 - [x] Publish the current local `main` to `sitesbyleons/sites-by-leon`. Local `main` and `origin/main` are synchronized; staging and production run application release `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06`, with only release-evidence documentation committed afterward.
-- [ ] Configure `MONITOR_ALERT_WEBHOOK_URL` in root-owned `/opt/leon-platform/monitor.env` and trigger one controlled failure to prove external delivery. The monitor itself is healthy and runs every five minutes, but the optional environment file and external destination are currently absent.
+- [x] External failure delivery is configured in root-owned `/opt/leon-platform/monitor.env` through a random 192-bit ntfy topic. A controlled missing-healthcheck failure was delivered and independently read back, then the normal monitor passed. The payload contains only the monitor name, host, failed status, and generic reason. The private subscription URL is stored outside the repository at `~/.config/leonsites/monitor-subscription.txt`; both files use mode `0600`. Treat the anonymous topic URL as a secret because anyone who knows it can read its temporarily cached alerts.
 - [ ] Rotate the Stripe test secret that was pasted into the working conversation, update the owner-only local and VPS staging secret files, redeploy staging, and rerun the Stripe test verifier. The exposed key cannot charge real cards, but it must not remain trusted for sandbox administration.
 - [x] Correct Cloudflare managed-media behavior and purge stale edge objects. Browser caching respects origin headers, no conflicting transform is active, and production now returns the intended five-minute cache policy with exactly one cross-origin resource-policy header.
 - [x] Align advertised and enforced media storage with the VPS: every customer workspace receives a hard 15 GB quota, and aggregate reservations are capped at 60 GB. With roughly 83 GB free on July 25, this supports at most four fully allocated workspaces while reserving about 23 GB for the operating system, database, deployments, and working space. Provisioning fails closed beyond that ceiling; expand storage and add an independent media replica before admitting another workspace.
@@ -115,3 +116,10 @@ Results after the final Cloudflare, authenticated-media, and host-cleanup pass a
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 10 | 100 | 0 | 64 ms | 628 ms | 67.3 |
 | 50 | 500 | 0 | 63 ms | 741 ms | 338.6 |
+
+Results against production application release `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06` at `2026-07-25T23:21:17Z`:
+
+| Concurrency | Requests | Failures | p50 | p95 | Requests/second |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 100 | 0 | 62 ms | 301 ms | 91.2 |
+| 50 | 500 | 0 | 62 ms | 824 ms | 339.4 |

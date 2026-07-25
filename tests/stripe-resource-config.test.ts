@@ -197,7 +197,7 @@ describe('Stripe resource configuration', () => {
   });
 
   it('replaces the wrong Connect origin only after persisting the new signing secret', async () => {
-    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old\n');
+    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old\nSTRIPE_CONNECT_V2_WEBHOOK_SECRET=whsec_v2_old\n');
     const snapshotUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect';
     const thinUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect-v2';
     const oldSnapshot = {
@@ -261,7 +261,7 @@ describe('Stripe resource configuration', () => {
   });
 
   it('deletes an invalid replacement and preserves the old secret when Stripe returns the wrong origin', async () => {
-    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old\n');
+    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old\nSTRIPE_CONNECT_V2_WEBHOOK_SECRET=whsec_v2_old\n');
     const snapshotUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect';
     const thinUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect-v2';
     const oldSnapshot = {
@@ -302,7 +302,7 @@ describe('Stripe resource configuration', () => {
   });
 
   it('disables an invalid replacement when Stripe deletion fails', async () => {
-    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old\n');
+    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_old\nSTRIPE_CONNECT_V2_WEBHOOK_SECRET=whsec_v2_old\n');
     const snapshotUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect';
     const thinUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect-v2';
     const oldSnapshot = {
@@ -342,8 +342,97 @@ describe('Stripe resource configuration', () => {
     expect(disable).not.toHaveBeenCalledWith('we_old');
   });
 
+  it('creates a missing thin Connect destination and persists its signing secret', async () => {
+    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_existing\nSTRIPE_CONNECT_V2_WEBHOOK_SECRET=whsec_v2_old\n');
+    const snapshotUrl = 'https://test-tenant.leonsites.org/api/webhooks/stripe-connect';
+    const thinUrl = 'https://test-tenant.leonsites.org/api/webhooks/stripe-connect-v2';
+    const snapshot = {
+      id: 'ed_snapshot', status: 'enabled', livemode: false, event_payload: 'snapshot',
+      events_from: ['@accounts'], enabled_events: [
+        'account.updated', 'account.application.deauthorized', 'invoice.paid',
+        'invoice.payment_failed', 'invoice.voided', 'invoice.marked_uncollectible',
+      ], webhook_endpoint: { url: snapshotUrl },
+    };
+    const create = vi.fn(async () => ({
+      id: 'ed_thin_new', status: 'enabled', livemode: false, event_payload: 'thin',
+      events_from: ['other_accounts'], enabled_events: [
+        'v2.core.account.updated',
+        'v2.core.account[configuration.merchant].updated',
+        'v2.core.account[configuration.merchant].capability_status_updated',
+      ], webhook_endpoint: { url: thinUrl, signing_secret: 'whsec_v2_new' },
+    }));
+    const stripe = {
+      v2: { core: { eventDestinations: {
+        list: vi.fn(() => destinations([snapshot])),
+        create,
+        del: vi.fn(),
+        disable: vi.fn(),
+        update: vi.fn(),
+      } } },
+    };
+
+    await expect(configureConnect(stripe, file, {
+      STRIPE_EXPECTED_MODE: 'test',
+      STRIPE_CONNECT_WEBHOOK_URL: snapshotUrl,
+      STRIPE_CONNECT_V2_WEBHOOK_URL: thinUrl,
+    })).resolves.toEqual({
+      snapshot_destination: 'ed_snapshot',
+      snapshot_replaced: false,
+      thin_destination: 'ed_thin_new',
+      thin_updated: true,
+    });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      event_payload: 'thin',
+      events_from: ['other_accounts'],
+      include: ['webhook_endpoint.signing_secret', 'webhook_endpoint.url'],
+      type: 'webhook_endpoint',
+      webhook_endpoint: { url: thinUrl },
+    }));
+    expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_CONNECT_V2_WEBHOOK_SECRET=whsec_v2_new');
+  });
+
+  it('deletes an invalid thin replacement and preserves its old signing secret', async () => {
+    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_existing\nSTRIPE_CONNECT_V2_WEBHOOK_SECRET=whsec_v2_old\n');
+    const snapshotUrl = 'https://test-tenant.leonsites.org/api/webhooks/stripe-connect';
+    const thinUrl = 'https://test-tenant.leonsites.org/api/webhooks/stripe-connect-v2';
+    const snapshot = {
+      id: 'ed_snapshot', status: 'enabled', livemode: false, event_payload: 'snapshot',
+      events_from: ['@accounts'], enabled_events: [
+        'account.updated', 'account.application.deauthorized', 'invoice.paid',
+        'invoice.payment_failed', 'invoice.voided', 'invoice.marked_uncollectible',
+      ], webhook_endpoint: { url: snapshotUrl },
+    };
+    const create = vi.fn(async () => ({
+      id: 'ed_thin_wrong', status: 'enabled', livemode: false, event_payload: 'thin',
+      events_from: ['@self'], enabled_events: ['v2.core.account.updated'],
+      webhook_endpoint: { url: thinUrl, signing_secret: 'whsec_v2_wrong' },
+    }));
+    const del = vi.fn(async (id: string) => ({ id, deleted: true }));
+    const disable = vi.fn();
+    const stripe = {
+      v2: { core: { eventDestinations: {
+        list: vi.fn(() => destinations([snapshot])),
+        create,
+        del,
+        disable,
+        update: vi.fn(),
+      } } },
+    };
+
+    await expect(configureConnect(stripe, file, {
+      STRIPE_EXPECTED_MODE: 'test',
+      STRIPE_CONNECT_WEBHOOK_URL: snapshotUrl,
+      STRIPE_CONNECT_V2_WEBHOOK_URL: thinUrl,
+    })).rejects.toThrow(/connected-account thin destination/);
+
+    expect(fs.readFileSync(file, 'utf8')).toContain('STRIPE_CONNECT_V2_WEBHOOK_SECRET=whsec_v2_old');
+    expect(del).toHaveBeenCalledWith('ed_thin_wrong');
+    expect(disable).not.toHaveBeenCalled();
+  });
+
   it('accepts the legacy connected-account origin while using the current API enum for new destinations', async () => {
-    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_existing\n');
+    const file = envFile('STRIPE_CONNECT_WEBHOOK_SECRET=whsec_existing\nSTRIPE_CONNECT_V2_WEBHOOK_SECRET=whsec_v2_existing\n');
     const snapshotUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect';
     const thinUrl = 'https://demo.leonsites.org/api/webhooks/stripe-connect-v2';
     const stripe = {

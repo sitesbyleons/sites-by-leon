@@ -90,4 +90,15 @@ describe('Connect webhook event ledger', () => {
       expect(route).not.toContain("from('stripe_events').update");
     }
   });
+
+  it('rejects a missing Stripe signature as a bad request in both formats', () => {
+    for (const routePath of [
+      'src/pages/api/webhooks/stripe-connect.ts',
+      'src/pages/api/webhooks/stripe-connect-v2.ts',
+    ]) {
+      expect(read(routePath)).toContain(
+        "if (!signature) return Response.json({ message: 'Invalid Stripe signature.' }, { status: 400 });",
+      );
+    }
+  });
 });

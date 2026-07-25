@@ -156,4 +156,11 @@ describe('subscription webhook isolation', () => {
     expect(webhook).toContain('await markStripeEvent');
     expect(webhook).not.toContain("from('stripe_events').update");
   });
+
+  it('rejects a missing Stripe signature as a bad request', () => {
+    const webhook = read('src/pages/api/webhooks/stripe.ts');
+    expect(webhook).toContain(
+      "if (!signature) return Response.json({ message: 'Invalid Stripe signature.' }, { status: 400 });",
+    );
+  });
 });
