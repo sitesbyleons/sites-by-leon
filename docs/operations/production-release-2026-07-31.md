@@ -4,7 +4,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Verified July 25
 
-- [x] Immutable application release `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06` is contained in published `origin/main`, passed isolated staging and production deployment gates, and is active in both environments. Production remains in `coming-soon` mode; the prior release remains available for rollback.
+- [x] Immutable application release `2191e733db6178d9c0b1fdc3d6ca4dc52c9bf7fe` is contained in published `origin/main`, passed isolated staging and production deployment gates, and is active in both environments. It adds fail-closed creation and secret persistence for both Connect destination formats and returns HTTP 400 for missing or invalid webhook signatures. Production remains in `coming-soon` mode; the prior release remains available for rollback.
 - [x] The upgraded countdown is live and actively flip-animating at 1440x900 and 390x844. Both viewports show the exact `2026-07-31T12:00:00-04:00` target, `$25/month`, approved Instagram and support links, zero horizontal overflow, and no console, page, or failed-request errors.
 - [x] Fresh encrypted snapshot `9c9931ef073510e8d02a9022b8842a254d1b6d338dfb9c36cc0c53bfc0bd78d1` restores and validates successfully. The five-minute monitor reports healthy production, backup age, and disk headroom; root disk and inode use are 15% and 4%.
 - [x] Immutable release `4dd723b35e4578a54bc28e8c555a35eda6d881ea` passed isolated staging and production deployment gates in `coming-soon` mode. All production health checks pass, and the prior production release remains preserved for rollback.
@@ -42,7 +42,7 @@ This is the evidence checklist for the public Sites by Leon release. A checked i
 
 ## Required before public launch
 
-- [x] Publish the current local `main` to `sitesbyleons/sites-by-leon`. Local `main` and `origin/main` are synchronized; staging and production run application release `158458d1dbc58f5c4d290c5ecdb87e1dc723ba06`, with only release-evidence documentation committed afterward.
+- [x] Publish the current local `main` to `sitesbyleons/sites-by-leon`. Local `main` and `origin/main` are synchronized; staging and production run application release `2191e733db6178d9c0b1fdc3d6ca4dc52c9bf7fe`, with only release-evidence documentation committed afterward.
 - [x] External failure delivery is configured in root-owned `/opt/leon-platform/monitor.env` through a random 192-bit ntfy topic. A controlled missing-healthcheck failure was delivered and independently read back, then the normal monitor passed. The payload contains only the monitor name, host, failed status, and generic reason. The private subscription URL is stored outside the repository at `~/.config/leonsites/monitor-subscription.txt`; both files use mode `0600`. Treat the anonymous topic URL as a secret because anyone who knows it can read its temporarily cached alerts.
 - [ ] Rotate the Stripe test secret that was pasted into the working conversation, update the owner-only local and VPS staging secret files, redeploy staging, and rerun the Stripe test verifier. The exposed key cannot charge real cards, but it must not remain trusted for sandbox administration.
 - [x] Correct Cloudflare managed-media behavior and purge stale edge objects. Browser caching respects origin headers, no conflicting transform is active, and production now returns the intended five-minute cache policy with exactly one cross-origin resource-policy header.
@@ -123,3 +123,10 @@ Results against production application release `158458d1dbc58f5c4d290c5ecdb87e1d
 | ---: | ---: | ---: | ---: | ---: | ---: |
 | 10 | 100 | 0 | 62 ms | 301 ms | 91.2 |
 | 50 | 500 | 0 | 62 ms | 824 ms | 339.4 |
+
+Results against hardened Stripe release `2191e733db6178d9c0b1fdc3d6ca4dc52c9bf7fe` at `2026-07-25T23:33:55Z`:
+
+| Concurrency | Requests | Failures | p50 | p95 | Requests/second |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10 | 100 | 0 | 62 ms | 286 ms | 97.9 |
+| 50 | 500 | 0 | 63 ms | 701 ms | 366.5 |
