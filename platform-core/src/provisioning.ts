@@ -66,7 +66,7 @@ type NormalizedProvisionInput = {
   capacityLimitBytes: number;
 };
 
-const DEFAULT_WORKSPACE_QUOTA_BYTES = 4_294_967_296;
+const DEFAULT_WORKSPACE_QUOTA_BYTES = 16_106_127_360;
 const MIN_WORKSPACE_QUOTA_BYTES = 16_777_216;
 const MAX_WORKSPACE_QUOTA_BYTES = 1_099_511_627_776;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

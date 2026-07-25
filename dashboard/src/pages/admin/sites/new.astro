@@ -62,7 +62,7 @@ const siteDomainJoiner = isTestHost ? '-test.' : '.';
       </fieldset>
       <div class="provision-fields provision-fields--two">
         <label><span>Monthly plan</span><select name="plan_key" required>{planOptions.map((option) => <option value={option.key} data-storage-gb={option.storageGb} selected={option.key === 'essential'}>{option.label} · ${option.monthlyUsd}/month</option>)}</select><small data-field-error="plan_key"></small></label>
-        <div class="provision-readout"><span>Included media storage</span><strong data-plan-storage>50 GB</strong><small>Storage is assigned from the customer plan.</small></div>
+        <div class="provision-readout"><span>Included media storage</span><strong data-plan-storage>15 GB</strong><small>Storage is assigned from the customer plan.</small></div>
       </div>
     </section>
 

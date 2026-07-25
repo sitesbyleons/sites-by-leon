@@ -49,13 +49,13 @@ describe('launch content', () => {
       'Control panel',
       'Invoicing',
       'Secure client payments',
-      '50 GB photo storage',
+      '15 GB photo storage',
     ]);
     expect(plans[1].features).toEqual([
       'Everything in Essential',
       'Early access to new features',
       'Advanced settings',
-      '100 GB photo storage',
+      '15 GB photo storage',
       'Social media post gallery',
     ]);
   });

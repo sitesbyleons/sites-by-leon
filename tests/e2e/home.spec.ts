@@ -389,8 +389,7 @@ test('shows the two approved monthly plans and included features', async ({ page
   await expect(studioCard).toContainText('$35');
   await expect(cards.getByText('Custom domain', { exact: true })).toHaveCount(1);
   await expect(cards.getByText('Secure client payments', { exact: true })).toHaveCount(1);
-  await expect(cards.getByText('50 GB photo storage', { exact: true })).toHaveCount(1);
-  await expect(cards.getByText('100 GB photo storage', { exact: true })).toHaveCount(1);
+  await expect(cards.getByText('15 GB photo storage', { exact: true })).toHaveCount(2);
   await expect(cards.getByText('Social media post gallery', { exact: true })).toHaveCount(1);
   const cardPositions = await cards.evaluateAll((items) =>
     items.map((item) => ({ x: (item as HTMLElement).offsetLeft, y: (item as HTMLElement).offsetTop })),

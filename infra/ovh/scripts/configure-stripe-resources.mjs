@@ -156,7 +156,7 @@ const platformPlans = [
   {
     key: 'essential',
     name: 'Sites By Leon Essential',
-    description: 'Custom domain, control panel, invoicing, secure client payments, and 50 GB photo storage.',
+    description: 'Custom domain, control panel, invoicing, secure client payments, and 15 GB photo storage.',
     amount: 2_500,
     environmentKey: 'STRIPE_PRICE_ESSENTIAL',
     testEnvironmentKey: 'STRIPE_TEST_PRICE_ESSENTIAL',
@@ -164,7 +164,7 @@ const platformPlans = [
   {
     key: 'studio',
     name: 'Sites By Leon Studio',
-    description: 'Essential features plus early access, advanced settings, 100 GB photo storage, and a social media post gallery.',
+    description: 'Essential features plus early access, advanced settings, 15 GB photo storage, and a social media post gallery.',
     amount: 3_500,
     environmentKey: 'STRIPE_PRICE_STUDIO',
     testEnvironmentKey: 'STRIPE_TEST_PRICE_STUDIO',

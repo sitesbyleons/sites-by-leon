@@ -119,12 +119,32 @@ create table if not exists checkout_attempts (
 create table if not exists workspace_storage_usage (
   workspace_id uuid primary key references client_workspaces(id) on delete cascade,
   used_bytes bigint not null default 0,
-  quota_bytes bigint not null default 4294967296,
+  quota_bytes bigint not null default 16106127360,
   updated_at timestamptz not null default now(),
   check (used_bytes >= 0),
   check (quota_bytes >= 16777216),
   check (used_bytes <= quota_bytes)
 );
+
+alter table workspace_storage_usage
+  alter column quota_bytes set default 16106127360;
+
+do $$
+begin
+  if exists (
+    select 1
+    from workspace_storage_usage
+    where used_bytes > 16106127360
+  ) then
+    raise exception 'Cannot apply the 15 GiB workspace quota: a workspace currently exceeds it.';
+  end if;
+end
+$$;
+
+update workspace_storage_usage
+set quota_bytes = 16106127360,
+    updated_at = now()
+where quota_bytes <> 16106127360;
 
 create table if not exists workspace_uploads (
   storage_path text primary key,

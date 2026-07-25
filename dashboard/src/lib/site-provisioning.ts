@@ -5,8 +5,8 @@ export const siteTemplateOptions = [
 ] as const;
 
 export const planOptions = [
-  { key: 'essential', label: 'Essential', monthlyUsd: 25, storageGb: 50 },
-  { key: 'studio', label: 'Studio', monthlyUsd: 35, storageGb: 100 },
+  { key: 'essential', label: 'Essential', monthlyUsd: 25, storageGb: 15 },
+  { key: 'studio', label: 'Studio', monthlyUsd: 35, storageGb: 15 },
 ] as const;
 
 export type SiteTemplateKey = (typeof siteTemplateOptions)[number]['key'];

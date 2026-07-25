@@ -345,7 +345,7 @@ describe('OVH infrastructure reliability', () => {
 
     expect(schema).toContain('create table if not exists workspace_storage_usage');
     expect(schema).toContain('create table if not exists workspace_uploads');
-    expect(schema).toContain('quota_bytes bigint not null default 4294967296');
+    expect(schema).toContain('quota_bytes bigint not null default 16106127360');
     expect(caddy).toContain('max_size 16MB');
   });
 

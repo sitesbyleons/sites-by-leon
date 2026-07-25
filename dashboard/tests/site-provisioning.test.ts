@@ -37,7 +37,7 @@ describe('site provisioning validation', () => {
         adminDomain: 'vow.leonsites.org',
         templateKey: 'editorial',
         planKey: 'studio',
-        quotaBytes: 100 * 1024 * 1024 * 1024,
+        quotaBytes: 15 * 1024 * 1024 * 1024,
         githubRepository: 'sitesbyleons/vow-and-light',
         idempotencyKey: '7ed0f9c4-7262-4b44-a8c3-47f56b515f41',
       },
@@ -73,7 +73,7 @@ describe('site provisioning validation', () => {
       ok: true,
       value: {
         planKey: 'essential',
-        quotaBytes: 50 * 1024 * 1024 * 1024,
+        quotaBytes: 15 * 1024 * 1024 * 1024,
       },
     });
   });

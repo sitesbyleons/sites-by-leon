@@ -94,14 +94,14 @@ export const plans: readonly Plan[] = [
     monthlyPrice: 25,
     buildFee: 0,
     description: 'The essentials for launching a photography business and getting paid online.',
-    features: ['Custom domain', 'Control panel', 'Invoicing', 'Secure client payments', '50 GB photo storage'],
+    features: ['Custom domain', 'Control panel', 'Invoicing', 'Secure client payments', '15 GB photo storage'],
   },
   {
     name: 'Studio',
     monthlyPrice: 35,
     buildFee: 0,
-    description: 'More storage and publishing tools for a growing photography studio.',
-    features: ['Everything in Essential', 'Early access to new features', 'Advanced settings', '100 GB photo storage', 'Social media post gallery'],
+    description: 'Advanced settings and publishing tools for a growing photography studio.',
+    features: ['Everything in Essential', 'Early access to new features', 'Advanced settings', '15 GB photo storage', 'Social media post gallery'],
     featured: true,
   },
 ] as const;

@@ -75,13 +75,13 @@ The final success line confirms that all temporary resources were removed. Treat
 
 ## Capacity gates
 
-The current VPS has roughly 96 GB usable disk. While uploads, backup staging, and the Restic repository share that disk, keep aggregate customer quota reservations at or below 20 GB. This is an enforced ceiling, not a marketing promise.
+The current VPS has roughly 96 GB usable disk and 83 GB free as of July 25, 2026. Each customer workspace receives a hard 15 GB media quota. While uploads, backup staging, and the Restic repository share that disk, keep aggregate customer quota reservations at or below 60 GB. This permits at most four fully allocated workspaces and preserves roughly 23 GB of the currently free disk for the operating system, database, deployments, and working space. Provisioning must refuse another workspace until storage is expanded or an existing workspace is removed.
 
 Before raising it:
 
-- move Restic to independent S3-compatible object storage;
+- move Restic to independent off-server storage;
 - run and document an isolated PostgreSQL/media restore;
-- configure the private versioned application media bucket, migrate and verify existing files, and add an independent media replica/export;
+- add storage capacity and an independent media replica/export;
 - add disk, tunnel, database, webhook, and backup-age alerts;
 - run 10- and 50-host load tests;
 - finish the staged database RLS/service-role separation described in the production audit;

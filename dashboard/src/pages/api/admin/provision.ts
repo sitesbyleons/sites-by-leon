@@ -6,7 +6,7 @@ import { createPlatformDatabase } from '../../../lib/database';
 import { isTrustedOrigin } from '../../../lib/request-security';
 import { normalizeSiteSlug, validateSiteProvisioningInput } from '../../../lib/site-provisioning';
 
-const DEFAULT_CAPACITY_BYTES = 20 * 1024 * 1024 * 1024;
+const DEFAULT_CAPACITY_BYTES = 60 * 1024 * 1024 * 1024;
 const MAX_BODY_BYTES = 16 * 1024;
 
 function platformCapacityBytes() {
