@@ -17,6 +17,7 @@ const origin = 'https://leonsites.org';
 const routes = [
   ['/admin', 'Overview'],
   ['/admin/sites', 'Sites'],
+  ['/admin/demos', 'Demos'],
   ['/admin/subscriptions', 'Subscriptions'],
   ['/admin/tickets', 'Tickets'],
   ['/admin/users', 'Users'],
