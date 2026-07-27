@@ -11,23 +11,39 @@ import { contactEmail } from '../content/site';
     <div class="container legal__inner">
       <p class="section-kicker">Terms</p>
       <h1>Website and service terms.</h1>
-      <p class="legal__updated">Last updated July 10, 2026</p>
+      <p class="legal__updated">Last updated July 27, 2026</p>
 
       <section>
-        <h2>Website information</h2>
-        <p>This site describes services offered by Sites By Leon. Website examples marked “Concept Project” are demonstrations and are not commissioned client work.</p>
+        <h2>About these terms</h2>
+        <p>These terms apply to the Sites By Leon public website and paid website, hosting, and support services. A written proposal, order, or other agreement may add to these terms; if it conflicts with these terms, the more specific written agreement controls.</p>
       </section>
       <section>
-        <h2>Packages and scope</h2>
-        <p>The monthly packages shown are starting options. Pages, content, support, launch timing, and included updates are confirmed in writing before paid work begins.</p>
+        <h2>Website information and examples</h2>
+        <p>This site describes services offered by Sites By Leon. Website examples marked "Concept Project" are demonstrations and are not commissioned client work. Service descriptions may be updated as the product changes.</p>
+      </section>
+      <section>
+        <h2>Plans and project scope</h2>
+        <p>The public prices are monthly hosting plans. The selected plan, website pages, content, launch timing, support, and included updates are shown at checkout or confirmed in writing before billing begins. Requests outside the agreed scope may require a separate price or schedule.</p>
       </section>
       <section>
         <h2>Subscriptions and cancellation</h2>
-        <p>Monthly plans are billed through Stripe. The selected plan, billing date, cancellation terms, included updates, and hosting terms are shown or confirmed in writing before billing begins.</p>
+        <p>Subscriptions are processed by Stripe and renew according to the billing interval shown at checkout until canceled. Current billing status and cancellation options are available through the customer billing portal. Access may be limited or paused when a subscription is unpaid, canceled, or past due. Any refund terms shown at checkout or agreed in writing apply.</p>
       </section>
       <section>
-        <h2>Accuracy and availability</h2>
-        <p>Sites By Leon works to keep this website accurate and available, but cannot guarantee uninterrupted access. Client payment features are enabled only after setup and testing.</p>
+        <h2>Customer responsibilities</h2>
+        <p>Customers must provide accurate account information, protect access to their accounts, and use the service lawfully. Customers must have the rights and permissions needed for all text, images, trademarks, client information, and other material they provide, upload, or publish.</p>
+      </section>
+      <section>
+        <h2>Payments for a customer's clients</h2>
+        <p>Customer invoice and payment tools require a separate connected Stripe account and successful setup. The customer is responsible for its prices, services, client agreements, taxes, refunds, disputes, and compliance obligations. Sites By Leon is not a party to transactions between a customer and that customer's clients.</p>
+      </section>
+      <section>
+        <h2>Availability and changes</h2>
+        <p>Sites By Leon works to keep websites and account tools available and secure, but uninterrupted or error-free service cannot be guaranteed. Maintenance, security work, provider outages, and events outside reasonable control may affect availability. Customers should keep their own copies of important original content.</p>
+      </section>
+      <section>
+        <h2>Suspension and termination</h2>
+        <p>Access may be limited or terminated for nonpayment, unlawful or abusive use, security risk, infringement, or a material violation of these terms. When practical, Sites By Leon will provide notice and an opportunity to correct the issue.</p>
       </section>
       <section>
         <h2>Contact</h2>
@@ -36,5 +52,5 @@ import { contactEmail } from '../content/site';
       <a class="text-link" href="/">Return home</a>
     </div>
   </main>
-  <SiteFooter />
+  <SiteFooter home={false} />
 </BaseLayout>

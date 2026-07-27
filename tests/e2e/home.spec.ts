@@ -418,7 +418,7 @@ test('publishes correct metadata for the full marketing preview', async ({ page 
   );
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     'href',
-    'https://test.leonsites.org/',
+    'https://leonsites.org/',
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     'content',
@@ -426,7 +426,7 @@ test('publishes correct metadata for the full marketing preview', async ({ page 
   );
   await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
     'content',
-    'https://test.leonsites.org/',
+    'https://leonsites.org/',
   );
 });
 
@@ -434,7 +434,7 @@ test('shows a minimal standalone coming-soon page for production', async ({ page
   await page.goto('/coming-soon');
 
   await expect(page.getByRole('heading', { level: 1, name: 'July 31' })).toBeVisible();
-  await expect(page.getByText('We will be going public July 31st at 12:00 PM EST.')).toBeVisible();
+  await expect(page.getByText('We go public July 31 at noon Eastern time.')).toBeVisible();
   await expect(page.locator('.coming-soon')).toHaveAttribute('data-motion-surface', 'coming-soon');
   await expect(page.locator('.coming-soon')).toHaveAttribute('data-launch-at', '2026-07-31T12:00:00-04:00');
   await expect(page.locator('[data-coming-image]')).toHaveCount(3);
@@ -570,8 +570,14 @@ for (const viewport of [
 test('publishes the privacy and terms pages', async ({ page }) => {
   await page.goto('/privacy');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy notice.');
+  await expect(page.getByRole('heading', { level: 2, name: 'Information collected' })).toBeVisible();
+  await expect(page.getByText(/uploaded images/)).toBeVisible();
+  await expect(page.locator('footer').getByRole('link', { name: 'Pricing' })).toHaveAttribute('href', '/#pricing');
   await page.goto('/terms');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Website and service terms.');
+  await expect(page.getByRole('heading', { level: 2, name: 'Customer responsibilities' })).toBeVisible();
+  await expect(page.getByText(/connected Stripe account/)).toBeVisible();
+  await expect(page.locator('footer').getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '/#contact');
 });
 
 test('has no serious or critical accessibility violations', async ({ page }) => {

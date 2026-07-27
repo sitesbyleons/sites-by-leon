@@ -5,32 +5,48 @@ import SiteFooter from '../components/SiteFooter.astro';
 import { contactEmail } from '../content/site';
 ---
 
-<BaseLayout title="Privacy — sites.by.leon" description="How sites.by.leon handles website inquiries and contact information.">
+<BaseLayout title="Privacy - Sites By Leon" description="How Sites By Leon handles personal information.">
   <SiteHeader home={false} />
   <main class="legal" id="main">
     <div class="container legal__inner">
       <p class="section-kicker">Privacy</p>
       <h1>Privacy notice.</h1>
-      <p class="legal__updated">Last updated July 10, 2026</p>
+      <p class="legal__updated">Last updated July 27, 2026</p>
 
       <section>
-        <h2>What is collected</h2>
-        <p>If you contact Sites By Leon, the information you send, such as your name, email, photography focus, and project message, is used to reply and discuss possible services.</p>
+        <h2>What this notice covers</h2>
+        <p>This notice explains how Sites By Leon handles personal information from website visitors, prospective customers, account holders, and people whose information a customer enters while using the service.</p>
       </section>
       <section>
-        <h2>How it is handled</h2>
-        <p>Inquiry information is not sold and is not added to a marketing list. It may be stored with service providers used to operate the website and communication workflow. Access is limited to what is needed to respond and run the business.</p>
+        <h2>Information collected</h2>
+        <p>Sites By Leon may collect contact and account information, project messages, support requests, subscription and payment status, website content, uploaded images, and business records you choose to store, such as client contacts, inquiries, services, and invoices. Servers and security tools may also process IP addresses, browser details, request times, and similar technical data.</p>
       </section>
       <section>
-        <h2>Website operations</h2>
-        <p>The website host may process basic technical logs for security and reliability. Stripe handles payment details; Sites By Leon does not store full card information.</p>
+        <h2>How information is used</h2>
+        <p>Information is used to answer inquiries, create and manage accounts and websites, provide hosting and support, process subscriptions and customer invoices, prevent abuse, maintain security and reliability, comply with legal obligations, and improve the service. Sites By Leon does not sell personal information or add inquiry information to a marketing list.</p>
       </section>
       <section>
-        <h2>Your questions</h2>
-        <p>To ask about, correct, or request deletion of inquiry information, email <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.</p>
+        <h2>Service providers</h2>
+        <p>Information may be processed by providers used for authentication, payment processing, email, infrastructure, backups, security, and website delivery. Stripe processes payment details, and Sites By Leon does not store full card numbers. These providers handle information under their own terms and privacy commitments.</p>
+      </section>
+      <section>
+        <h2>Customer content and client information</h2>
+        <p>Customers decide what content and client information to place in their workspace. Customers are responsible for having permission to collect, upload, publish, and use that information. Sites By Leon processes it to provide the requested service.</p>
+      </section>
+      <section>
+        <h2>Retention and security</h2>
+        <p>Information is kept while needed to provide the service and for legitimate business, security, backup, dispute, and legal purposes. Reasonable administrative and technical safeguards are used, but no online service can guarantee absolute security.</p>
+      </section>
+      <section>
+        <h2>Your choices</h2>
+        <p>You may ask to access, correct, or delete personal information associated with you. Some information may be retained when needed to complete transactions, protect the service, resolve disputes, or comply with law. The service is intended for business users and is not directed to children.</p>
+      </section>
+      <section>
+        <h2>Contact</h2>
+        <p>For privacy questions or requests, email <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.</p>
       </section>
       <a class="text-link" href="/">Return home</a>
     </div>
   </main>
-  <SiteFooter />
+  <SiteFooter home={false} />
 </BaseLayout>
