@@ -8,11 +8,11 @@ import { concepts, contactEmail, instagramUrl, plans } from '../src/content/site
 
 describe('launch content', () => {
   it('keeps every portfolio example honest', () => {
-    expect(concepts).toHaveLength(3);
+    expect(concepts).toHaveLength(2);
     expect(concepts.every((concept) => concept.label === 'Concept Project')).toBe(true);
   });
 
-  it('ships nine distinct local stock photographs with source documentation', () => {
+  it('ships six distinct local stock photographs with source documentation', () => {
     const images = concepts.flatMap((concept) => concept.images);
     const sourceManifest = readFileSync(
       fileURLToPath(new URL('../docs/architecture/stock-images.md', import.meta.url)),
@@ -20,7 +20,7 @@ describe('launch content', () => {
     );
     const hashes = new Set<string>();
 
-    expect(images).toHaveLength(9);
+    expect(images).toHaveLength(6);
 
     for (const image of images) {
       const path = fileURLToPath(new URL(`../public${image.src}`, import.meta.url));

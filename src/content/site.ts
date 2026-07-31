@@ -73,19 +73,6 @@ export const concepts: readonly Concept[] = [
       { src: '/images/cinematic/portrait-musician.webp', alt: 'Editorial portrait of a woman in a dark top' },
     ],
   },
-  {
-    slug: 'fieldwork-commercial',
-    name: 'Fieldwork Commercial',
-    focus: 'Commercial photography',
-    label: 'Concept Project',
-    domain: 'fieldwork.studio',
-    description: 'Project pages, briefs, and client payments.',
-    images: [
-      { src: '/images/cinematic/commercial-fragrance.webp', alt: 'Pink glass fragrance bottle in warm directional light' },
-      { src: '/images/cinematic/commercial-audio.webp', alt: 'Black wireless headphones photographed on a white background' },
-      { src: '/images/cinematic/commercial-jewelry.webp', alt: 'Blue gemstone earrings arranged on a green leaf' },
-    ],
-  },
 ] as const;
 
 export const plans: readonly Plan[] = [

@@ -17,12 +17,12 @@ test('hero states the offer and reaches contact', async ({ page }) => {
 test('uses a varied cinematic image library inside complete website concepts', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.locator('.website-concept')).toHaveCount(3);
-  await expect(page.locator('.website-concept img')).toHaveCount(9);
+  await expect(page.locator('.website-concept')).toHaveCount(2);
+  await expect(page.locator('.website-concept img')).toHaveCount(6);
   const uniqueSources = await page.evaluate(
     () => new Set(Array.from(document.querySelectorAll<HTMLImageElement>('.website-concept img'), (image) => image.src)).size,
   );
-  expect(uniqueSources).toBe(9);
+  expect(uniqueSources).toBe(6);
   await expect(page.locator('.proof-strip')).toHaveCount(0);
   await expect(page.locator('.hero-browser')).toHaveCount(0);
   await expect(page.locator('.price-card')).toHaveCount(0);
@@ -31,45 +31,26 @@ test('uses a varied cinematic image library inside complete website concepts', a
 test('website examples show distinct photography businesses', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { level: 2, name: 'Website examples for photographers.' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'Check out our examples.' })).toBeVisible();
   await expect(page.locator('.concept-capabilities')).toHaveCount(0);
   await expect(page.getByText('Check availability', { exact: true })).toBeVisible();
   await expect(page.getByText('Book a session', { exact: true })).toBeVisible();
-  await expect(page.getByText('Deposit received', { exact: true })).toBeVisible();
+  await expect(page.getByText('Deposit received', { exact: true })).toHaveCount(0);
 });
 
 test('frames every concept as a website with its own example domain', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.locator('.concept-browser')).toHaveCount(3);
+  await expect(page.locator('.concept-browser')).toHaveCount(2);
   await expect(page.locator('.concept-browser__address')).toHaveText([
     'vowandlight.photo',
     'northlineportraits.com',
-    'fieldwork.studio',
   ]);
   await expect(page.locator('.website-concept--northline-portraits .portfolio-story__intro h3')).toHaveCSS(
     'text-align',
     'center',
   );
-  const fieldworkTitle = page.locator('.website-concept--fieldwork-commercial .concept-title');
-  await expect(fieldworkTitle).toHaveText('Fieldwork Commercial');
-  await expect(fieldworkTitle).toHaveCSS('white-space', 'nowrap');
-  await expect(page.locator('.website-concept--fieldwork-commercial .concept-title__line')).toHaveCount(0);
-  const fieldworkHeadline = page.locator('.commercial-site__intro h4');
-  await expect(fieldworkHeadline.locator('span')).toHaveText(['Product and', 'campaign', 'photography.']);
-  const headlineFitsFrame = await fieldworkHeadline.evaluate((headline) => {
-    const frame = headline.closest('.commercial-site');
-    if (!frame) return false;
-    const frameBounds = frame.getBoundingClientRect();
-    return [headline, ...headline.querySelectorAll('span')].every((line) => {
-      const lineBounds = line.getBoundingClientRect();
-      return lineBounds.left >= frameBounds.left
-        && lineBounds.right <= frameBounds.right
-        && lineBounds.top >= frameBounds.top
-        && lineBounds.bottom <= frameBounds.bottom;
-    });
-  });
-  expect(headlineFitsFrame).toBe(true);
+  await expect(page.locator('.website-concept--fieldwork-commercial')).toHaveCount(0);
 });
 
 test('keeps the main page focused by removing secondary explainer sections', async ({ page }) => {
@@ -86,8 +67,8 @@ test('loads GSAP ScrollTrigger with visible 2D and 3D depth scenes', async ({ pa
   await expect(page.locator('script[src*="cdn.jsdelivr.net/npm/gsap"]')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-motion', 'gsap-scrolltrigger');
   await expect(page.locator('html')).toHaveAttribute('data-motion-scenes', 'hero-depth concept-3d pricing-stagger');
-  await expect(page.locator('[data-motion-depth="concept"]')).toHaveCount(3);
-  await expect(page.locator('.concept-browser__progress')).toHaveCount(3);
+  await expect(page.locator('[data-motion-depth="concept"]')).toHaveCount(2);
+  await expect(page.locator('.concept-browser__progress')).toHaveCount(2);
 
   const firstConcept = page.locator('[data-motion-depth="concept"]').first();
   const initialTransform = await firstConcept.evaluate((element) => getComputedStyle(element).transform);
@@ -311,7 +292,7 @@ test('composes concept image hover without changing figure or caption geometry',
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
 
-  const browser = page.locator('.website-concept--fieldwork-commercial [data-motion-depth="concept"]');
+  const browser = page.locator('.website-concept--northline-portraits [data-motion-depth="concept"]');
   const figure = browser.locator('.concept-canvas figure').first();
   const image = figure.locator('img');
   const readImageMotion = () =>
@@ -328,16 +309,10 @@ test('composes concept image hover without changing figure or caption geometry',
   const readGeometry = () =>
     figure.evaluate((element) => {
       const figureBounds = element.getBoundingClientRect();
-      const captionBounds = element.querySelector('figcaption')!.getBoundingClientRect();
-      const nextBounds = element.nextElementSibling!.getBoundingClientRect();
       return {
-        captionBottom: figureBounds.bottom - captionBounds.bottom,
-        captionLeft: captionBounds.left - figureBounds.left,
-        captionRight: figureBounds.right - captionBounds.right,
         figureHeight: figureBounds.height,
         figureTransform: getComputedStyle(element).transform,
         figureWidth: figureBounds.width,
-        gap: nextBounds.left - figureBounds.right,
       };
     });
 
@@ -370,10 +345,6 @@ test('composes concept image hover without changing figure or caption geometry',
   expect(geometryDuringHover.figureTransform).toBe('none');
   expect(geometryDuringHover.figureWidth).toBeCloseTo(geometryBeforeHover.figureWidth, 1);
   expect(geometryDuringHover.figureHeight).toBeCloseTo(geometryBeforeHover.figureHeight, 1);
-  expect(geometryDuringHover.gap).toBeCloseTo(geometryBeforeHover.gap, 1);
-  expect(geometryDuringHover.captionLeft).toBeCloseTo(geometryBeforeHover.captionLeft, 1);
-  expect(geometryDuringHover.captionRight).toBeCloseTo(geometryBeforeHover.captionRight, 1);
-  expect(geometryDuringHover.captionBottom).toBeCloseTo(geometryBeforeHover.captionBottom, 1);
 });
 
 test('keeps interface language focused on what clients need', async ({ page }) => {
@@ -384,12 +355,12 @@ test('keeps interface language focused on what clients need', async ({ page }) =
   );
 });
 
-test('keeps all three website examples visual and concise', async ({ page }) => {
+test('keeps both website examples visual and concise', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.locator('.portfolio-story__intro > p')).toHaveCount(3);
-  await expect(page.locator('#work img')).toHaveCount(9);
-  await expect(page.locator('#work article')).toHaveCount(3);
+  await expect(page.locator('.portfolio-story__intro > p')).toHaveCount(2);
+  await expect(page.locator('#work img')).toHaveCount(6);
+  await expect(page.locator('#work article')).toHaveCount(2);
 });
 
 test('shows the two approved monthly plans and included features', async ({ page }) => {
@@ -429,6 +400,7 @@ test('keeps marketing section labels concise', async ({ page }) => {
   await expect(page.locator('#services .section-kicker')).toHaveCount(0);
   await expect(page.locator('#contact .section-kicker')).toHaveCount(0);
   await expect(page.locator('#work .section-kicker')).toHaveCount(0);
+  await expect(page.locator('#pricing .section-kicker')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Check out our examples.', exact: true })).toBeVisible();
 });
 
@@ -664,10 +636,10 @@ test('keeps reduced-motion press and image hover feedback spatially still', asyn
   await heroImage.hover();
   expect((await settledMotion('.hero-gallery__image img')).transform).toBe('none');
 
-  const conceptImage = page.locator('.website-concept--fieldwork-commercial .concept-canvas figure img').first();
+  const conceptImage = page.locator('.website-concept--northline-portraits .concept-canvas figure img').first();
   await conceptImage.hover();
   const conceptMotion = await settledMotion(
-    '.website-concept--fieldwork-commercial .concept-canvas figure img',
+    '.website-concept--northline-portraits .concept-canvas figure img',
   );
   expect(conceptMotion.transform).toBe('none');
   expect(conceptMotion.scale).toBe('none');
