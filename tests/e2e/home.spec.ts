@@ -406,6 +406,7 @@ test('shows the two approved monthly plans and included features', async ({ page
   await expect(cards.getByText('Secure client payments', { exact: true })).toHaveCount(1);
   await expect(cards.getByText('15 GB photo storage', { exact: true })).toHaveCount(2);
   await expect(cards.getByText('Social media post gallery', { exact: true })).toHaveCount(1);
+  await expect(page.locator('.pricing-card__index')).toHaveCount(0);
   const cardPositions = await cards.evaluateAll((items) =>
     items.map((item) => ({ x: (item as HTMLElement).offsetLeft, y: (item as HTMLElement).offsetTop })),
   );
@@ -421,6 +422,14 @@ test('keeps contact direct and email-only', async ({ page }) => {
     'href',
     'mailto:sites.by.leon@gmail.com',
   );
+});
+
+test('keeps marketing section labels concise', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#services .section-kicker')).toHaveCount(0);
+  await expect(page.locator('#contact .section-kicker')).toHaveCount(0);
+  await expect(page.locator('#work .section-kicker')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Check out our examples.', exact: true })).toBeVisible();
 });
 
 test('publishes correct metadata for the full marketing preview', async ({ page }) => {

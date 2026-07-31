@@ -1459,21 +1459,7 @@ h2 em {
 }
 
 .pricing-card__header {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.65rem 1rem;
-  align-items: start;
-}
-
-.pricing-card__index {
-  padding-top: 0.2rem;
-  color: var(--orange);
-  font-family: var(--font-editorial);
-  font-style: italic;
-}
-
-.pricing-card--featured .pricing-card__index {
-  color: var(--ink);
+  display: block;
 }
 
 .pricing-card h3 {
@@ -1487,7 +1473,6 @@ h2 em {
 .pricing-card__price {
   display: flex;
   margin: clamp(2.2rem, 4vw, 4rem) 0 0;
-  grid-column: 1 / 3;
   align-items: start;
   font-family: var(--font-display);
   font-size: clamp(4rem, 6vw, 6.5rem);
@@ -1547,7 +1532,7 @@ h2 em {
 .pricing-card li::before {
   margin-right: 0.55rem;
   color: var(--orange);
-  content: '↳';
+  content: '•';
 }
 
 .pricing-card--featured li::before {
@@ -1590,10 +1575,20 @@ h2 em {
   color: var(--silver);
 }
 
+.services .section-head {
+  display: block;
+}
+
+.services .section-head h2 {
+  max-width: none;
+  white-space: nowrap;
+}
+
 .service-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--line-dark);
+  border-bottom: 1px solid var(--line-dark);
 }
 
 .service-list article {
@@ -2106,6 +2101,10 @@ h2 em {
 
   .service-list {
     grid-template-columns: 1fr;
+  }
+
+  .services .section-head h2 {
+    white-space: normal;
   }
 
   .service-list article,
