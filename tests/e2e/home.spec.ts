@@ -55,6 +55,21 @@ test('frames every concept as a website with its own example domain', async ({ p
   await expect(fieldworkTitle).toHaveText('Fieldwork Commercial');
   await expect(fieldworkTitle).toHaveCSS('white-space', 'nowrap');
   await expect(page.locator('.website-concept--fieldwork-commercial .concept-title__line')).toHaveCount(0);
+  const fieldworkHeadline = page.locator('.commercial-site__intro h4');
+  await expect(fieldworkHeadline.locator('span')).toHaveText(['Product and', 'campaign', 'photography.']);
+  const headlineFitsFrame = await fieldworkHeadline.evaluate((headline) => {
+    const frame = headline.closest('.commercial-site');
+    if (!frame) return false;
+    const frameBounds = frame.getBoundingClientRect();
+    return [headline, ...headline.querySelectorAll('span')].every((line) => {
+      const lineBounds = line.getBoundingClientRect();
+      return lineBounds.left >= frameBounds.left
+        && lineBounds.right <= frameBounds.right
+        && lineBounds.top >= frameBounds.top
+        && lineBounds.bottom <= frameBounds.bottom;
+    });
+  });
+  expect(headlineFitsFrame).toBe(true);
 });
 
 test('keeps the main page focused by removing secondary explainer sections', async ({ page }) => {
@@ -431,6 +446,7 @@ test('publishes correct metadata for the full marketing preview', async ({ page 
 });
 
 test('shows a minimal standalone coming-soon page for production', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-07-31T15:00:00.000Z') });
   await page.goto('/coming-soon');
 
   await expect(page.getByRole('heading', { level: 1, name: 'July 31' })).toBeVisible();
@@ -570,11 +586,13 @@ for (const viewport of [
 test('publishes the privacy and terms pages', async ({ page }) => {
   await page.goto('/privacy');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy notice.');
+  await expect(page.locator('main .section-kicker')).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 2, name: 'Information collected' })).toBeVisible();
   await expect(page.getByText(/uploaded images/)).toBeVisible();
   await expect(page.locator('footer').getByRole('link', { name: 'Pricing' })).toHaveAttribute('href', '/#pricing');
   await page.goto('/terms');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Website and service terms.');
+  await expect(page.locator('main .section-kicker')).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 2, name: 'Customer responsibilities' })).toBeVisible();
   await expect(page.getByText(/connected Stripe account/)).toBeVisible();
   await expect(page.locator('footer').getByRole('link', { name: 'Contact' })).toHaveAttribute('href', '/#contact');
