@@ -1431,6 +1431,20 @@ h2 em {
   color: var(--ink);
 }
 
+.pricing .section-head {
+  display: block;
+}
+
+.pricing .section-head h2 {
+  max-width: none;
+  white-space: nowrap;
+}
+
+.pricing .section-head h2 em {
+  display: inline;
+  margin-left: 0.12em;
+}
+
 .pricing-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2104,6 +2118,10 @@ h2 em {
   }
 
   .services .section-head h2 {
+    white-space: normal;
+  }
+
+  .pricing .section-head h2 {
     white-space: normal;
   }
 
