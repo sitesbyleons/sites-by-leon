@@ -407,7 +407,7 @@ test('keeps marketing section labels concise', async ({ page }) => {
 test('publishes correct metadata for the full marketing preview', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page).toHaveTitle('Sites By Leon - Websites and hosting for photographers');
+  await expect(page).toHaveTitle('Sites By Leon');
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     'content',
     'Websites and hosting for photographers, with portfolio pages, inquiries, payments, updates, and direct support.',
@@ -418,7 +418,7 @@ test('publishes correct metadata for the full marketing preview', async ({ page 
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     'content',
-    'Sites By Leon - Websites and hosting for photographers',
+    'Sites By Leon',
   );
   await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
     'content',
