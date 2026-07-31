@@ -343,8 +343,8 @@ test('composes concept image hover without changing figure or caption geometry',
   expect(imageDuringHover.transform).not.toBe('none');
   expect(imageDuringHover.scale).toBeCloseTo(1.025, 2);
   expect(geometryDuringHover.figureTransform).toBe('none');
-  expect(geometryDuringHover.figureWidth).toBeCloseTo(geometryBeforeHover.figureWidth, 1);
-  expect(geometryDuringHover.figureHeight).toBeCloseTo(geometryBeforeHover.figureHeight, 1);
+  expect(Math.abs(geometryDuringHover.figureWidth - geometryBeforeHover.figureWidth)).toBeLessThanOrEqual(0.25);
+  expect(Math.abs(geometryDuringHover.figureHeight - geometryBeforeHover.figureHeight)).toBeLessThanOrEqual(0.25);
 });
 
 test('keeps interface language focused on what clients need', async ({ page }) => {

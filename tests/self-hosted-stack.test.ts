@@ -202,7 +202,7 @@ describe('fully self-hosted production stack', () => {
     expect(manifest).toContain('smoke:production:auth');
     expect(smoke).toContain('setupClerkTestingTokenOptions: { frontendApiUrl }');
     expect(smoke).toContain("required('CLERK_SECRET_KEY')");
-    expect(smoke).toContain("required('CLERK_PUBLISHABLE_KEY')");
+    expect(smoke).toContain("required('PUBLIC_CLERK_PUBLISHABLE_KEY')");
     expect(smoke).not.toMatch(/(?:sk|pk)_(?:live|test)_/);
   });
 

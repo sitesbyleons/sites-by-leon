@@ -7,12 +7,13 @@ const required = (name) => {
   return value;
 };
 
-const publishableKey = required('CLERK_PUBLISHABLE_KEY');
+const publishableKey = process.env.CLERK_PUBLISHABLE_KEY?.trim()
+  || required('PUBLIC_CLERK_PUBLISHABLE_KEY');
 required('CLERK_SECRET_KEY');
 const ownerEmail = required('E2E_CLERK_USER_EMAIL');
 const encodedFrontendApi = publishableKey.replace(/^pk_(?:live|test)_/, '');
 const frontendApiUrl = Buffer.from(encodedFrontendApi, 'base64').toString('utf8').replace(/\$$/, '');
-if (!/^[a-z0-9.-]+$/i.test(frontendApiUrl)) throw new Error('CLERK_PUBLISHABLE_KEY is invalid.');
+if (!/^[a-z0-9.-]+$/i.test(frontendApiUrl)) throw new Error('Clerk publishable key is invalid.');
 const origin = 'https://leonsites.org';
 const routes = [
   ['/admin', 'Overview'],
