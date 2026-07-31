@@ -502,7 +502,7 @@ test('uses a fade-only coming-soon entrance for reduced motion', async ({ page }
 });
 
 test('counts down to noon Eastern on July 31', async ({ page }) => {
-  await page.clock.install();
+  await page.clock.install({ time: new Date('2026-07-30T15:59:54.000Z') });
   await page.clock.pauseAt(new Date('2026-07-30T15:59:55.000Z'));
   await page.goto('/coming-soon');
 

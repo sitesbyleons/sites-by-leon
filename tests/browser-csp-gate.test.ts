@@ -54,12 +54,14 @@ describe('browser CSP regression gate', () => {
     }
   });
 
-  it('runs both production CSP suites in CI', () => {
+  it('runs both production CSP suites only after reviewed main-branch verification', () => {
     const workflow = read('.github/workflows/quality.yml');
 
     expect(workflow).toContain('pnpm --dir dashboard test:csp');
     expect(workflow).toContain('pnpm --dir photographer-site test:csp');
-    expect(workflow.match(/Clerk credentials unavailable; skipping production CSP tests\./g)).toHaveLength(2);
-    expect(workflow.match(/\[\[ -z "\$\{PUBLIC_CLERK_PUBLISHABLE_KEY\}"/g)).toHaveLength(2);
+    expect(workflow).toContain("if: github.event_name == 'push' && github.ref == 'refs/heads/main'");
+    expect(workflow).toContain('needs: verify');
+    expect(workflow).toContain('ref: ${{ github.sha }}');
+    expect(workflow).not.toContain('Clerk credentials unavailable; skipping production CSP tests.');
   });
 });

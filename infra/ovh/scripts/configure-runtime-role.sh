@@ -91,8 +91,23 @@ select format('alter role leon_domain_worker password %L', :'domain_worker_passw
 alter role leon_domain_worker login inherit nosuperuser nocreatedb nocreaterole noreplication;
 grant usage on schema public to leon_domain_worker;
 revoke all on table site_domain_aliases, domain_jobs from leon_domain_worker;
-grant select, update on table site_domain_aliases to leon_domain_worker;
-grant select, update on table domain_jobs to leon_domain_worker;
+grant select on table site_domain_aliases, domain_jobs to leon_domain_worker;
+grant update (
+  status,
+  is_canonical,
+  cloudflare_custom_hostname_id,
+  cloudflare_hostname_status,
+  cloudflare_ssl_status,
+  last_error,
+  last_checked_at
+) on table site_domain_aliases to leon_domain_worker;
+grant update (
+  status,
+  attempt_count,
+  available_at,
+  last_error,
+  locked_at
+) on table domain_jobs to leon_domain_worker;
 SQL
 else
   echo "Custom-domain worker database login is not enabled yet."

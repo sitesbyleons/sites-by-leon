@@ -136,6 +136,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
   let operation: PromiseLike<{ data: Record<string, unknown>[]; error: { message?: string } | null }>;
   let oldPath: string | null = null;
   let uploadBackedCreate: UploadBackedResource | null = null;
+  let quotaLimitedCreate: 'galleries' | 'images' | null = null;
 
   if (resource === 'settings') {
     const siteTitle = text(source, 'site_title', 100);
@@ -191,6 +192,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
         if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
         if (existing.data) return Response.json({ ok: true, id: existing.data.id });
       }
+      quotaLimitedCreate = 'galleries';
       operation = client.insertOrdered('studio_galleries', workspaceId, values);
     }
   } else if (resource === 'images') {
@@ -218,6 +220,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
         if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
         if (existing.data) return Response.json({ ok: true, id: existing.data.id });
       }
+      quotaLimitedCreate = 'images';
       operation = client.insertOrdered('studio_gallery_images', workspaceId, { gallery_id: galleryId, image_url: imageUrl, alt_text: altText, storage_path: storagePath, aspect_ratio: aspectRatio, crop_x: cropX, crop_y: cropY, crop_zoom: cropZoom });
     }
   } else if (resource === 'posts') {
@@ -309,7 +312,15 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     }
     return Response.json({ message: 'Changes could not be saved.' }, { status: 400 });
   }
-  if (!result.data.length) return Response.json({ message: 'This item no longer exists. Refresh and try again.' }, { status: 404 });
+  if (!result.data.length) {
+    if (quotaLimitedCreate) {
+      const message = quotaLimitedCreate === 'galleries'
+        ? 'This studio has reached its limit of 100 galleries.'
+        : 'This studio has reached its limit of 5,000 gallery images.';
+      return Response.json({ message }, { status: 409 });
+    }
+    return Response.json({ message: 'This item no longer exists. Refresh and try again.' }, { status: 404 });
+  }
   const newPath = text(source, resource === 'images' ? 'storage_path' : 'cover_storage_path', 1024);
   if (oldPath && oldPath !== newPath) await removeFiles(client, workspaceId, [managedPath(workspaceId, oldPath)]).catch(() => null);
   await sweepOrphanedUploads(client, workspaceId, mediaStorage());

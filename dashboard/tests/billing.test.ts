@@ -163,4 +163,19 @@ describe('subscription webhook isolation', () => {
       "if (!signature) return Response.json({ message: 'Invalid Stripe signature.' }, { status: 400 });",
     );
   });
+
+  it('bounds webhook bodies and verification pressure before parsing', () => {
+    const webhook = read('src/pages/api/webhooks/stripe.ts');
+    const caddy = read('../infra/ovh/Caddyfile');
+
+    expect(webhook).toContain('STRIPE_WEBHOOK_MAX_BYTES = 256 * 1024');
+    expect(webhook).toContain('STRIPE_WEBHOOK_MAX_CONCURRENT_VERIFICATIONS = 8');
+    expect(webhook).toContain('STRIPE_WEBHOOK_MAX_VERIFICATIONS_PER_MINUTE = 120');
+    expect(webhook).toContain('readLimitedBody(request, STRIPE_WEBHOOK_MAX_BYTES)');
+    expect(webhook).toContain("status: 413");
+    expect(webhook).toContain("status: 429");
+    expect(webhook).not.toContain('await request.text()');
+    expect(caddy).toContain('@stripe_webhook path /api/webhooks/stripe /api/webhooks/stripe/');
+    expect(caddy).toMatch(/request_body @stripe_webhook \{\s+max_size 256KB/);
+  });
 });

@@ -175,6 +175,28 @@ describe('Leon PostgreSQL data client', () => {
     expect(recorder.calls[1].text).toContain('for update');
   });
 
+  it('enforces workspace gallery limits inside the serialized insert', async () => {
+    const recorder = recordingExecutor([]);
+    const client = createDataClient(recorder.execute);
+
+    await client.insertOrdered('studio_galleries', 'ws-1', {
+      title: 'Game',
+      slug: 'game',
+    });
+    await client.insertOrdered('studio_gallery_images', 'ws-1', {
+      gallery_id: 'gallery-1',
+      image_url: '/image.webp',
+      alt_text: 'A game',
+    });
+
+    expect(recorder.calls[0].text).toContain('capacity as (select count(*) < $5');
+    expect(recorder.calls[0].text).toContain('cross join capacity where capacity.available');
+    expect(recorder.calls[0].values.at(-1)).toBe(100);
+    expect(recorder.calls[1].text).toContain('capacity as (select count(*) < $6');
+    expect(recorder.calls[1].text).toContain('cross join capacity where capacity.available');
+    expect(recorder.calls[1].values.at(-1)).toBe(5_000);
+  });
+
   it('replaces a connected account and clears account-scoped customer IDs atomically', async () => {
     const recorder = recordingExecutor([]);
     const client = createDataClient(recorder.execute);

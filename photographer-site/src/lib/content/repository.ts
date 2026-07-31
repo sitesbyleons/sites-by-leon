@@ -183,9 +183,14 @@ async function loadManagedPortfolio(workspaceId: string): Promise<Portfolio> {
     const queryError = [settings, galleries, galleryImages, posts, services].find((result) => result.error)?.error;
     if (queryError) throw new ManagedContentUnavailableError(queryError);
 
+    const imagesByGallery = new Map<string, GalleryImageRow[]>();
+    for (const item of galleryImages.data ?? []) {
+      const frames = imagesByGallery.get(item.gallery_id);
+      if (frames) frames.push(item);
+      else imagesByGallery.set(item.gallery_id, [item]);
+    }
     const mappedGalleries: Gallery[] = (galleries.data ?? []).map((gallery) => {
-      const frames = (galleryImages.data ?? [])
-        .filter((item) => item.gallery_id === gallery.id)
+      const frames = (imagesByGallery.get(gallery.id) ?? [])
         .map((item) => image(item.id, item.image_url, item.alt_text, {
           aspectRatio: !item.aspect_ratio || item.aspect_ratio === 'inherit' ? (gallery.image_aspect_ratio ?? 'landscape') : item.aspect_ratio,
           cropX: item.crop_x ?? 50,

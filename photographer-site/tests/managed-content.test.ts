@@ -111,6 +111,17 @@ describe('managed portfolio content', () => {
     expect(portfolio.home.featuredGallerySlugs).toEqual([]);
   });
 
+  it('indexes gallery images once before assembling galleries', () => {
+    const repository = fs.readFileSync(
+      new URL('../src/lib/content/repository.ts', import.meta.url),
+      'utf8',
+    );
+
+    expect(repository).toContain('const imagesByGallery = new Map<string, GalleryImageRow[]>()');
+    expect(repository).toContain('imagesByGallery.get(gallery.id) ?? []');
+    expect(repository).not.toContain('.filter((item) => item.gallery_id === gallery.id)');
+  });
+
   it('briefly reuses successful managed portfolio and theme reads per workspace', async () => {
     await siteRepository.getPortfolio('workspace-1');
     await siteRepository.getPortfolio('workspace-1');

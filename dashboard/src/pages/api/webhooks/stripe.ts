@@ -24,6 +24,55 @@ const subscriptionStatuses = new Set([
 const planKeys = new Set<HostingPlanKey>(['essential', 'studio', 'signature']);
 const isPlanKey = (value: string): value is HostingPlanKey => planKeys.has(value as HostingPlanKey);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const STRIPE_WEBHOOK_MAX_BYTES = 256 * 1024;
+const STRIPE_WEBHOOK_MAX_CONCURRENT_VERIFICATIONS = 8;
+const STRIPE_WEBHOOK_MAX_VERIFICATIONS_PER_MINUTE = 120;
+const verificationAttempts: number[] = [];
+let activeVerifications = 0;
+
+function acquireVerificationSlot(now = Date.now()): (() => void) | null {
+  const cutoff = now - 60_000;
+  while (verificationAttempts[0] !== undefined && verificationAttempts[0] <= cutoff) {
+    verificationAttempts.shift();
+  }
+  if (
+    activeVerifications >= STRIPE_WEBHOOK_MAX_CONCURRENT_VERIFICATIONS
+    || verificationAttempts.length >= STRIPE_WEBHOOK_MAX_VERIFICATIONS_PER_MINUTE
+  ) return null;
+  verificationAttempts.push(now);
+  activeVerifications += 1;
+  return () => {
+    activeVerifications = Math.max(0, activeVerifications - 1);
+  };
+}
+
+async function readLimitedBody(request: Request, maxBytes: number): Promise<string | null> {
+  const contentLength = request.headers.get('content-length');
+  if (contentLength && /^\d+$/.test(contentLength) && Number(contentLength) > maxBytes) return null;
+  if (!request.body) return '';
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(body);
+}
 
 export const POST: APIRoute = async ({ request }) => {
   const database = createPlatformDatabase();
@@ -36,12 +85,26 @@ export const POST: APIRoute = async ({ request }) => {
   }
   if (!signature) return Response.json({ message: 'Invalid Stripe signature.' }, { status: 400 });
 
+  const releaseVerificationSlot = acquireVerificationSlot();
+  if (!releaseVerificationSlot) {
+    return Response.json(
+      { message: 'Webhook verification is busy. Retry shortly.' },
+      { status: 429, headers: { 'Retry-After': '1' } },
+    );
+  }
+
   const stripe = new Stripe(stripeKey);
   let event: Stripe.Event;
   try {
-    event = await stripe.webhooks.constructEventAsync(await request.text(), signature, webhookSecret);
+    const body = await readLimitedBody(request, STRIPE_WEBHOOK_MAX_BYTES);
+    if (body === null) {
+      return Response.json({ message: 'Webhook payload is too large.' }, { status: 413 });
+    }
+    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
   } catch {
     return Response.json({ message: 'Invalid Stripe signature.' }, { status: 400 });
+  } finally {
+    releaseVerificationSlot();
   }
 
   const claim = await database.claimStripeEvent(event.id, event.type);

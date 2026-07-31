@@ -13,6 +13,7 @@ dist
 **/.env
 **/.env.*
 infra/ovh/secrets
+infra/ovh/secrets-test
 infra/ovh/migration-artifacts
 infra/ovh/backups
 playwright-report

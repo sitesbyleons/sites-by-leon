@@ -5,7 +5,12 @@
 
 :80 {
 	encode zstd gzip
-	request_body {
+	@stripe_webhook path /api/webhooks/stripe /api/webhooks/stripe/
+	request_body @stripe_webhook {
+		max_size 256KB
+	}
+	@other_requests not path /api/webhooks/stripe /api/webhooks/stripe/
+	request_body @other_requests {
 		max_size 16MB
 	}
 

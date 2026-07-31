@@ -15,6 +15,14 @@ const workflowStep = (name: string) => {
   return workflow.slice(start, next < 0 ? undefined : next);
 };
 
+const workflowJob = (name: string) => {
+  const marker = `  ${name}:`;
+  const start = workflow.indexOf(marker);
+  if (start < 0) return '';
+  const next = workflow.slice(start + marker.length).search(/^\s{2}[a-zA-Z0-9_-]+:\s*$/m);
+  return workflow.slice(start, next < 0 ? undefined : start + marker.length + next);
+};
+
 describe('CI security', () => {
   it('pins every third-party action to a full commit SHA', () => {
     const actions = Array.from(workflow.matchAll(/^\s*uses:\s*([^\s#]+)/gm), ([, action]) => action);
@@ -25,15 +33,29 @@ describe('CI security', () => {
     }
   });
 
-  it('keeps Clerk credentials out of the job-wide environment', () => {
-    const jobEnvironment = workflow.match(/^\s{4}env:\n((?:\s{6}[^\n]*\n)*)/m)?.[1] ?? '';
+  it('keeps pull-request verification completely secretless', () => {
+    const verifyJob = workflowJob('verify');
 
-    expect(jobEnvironment).not.toContain('CLERK');
-    expect(workflow).toContain('PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.PUBLIC_CLERK_PUBLISHABLE_KEY }}');
-    expect(workflow).toContain('CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}');
-    for (const name of ['Run dashboard browser tests', 'Run photographer site browser tests']) {
-      expect(workflowStep(name), name).not.toContain('CLERK');
-    }
+    expect(verifyJob).not.toContain('${{ secrets.');
+    expect(verifyJob).not.toContain('CLERK_SECRET_KEY');
+    expect(workflowStep('Build client dashboard Worker')).not.toContain('CLERK');
+    expect(workflowStep('Build photographer site')).not.toContain('CLERK');
+  });
+
+  it('runs credentialed CSP tests only against the reviewed main-branch commit', () => {
+    const trustedJob = workflowJob('trusted-csp');
+
+    expect(trustedJob).toContain(
+      "if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
+    );
+    expect(trustedJob).toContain('needs: verify');
+    expect(trustedJob).toContain('ref: ${{ github.sha }}');
+    expect(trustedJob).toContain(
+      'PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.PUBLIC_CLERK_PUBLISHABLE_KEY }}',
+    );
+    expect(trustedJob).toContain('CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}');
+    expect(trustedJob).toContain('pnpm --dir dashboard test:csp');
+    expect(trustedJob).toContain('pnpm --dir photographer-site test:csp');
   });
 
   it('runs secret-sync and backup-restore regressions without credentials', () => {

@@ -14,6 +14,13 @@ afterEach(() => {
 });
 
 describe('OVH infrastructure reliability', () => {
+  it('excludes production and test credentials from every Docker build context', () => {
+    const dockerignore = read('.dockerignore');
+
+    expect(dockerignore).toMatch(/^infra\/ovh\/secrets$/m);
+    expect(dockerignore).toMatch(/^infra\/ovh\/secrets-test$/m);
+  });
+
   it('bounds build cache growth in staging and production deployments', () => {
     const production = read('infra/ovh/scripts/deploy.sh');
     const staging = read('infra/ovh/scripts/deploy-test.sh');
@@ -347,6 +354,7 @@ describe('OVH infrastructure reliability', () => {
     expect(schema).toContain('create table if not exists workspace_uploads');
     expect(schema).toContain('quota_bytes bigint not null default 16106127360');
     expect(caddy).toContain('max_size 16MB');
+    expect(caddy).toMatch(/request_body @stripe_webhook \{\s+max_size 256KB/);
   });
 
   it('keeps selected media-library files while still sweeping abandoned uploads', () => {
@@ -535,6 +543,27 @@ describe('OVH infrastructure reliability', () => {
     expect(postgresEnv).toMatch(/^POSTGRES_DASHBOARD_PASSWORD=/m);
     expect(postgresEnv).toMatch(/^POSTGRES_PHOTOGRAPHER_PASSWORD=/m);
     expect(postgresEnv).not.toMatch(/^POSTGRES_RUNTIME_PASSWORD=/m);
+  });
+
+  it('limits the domain worker to operational state columns', () => {
+    const configureRole = read('infra/ovh/scripts/configure-runtime-role.sh');
+    const domainWorkerGrants = configureRole.slice(
+      configureRole.indexOf('grant usage on schema public to leon_domain_worker;'),
+      configureRole.indexOf('\nSQL', configureRole.indexOf('grant usage on schema public to leon_domain_worker;')),
+    );
+
+    expect(domainWorkerGrants).toContain(
+      'grant select on table site_domain_aliases, domain_jobs to leon_domain_worker;',
+    );
+    expect(domainWorkerGrants).toContain('last_checked_at\n) on table site_domain_aliases');
+    expect(domainWorkerGrants).toContain('locked_at\n) on table domain_jobs');
+    expect(domainWorkerGrants).not.toContain(
+      'grant select, update on table site_domain_aliases',
+    );
+    expect(domainWorkerGrants).not.toContain('workspace_id,');
+    expect(domainWorkerGrants).not.toContain('hostname,');
+    expect(domainWorkerGrants).not.toContain('domain_id,');
+    expect(domainWorkerGrants).not.toContain('idempotency_key,');
   });
 
   it('loads production secrets from a stable root and syncs only an explicit allowlist', () => {

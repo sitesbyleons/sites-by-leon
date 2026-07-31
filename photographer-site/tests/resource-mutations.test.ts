@@ -31,6 +31,17 @@ describe('studio resource mutations', () => {
     expect(route).not.toContain('const first = await client.from(table).update');
   });
 
+  it('returns a conflict when a studio reaches its gallery or image quota', () => {
+    const route = read('src/pages/api/admin/[resource].ts');
+    const core = readWorkspace('platform-core/src/index.ts');
+
+    expect(core).toContain('studio_galleries: 100');
+    expect(core).toContain('studio_gallery_images: 5_000');
+    expect(core).toContain('capacity.available');
+    expect(route).toContain("quotaLimitedCreate: 'galleries' | 'images' | null");
+    expect(route).toContain("status: 409");
+  });
+
   it('reserves per-workspace storage before writing an uploaded image', () => {
     const upload = read('src/pages/api/admin/upload.ts');
     expect(upload).toContain('optimizeUploadedImage');

@@ -67,6 +67,11 @@ const orderedTables = new Set<Table>([
   'studio_services',
 ]);
 
+const orderedInsertQuotas: Partial<Record<Table, number>> = {
+  studio_galleries: 100,
+  studio_gallery_images: 5_000,
+};
+
 const quote = (identifier: string) => `"${identifier}"`;
 
 function assertTable(table: string): asserts table is Table {
@@ -348,12 +353,18 @@ export function createDataClient(executeQuery: QueryExecutor) {
         const table = quote(tableName);
         const parameters: unknown[] = [`${workspaceId}:${tableName}`, workspaceId, ...entries.map(([, value]) => value)];
         const placeholders = entries.map((_, index) => `$${index + 3}`);
+        const quota = orderedInsertQuotas[tableName];
+        const quotaPlaceholder = quota === undefined ? null : `$${parameters.push(quota)}`;
         const galleryIndex = entries.findIndex(([column]) => column === 'gallery_id');
         if (tableName === 'studio_gallery_images' && galleryIndex < 0) throw new Error('Gallery images require a gallery.');
         const groupFilter = tableName === 'studio_gallery_images'
           ? ` and ${quote('gallery_id')} = $${galleryIndex + 3}`
           : '';
-        const text = `with lock as (select pg_advisory_xact_lock(hashtextextended($1, 0))), next_order as (select coalesce(max(${quote('sort_order')}), 0) + 1 as ${quote('sort_order')} from ${table} cross join lock where ${quote('workspace_id')} = $2${groupFilter}) insert into ${table} (${[quote('workspace_id'), ...entries.map(([column]) => quote(column)), quote('sort_order')].join(', ')}) select $2, ${placeholders.join(', ')}, next_order.${quote('sort_order')} from next_order returning *`;
+        const capacityCte = quotaPlaceholder
+          ? `, capacity as (select count(*) < ${quotaPlaceholder} as available from ${table} cross join lock where ${quote('workspace_id')} = $2)`
+          : '';
+        const capacityJoin = quotaPlaceholder ? ' cross join capacity where capacity.available' : '';
+        const text = `with lock as (select pg_advisory_xact_lock(hashtextextended($1, 0)))${capacityCte}, next_order as (select coalesce(max(${quote('sort_order')}), 0) + 1 as ${quote('sort_order')} from ${table} cross join lock where ${quote('workspace_id')} = $2${groupFilter}) insert into ${table} (${[quote('workspace_id'), ...entries.map(([column]) => quote(column)), quote('sort_order')].join(', ')}) select $2, ${placeholders.join(', ')}, next_order.${quote('sort_order')} from next_order${capacityJoin} returning *`;
         return { data: await executeQuery(text, parameters), error: null };
       } catch (error) {
         return { data: [], error: { message: error instanceof Error ? error.message : 'Ordered insert failed.' } };
