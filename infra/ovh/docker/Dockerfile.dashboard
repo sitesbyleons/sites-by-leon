@@ -22,6 +22,7 @@ COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
 COPY --from=build --chown=node:node /workspace/dashboard/node_modules ./dashboard/node_modules
 COPY --from=build --chown=node:node /workspace/dashboard/dist ./dashboard/dist
 COPY --from=build --chown=node:node /workspace/dashboard/package.json ./dashboard/package.json
+COPY --from=build --chown=node:node /workspace/dashboard/scripts ./dashboard/scripts
 COPY --from=build --chown=node:node /workspace/platform-core ./platform-core
 USER node
 EXPOSE 4321
