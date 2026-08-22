@@ -1,13 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
-import { useCspGuard } from '../../tests/e2e/csp-guard';
+import { useCspGuard } from '../../../tests/e2e/csp-guard';
 
 useCspGuard(test);
-
-const packageMetadata = JSON.parse(
-  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
-) as { version: string };
 
 test.describe('demo availability controls', () => {
   test('shows maintenance page when site status is maintenance', async ({ page }) => {
