@@ -125,12 +125,14 @@ export function getPreviewAdminData(): AdminData {
     workspaces: [
       { id: 'ws_northline', name: 'Northline Portraits', slug: 'northline', status: 'active', updated_at: '2026-07-10T17:00:00.000Z' },
       { id: 'ws_vow', name: 'Vow & Light', slug: 'vow-and-light', status: 'approved', updated_at: '2026-07-09T15:00:00.000Z' },
+      { id: 'ws_ishotyouu', name: 'ISHOTYOUU', slug: 'ishotyouu', status: 'active', updated_at: '2026-07-11T10:00:00.000Z' },
       { id: 'ws_fieldwork', name: 'Fieldwork Commercial', slug: 'fieldwork', status: 'lead', updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     projects: [
       { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, updated_at: '2026-07-10T17:00:00.000Z' },
       { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, updated_at: '2026-07-09T15:00:00.000Z' },
-      { id: 'prj_3', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, updated_at: '2026-07-08T13:00:00.000Z' },
+      { id: 'prj_3', workspace_id: 'ws_ishotyouu', name: 'ISHOTYOUU Demo', status: 'live', progress: 100, live_url: 'https://ishotyouu.leonsites.org', updated_at: '2026-07-11T10:00:00.000Z' },
+      { id: 'prj_4', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     subscriptions: [
       { id: 'sub_local', workspace_id: 'ws_northline', stripe_subscription_id: 'sub_preview', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
@@ -143,10 +145,12 @@ export function getPreviewAdminData(): AdminData {
     members: [
       { workspace_id: 'ws_northline', clerk_user_id: 'user_northline', role: 'owner' },
       { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
+      { workspace_id: 'ws_ishotyouu', clerk_user_id: 'user_leon', role: 'owner' },
     ],
     connections: [
       { workspace_id: 'ws_northline', site_key: 'northline-demo', site_kind: 'demo', primary_domain: 'demo.leonsites.org', admin_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
       { workspace_id: 'ws_vow', site_key: 'vow-and-light-demo', site_kind: 'demo', primary_domain: 'vow-and-light.leonsites.org', admin_domain: 'vow-and-light.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'active', current_version: 'editorial-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+      { workspace_id: 'ws_ishotyouu', site_key: 'ishotyouu-demo', site_kind: 'demo', primary_domain: 'ishotyouu.leonsites.org', admin_domain: 'ishotyouu.leonsites.org', deployment_target: 'ovh:ishotyouu-demo', github_repository: null, status: 'active', current_version: 'app-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
       { workspace_id: 'ws_fieldwork', site_key: 'fieldwork-site', site_kind: 'client', primary_domain: 'fieldwork.leonsites.org', admin_domain: 'fieldwork.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'maintenance', current_version: 'onboarding', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'maintenance', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
     ],
     domainAliases: [

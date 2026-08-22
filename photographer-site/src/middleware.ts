@@ -12,7 +12,7 @@ import {
 import { requiresStudioAuth } from './lib/studio-auth';
 
 const withClerk = clerkMiddleware();
-const EXEMPT_PATH_PREFIXES = ['/maintenance', '/admin', '/sign-in', '/sign-up', '/api'];
+const EXEMPT_PATH_PREFIXES = ['/maintenance', '/paused', '/admin', '/sign-in', '/sign-up', '/api'];
 const ASSET_PATH_PREFIXES = ['/_astro', '/images'];
 const PUBLIC_ASSET_PATHS = new Set(['/favicon.svg', '/robots.txt']);
 const siteContextCache = new SiteContextCache();
@@ -71,6 +71,8 @@ const publicControl = defineMiddleware(async (context, next) => {
     const method = context.request.method;
     if ((method === 'GET' || method === 'HEAD') && !isExemptPath(pathname)) {
       const publicStatus = getPreviewStatus() ?? context.locals.siteContext.status;
+      if (publicStatus === 'paused') return context.redirect('/paused', 302);
+      if (publicStatus === 'maintenance') return context.redirect('/maintenance', 302);
       if (publicStatus !== 'active') return context.redirect('/maintenance', 302);
     }
     return await next();
