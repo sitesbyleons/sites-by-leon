@@ -9,7 +9,7 @@ describe('admin site kinds', () => {
     const demoProjects = data.projects.filter((project) => kindByWorkspace.get(project.workspace_id) === 'demo');
     const clientProjects = data.projects.filter((project) => kindByWorkspace.get(project.workspace_id) !== 'demo');
 
-    expect(demoProjects.map((project) => project.workspace_id)).toEqual(['ws_northline', 'ws_vow']);
+    expect(demoProjects.map((project) => project.workspace_id)).toEqual(['ws_northline', 'ws_vow', 'ws_ishotyouu']);
     expect(clientProjects.map((project) => project.workspace_id)).toEqual(['ws_fieldwork']);
   });
 });

@@ -431,7 +431,7 @@ alter table site_connections alter column admin_domain set not null;
 alter table site_connections add column if not exists site_kind text not null default 'client';
 update site_connections
 set site_kind = 'demo'
-where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org');
+where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org', 'ishotyouu.leonsites.org');
 alter table site_connections drop constraint if exists site_connections_site_kind_check;
 alter table site_connections add constraint site_connections_site_kind_check
   check (site_kind in ('client', 'demo'));
