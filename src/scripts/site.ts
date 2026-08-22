@@ -9,6 +9,27 @@ const updateHeader = () => header?.classList.toggle('site-header--scrolled', win
 updateHeader();
 window.addEventListener('scroll', updateHeader, { passive: true });
 
+
+const nav = document.querySelector<HTMLElement>('[data-site-nav]');
+const toggle = document.querySelector<HTMLButtonElement>('[data-nav-toggle]');
+const setNavOpen = (open: boolean) => {
+  nav?.classList.toggle('is-open', open);
+  toggle?.setAttribute('aria-expanded', String(open));
+};
+toggle?.addEventListener('click', () => {
+  setNavOpen(toggle.getAttribute('aria-expanded') !== 'true');
+});
+nav?.querySelectorAll('a').forEach((link) => {
+  link.addEventListener('click', () => setNavOpen(false));
+});
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') setNavOpen(false);
+});
+window.addEventListener('resize', () => {
+  if (window.matchMedia('(min-width: 60.01rem)').matches) setNavOpen(false);
+});
+
+
 const revealItems = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
 
 const initializeScrollMotion = () => {

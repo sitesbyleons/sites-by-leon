@@ -1,0 +1,20 @@
+---
+const target = '/#pricing';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content={`0;url=${target}`} />
+    <link rel="canonical" href={target} />
+    <title>Pricing — Sites by Leon</title>
+    <script is:inline define:vars={{ target }}>
+      location.replace(target);
+    </script>
+  </head>
+  <body>
+    <p><a href={target}>Continue to pricing</a></p>
+  </body>
+</html>

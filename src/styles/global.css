@@ -602,7 +602,22 @@ h2 em {
 }
 
 .site-nav {
+  position: relative;
   gap: clamp(1.5rem, 3vw, 3rem);
+}
+
+.site-nav__toggle {
+  display: none;
+  min-height: 2.75rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line-dark);
+  background: transparent;
+  color: var(--bone-bright);
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 760;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
 .site-nav__links {
@@ -638,7 +653,7 @@ h2 em {
 
 .hero__shell {
   display: grid;
-  grid-template-columns: minmax(24rem, 0.78fr) minmax(34rem, 1.22fr);
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
   min-height: calc(100svh - 14rem);
   gap: clamp(2rem, 5vw, 6rem);
   align-items: center;
@@ -647,6 +662,8 @@ h2 em {
 .hero__copy {
   position: relative;
   z-index: 2;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .hero__eyebrow {
@@ -661,12 +678,13 @@ h2 em {
 }
 
 .hero h1 {
-  max-width: 7ch;
+  max-width: 100%;
   margin: 0 0 2rem;
+  overflow-wrap: anywhere;
   font-size: clamp(4.8rem, 7.3vw, 8.8rem);
   font-stretch: 68%;
   font-weight: 670;
-  line-height: 0.76;
+  line-height: 0.88;
   text-transform: uppercase;
 }
 
@@ -2005,7 +2023,7 @@ h2 em {
 
 @media (max-width: 78rem) {
   .hero__shell {
-    grid-template-columns: minmax(21rem, 0.8fr) minmax(29rem, 1.2fr);
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
     gap: 2.5rem;
   }
 
@@ -2028,8 +2046,31 @@ h2 em {
 }
 
 @media (max-width: 60rem) {
+  .site-nav__toggle {
+    display: inline-flex;
+    align-items: center;
+  }
+
   .site-nav__links {
+    position: absolute;
+    top: calc(100% + 0.75rem);
+    right: 0;
     display: none;
+    min-width: 12rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 0.5rem 0;
+    border: 1px solid var(--line-dark);
+    background: rgba(9, 9, 8, 0.96);
+  }
+
+  .site-nav.is-open .site-nav__links {
+    display: flex;
+  }
+
+  .site-nav__links a {
+    padding-inline: 1rem;
   }
 
   .hero__shell,
@@ -2047,7 +2088,7 @@ h2 em {
   }
 
   .hero h1 {
-    max-width: 8ch;
+    max-width: 100%;
   }
 
   .hero-gallery {
@@ -2235,7 +2276,8 @@ h2 em {
 
   .hero h1 {
     max-width: none;
-    font-size: clamp(3.8rem, 15.5vw, 5.4rem);
+    font-size: clamp(2.85rem, 12vw, 4.2rem);
+    line-height: 0.92;
   }
 
   .hero__subject {
