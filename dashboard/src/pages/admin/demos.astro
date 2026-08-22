@@ -29,13 +29,15 @@ const preview = isPreview ? '?preview=true' : '';
       {demos.length ? demos.map((connection) => {
         const project = projects.get(connection.workspace_id);
         const name = workspaceNames.get(connection.workspace_id) ?? project?.name ?? 'Demo';
+        const hasPhotographerCms = connection.deployment_target === 'ovh:leon-platform-photographer';
+        const editorUrl = hasPhotographerCms ? `https://${connection.admin_domain}/admin` : `https://${connection.primary_domain}/dashboard`;
         return (
           <article class="site-control-row">
             <div><strong>{name}</strong><small>{connection.primary_domain}</small></div>
             <div class="site-progress" role="progressbar" aria-label={`${project?.progress ?? 100}% complete`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={project?.progress ?? 100}><span style={`width:${project?.progress ?? 100}%`}></span></div>
             <div>
               <span>{connection.status} · {project?.progress ?? 100}%</span>
-              <div class="site-open-links"><a aria-label={`Manage ${name}`} href={`/admin/sites/${connection.workspace_id}${preview}`}>Manage</a><a aria-label={`Open public site for ${name}`} href={`https://${connection.primary_domain}`} target="_blank" rel="noreferrer">Public site</a>{connection.deployment_target === 'ovh:leon-platform-photographer' && <a aria-label={`Open editor for ${name}`} href={`https://${connection.admin_domain}/admin`} target="_blank" rel="noreferrer">Editor</a>}</div>
+              <div class="site-open-links"><a aria-label={`Manage ${name}`} href={`/admin/sites/${connection.workspace_id}${preview}`}>Manage</a><a aria-label={`Open public site for ${name}`} href={`https://${connection.primary_domain}`} target="_blank" rel="noreferrer">Public site</a><a aria-label={`Open editor for ${name}`} href={editorUrl} target="_blank" rel="noreferrer">Editor</a></div>
             </div>
           </article>
         );
