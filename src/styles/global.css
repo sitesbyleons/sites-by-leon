@@ -923,6 +923,14 @@ h2 em {
   transform-style: preserve-3d;
 }
 
+.concept-browser {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #151614;
+  box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
+}
+
 .concept-browser__chrome {
   position: relative;
   display: grid;
@@ -930,9 +938,10 @@ h2 em {
   padding-inline: 1.1rem;
   grid-template-columns: 1fr minmax(12rem, 0.7fr) 1fr;
   align-items: center;
-  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  border-bottom: 2px solid rgb(255 255 255 / 15%);
   background: #151614;
   color: #d9d5cc;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
 }
 
 .concept-browser__lights {
@@ -998,9 +1007,10 @@ h2 em {
   display: grid;
   height: clamp(42rem, 58vw, 54rem);
   overflow: hidden;
-  border: 0;
+  border: 1px solid rgb(255 255 255 / 8%);
   background: #d6d0c5;
-  box-shadow: none;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+  border-radius: 0 0 8px 8px;
 }
 
 .concept-canvas figure {
@@ -1031,6 +1041,8 @@ h2 em {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  opacity: 0.85;
+  pointer-events: none;
 }
 
 .concept-nav strong {
