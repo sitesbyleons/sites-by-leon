@@ -1,0 +1,4 @@
+# Preview host only. Never copy this site block onto leonsites.org or www.
+http://test.leonsites.org {
+	redir https://test.leonsites.org{uri} 308
+}
