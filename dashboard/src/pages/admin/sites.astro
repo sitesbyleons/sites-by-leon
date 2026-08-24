@@ -18,7 +18,8 @@ const sort = Astro.url.searchParams.get('sort') ?? 'updated';
 const sites = data.projects
   .filter((project) => {
     const connection = connections.get(project.workspace_id);
-    if (connection?.site_kind === 'demo') return false;
+    const workspace = data.workspaces.find((w) => w.id === project.workspace_id);
+    if (connection?.site_kind === 'demo' && workspace?.status !== 'lead') return false;
     if (status === 'archived') return connection?.status === 'archived';
     if (connection?.status === 'archived') return status === 'all';
     return status === 'all' || project.status === status;
@@ -43,17 +44,23 @@ const provisioningRuns = new Map(data.provisioningRuns.map((run) => [run.workspa
   <section class="admin-list-section admin-list-section--results">
     <header><div><span>Production</span><h2>Website builds</h2></div><div class="admin-section-actions"><p>{sites.length} shown</p><a href={`/admin/sites/new${isPreview ? '?preview=true' : ''}`}>Add client site</a></div></header>
     <div class="site-list">
-      {sites.length ? sites.map((project) => (
+      {sites.length ? sites.map((project) => {
+        const connection = connections.get(project.workspace_id);
+        const workspace = data.workspaces.find((w) => w.id === project.workspace_id);
+        const isDemo = connection?.site_kind === 'demo';
+        const hasPhotographerCms = connection?.deployment_target === 'ovh:leon-platform-photographer';
+        const editorUrl = hasPhotographerCms ? `https://${connection.admin_domain}/admin` : `https://${connection?.primary_domain}/dashboard`;
+        return (
         <article class="site-control-row">
-          <div><strong>{project.name}</strong><small>{workspaceNames.get(project.workspace_id) ?? 'Client'}{connections.get(project.workspace_id) ? ` · ${connections.get(project.workspace_id)!.primary_domain}` : ''}</small></div>
+          <div><strong>{project.name}</strong><small>{workspaceNames.get(project.workspace_id) ?? 'Client'}{isDemo ? ' · Demo' : ''}{connection ? ` · ${connection.primary_domain}` : ''}</small></div>
           <div class="site-progress" role="progressbar" aria-label={`${project.progress}% complete`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={project.progress}><span style={`width:${project.progress}%`}></span></div>
           <div>
-            <span>{connections.get(project.workspace_id)?.status ?? project.status} · {project.progress}%{provisioningRuns.get(project.workspace_id) ? ` · setup ${provisioningRuns.get(project.workspace_id)!.status.replaceAll('_', ' ')}` : ''}</span>
+            <span>{connection?.status ?? project.status} · {project.progress}%{provisioningRuns.get(project.workspace_id) ? ` · setup ${provisioningRuns.get(project.workspace_id)!.status.replaceAll('_', ' ')}` : ''}</span>
             {provisioningRuns.get(project.workspace_id)?.last_error && <small class="site-provision-error">{provisioningRuns.get(project.workspace_id)!.last_error}</small>}
-            {connections.get(project.workspace_id) && <div class="site-open-links"><a aria-label={`Manage ${project.name}`} href={`/admin/sites/${project.workspace_id}${isPreview ? '?preview=true' : ''}`}>Manage</a><a aria-label={`Open public site for ${project.name}`} href={`https://${connections.get(project.workspace_id)!.primary_domain}`} target="_blank" rel="noreferrer">Public site</a><a aria-label={`Open editor for ${project.name}`} href={`https://${connections.get(project.workspace_id)!.admin_domain}/admin`} target="_blank" rel="noreferrer">Editor</a></div>}
+            {connection && <div class="site-open-links"><a aria-label={`Manage ${project.name}`} href={`/admin/sites/${project.workspace_id}${isPreview ? '?preview=true' : ''}`}>Manage</a><a aria-label={`Open public site for ${project.name}`} href={`https://${connection.primary_domain}`} target="_blank" rel="noreferrer">Public site</a><a aria-label={`Open editor for ${project.name}`} href={editorUrl} target="_blank" rel="noreferrer">Editor</a></div>}
           </div>
         </article>
-      )) : <p class="simple-empty">No sites match that stage.</p>}
+      )}) : <p class="simple-empty">No sites match that stage.</p>}
     </div>
   </section>
 </AdminFrame>
