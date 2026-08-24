@@ -13,19 +13,21 @@ describe('admin site kinds', () => {
     expect(clientProjects.map((project) => project.workspace_id)).toEqual(['ws_fieldwork']);
   });
 
-  it('shows all demos on Sites page (same as Demos page)', () => {
+  it('shows lead demos on Sites page but not active/approved demos', () => {
     const data = getPreviewAdminData();
     const connections = new Map(data.connections.map((connection) => [connection.workspace_id, connection]));
     
     const sitesPageProjects = data.projects.filter((project) => {
       const connection = connections.get(project.workspace_id);
+      const workspace = data.workspaces.find((w) => w.id === project.workspace_id);
+      if (connection?.site_kind === 'demo' && workspace?.status !== 'lead') return false;
       if (connection?.status === 'archived') return false;
       return true;
     });
 
     expect(sitesPageProjects.map((p) => p.workspace_id)).toContain('ws_ishotyouu');
-    expect(sitesPageProjects.map((p) => p.workspace_id)).toContain('ws_northline');
-    expect(sitesPageProjects.map((p) => p.workspace_id)).toContain('ws_vow');
+    expect(sitesPageProjects.map((p) => p.workspace_id)).not.toContain('ws_northline');
+    expect(sitesPageProjects.map((p) => p.workspace_id)).not.toContain('ws_vow');
     expect(sitesPageProjects.map((p) => p.workspace_id)).toContain('ws_fieldwork');
   });
 

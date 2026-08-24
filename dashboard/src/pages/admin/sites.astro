@@ -18,6 +18,8 @@ const sort = Astro.url.searchParams.get('sort') ?? 'updated';
 const sites = data.projects
   .filter((project) => {
     const connection = connections.get(project.workspace_id);
+    const workspace = data.workspaces.find((w) => w.id === project.workspace_id);
+    if (connection?.site_kind === 'demo' && workspace?.status !== 'lead') return false;
     if (status === 'archived') return connection?.status === 'archived';
     if (connection?.status === 'archived') return status === 'all';
     return status === 'all' || project.status === status;
