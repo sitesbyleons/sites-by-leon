@@ -201,8 +201,8 @@ test('health exposes only the public service status and version', async ({ reque
 test('server-side preview pause redirects public pages and leaves health available', async ({ page, request }) => {
   const response = await navigate(page, 'http://127.0.0.1:4345/');
   expect(response?.status()).toBe(200);
-  await expect(page).toHaveURL('http://127.0.0.1:4345/maintenance');
-  await expect(page.getByRole('heading', { name: 'This site is temporarily unavailable.' })).toBeVisible();
+  await expect(page).toHaveURL('http://127.0.0.1:4345/paused');
+  await expect(page.getByRole('heading', { name: 'This site is currently paused.' })).toBeVisible();
 
   const health = await request.get('http://127.0.0.1:4345/api/health');
   expect(health.status()).toBe(200);
@@ -210,7 +210,7 @@ test('server-side preview pause redirects public pages and leaves health availab
 
 test('paused mode exempts only explicit asset and reserved route boundaries', async ({ page, request }) => {
   await navigate(page, 'http://127.0.0.1:4345/invoice/foo.bar');
-  await expect(page).toHaveURL('http://127.0.0.1:4345/maintenance');
+  await expect(page).toHaveURL('http://127.0.0.1:4345/paused');
 
   const signIn = await request.get('http://127.0.0.1:4345/sign-in', { maxRedirects: 0 });
   expect(signIn.status()).toBe(200);
