@@ -75,6 +75,21 @@ services:
     cpus: 2
     pids_limit: 200
 
+  ishotyouu-demo-test:
+    build:
+      context: ../..
+      dockerfile: infra/ovh/docker/Dockerfile.ishotyouu-demo-test
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - leon-test-internal
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 50
+
   gateway-test:
     build:
       context: ../..

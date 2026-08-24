@@ -1,0 +1,23 @@
+# Test-only container serving OG ISHOTYOUU public pages stub
+# This demonstrates the routing pattern: public pages separate from photographer CMS admin
+FROM caddy:2.8-alpine
+
+# Create stub public pages for testing
+RUN mkdir -p /srv/public
+
+# Home page
+RUN echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>ISHOTYOUU</title></head><body><h1>ISHOTYOUU</h1><nav><a href="/">Home</a> | <a href="/work">Work</a> | <a href="/about">About</a> | <a href="/inquire">Inquire</a> | <a href="/admin">Admin</a></nav><main><p>Test public home page. Admin routes go to photographer CMS.</p></main></body></html>' > /srv/public/index.html
+
+# Work page
+RUN echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Work - ISHOTYOUU</title></head><body><h1>Work</h1><nav><a href="/">Home</a> | <a href="/work">Work</a> | <a href="/about">About</a> | <a href="/inquire">Inquire</a> | <a href="/admin">Admin</a></nav><main><p>Test work gallery page.</p></main></body></html>' > /srv/public/work.html
+
+# About page
+RUN echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>About - ISHOTYOUU</title></head><body><h1>About</h1><nav><a href="/">Home</a> | <a href="/work">Work</a> | <a href="/about">About</a> | <a href="/inquire">Inquire</a> | <a href="/admin">Admin</a></nav><main><p>Test about page.</p></main></body></html>' > /srv/public/about.html
+
+# Inquire page
+RUN echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Inquire - ISHOTYOUU</title></head><body><h1>Inquire</h1><nav><a href="/">Home</a> | <a href="/work">Work</a> | <a href="/about">About</a> | <a href="/inquire">Inquire</a> | <a href="/admin">Admin</a></nav><main><p>Test inquiry form page.</p></main></body></html>' > /srv/public/inquire.html
+
+# Caddyfile
+RUN echo ':80 { root * /srv/public; try_files {path}.html {path}; file_server }' > /etc/caddy/Caddyfile
+
+EXPOSE 80
