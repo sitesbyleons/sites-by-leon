@@ -145,11 +145,16 @@ export function getPreviewAdminData(): AdminData {
     members: [
       { workspace_id: 'ws_northline', clerk_user_id: 'user_northline', role: 'owner' },
       { workspace_id: 'ws_vow', clerk_user_id: 'user_vow', role: 'owner' },
+      { workspace_id: 'ws_ishotyouu', clerk_user_id: 'user_leon', role: 'owner' },
     ],
     connections: [
       { workspace_id: 'ws_northline', site_key: 'northline-demo', site_kind: 'demo', primary_domain: 'demo.leonsites.org', admin_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
       { workspace_id: 'ws_vow', site_key: 'vow-and-light-demo', site_kind: 'demo', primary_domain: 'vow-and-light.leonsites.org', admin_domain: 'vow-and-light.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'active', current_version: 'editorial-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+<<<<<<< HEAD
       { workspace_id: 'ws_ishotyouu', site_key: 'ishotyouu-demo', site_kind: 'demo', primary_domain: 'ishotyouu.leonsites.org', admin_domain: 'ishotyouu.leonsites.org', deployment_target: null, github_repository: null, status: 'active', current_version: null, last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+=======
+      { workspace_id: 'ws_ishotyouu', site_key: 'ishotyouu-demo', site_kind: 'demo', primary_domain: 'ishotyouu.leonsites.org', admin_domain: 'ishotyouu.leonsites.org', deployment_target: 'ovh:ishotyouu-demo', github_repository: null, status: 'active', current_version: 'app-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+>>>>>>> origin/cursor/fix-demo-availability-buttons-9fa6
       { workspace_id: 'ws_fieldwork', site_key: 'fieldwork-site', site_kind: 'client', primary_domain: 'fieldwork.leonsites.org', admin_domain: 'fieldwork.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'maintenance', current_version: 'onboarding', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'maintenance', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
     ],
     domainAliases: [
