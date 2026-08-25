@@ -431,7 +431,7 @@ alter table site_connections alter column admin_domain set not null;
 alter table site_connections add column if not exists site_kind text not null default 'client';
 update site_connections
 set site_kind = 'demo'
-where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org', 'ishotyouu.leonsites.org');
+where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org', 'ishotyouu.leonsites.org', 'ishotyouu-test.leonsites.org');
 alter table site_connections drop constraint if exists site_connections_site_kind_check;
 alter table site_connections add constraint site_connections_site_kind_check
   check (site_kind in ('client', 'demo'));
@@ -720,3 +720,34 @@ grant select, insert, update, delete on table
 to leon_photographer_runtime;
 revoke all privileges on table subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime;
 revoke insert, update, delete, truncate, references, trigger on table app_admins from leon_photographer_runtime;
+
+-- Test-only ISHOTYOUU demo site (idempotent)
+do $$
+declare
+  ws_id uuid;
+begin
+  -- Only run in test/staging environments (check for test domain pattern)
+  if exists (select 1 from site_connections where primary_domain like '%-test.leonsites.org' limit 1) then
+    -- Insert or update workspace
+    insert into client_workspaces (id, name, slug, status, clerk_org_id, stripe_customer_id)
+    values ('00000000-0000-0000-0000-000000000099'::uuid, 'ISHOTYOUU', 'ishotyouu', 'lead', null, null)
+    on conflict (id) do update set name = excluded.name, slug = excluded.slug, status = excluded.status;
+    
+    ws_id := '00000000-0000-0000-0000-000000000099'::uuid;
+    
+    -- Insert or update project
+    insert into website_projects (id, workspace_id, name, status, plan_key, template_key, progress, live_url)
+    values ('00000000-0000-0000-0000-000000000199'::uuid, ws_id, 'ISHOTYOUU Website', 'live', null, 'blank', 100, 'https://ishotyouu-test.leonsites.org')
+    on conflict (id) do update set name = excluded.name, status = excluded.status, progress = excluded.progress, live_url = excluded.live_url;
+    
+    -- Insert or update site connection
+    insert into site_connections (workspace_id, site_key, primary_domain, admin_domain, deployment_target, status, billing_mode, desired_status, billing_state)
+    values (ws_id, 'ishotyouu-demo', 'ishotyouu-test.leonsites.org', 'ishotyouu-test.leonsites.org', 'ovh:leon-platform-photographer', 'active', 'manual', 'active', 'manual')
+    on conflict (workspace_id) do update set 
+      site_key = excluded.site_key,
+      primary_domain = excluded.primary_domain,
+      admin_domain = excluded.admin_domain,
+      deployment_target = excluded.deployment_target,
+      status = excluded.status;
+  end if;
+end $$;
