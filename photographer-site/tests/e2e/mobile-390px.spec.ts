@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+// These tests require TEST environment deployment and Clerk configuration.
+// Run manually after deploying to TEST:
+//   MANUAL_TEST=1 pnpm --dir photographer-site test:e2e tests/e2e/mobile-390px.spec.ts
 test.describe('Mobile 390px viewport', () => {
+  test.skip(!process.env.MANUAL_TEST, 'Manual verification test - set MANUAL_TEST=1 to run');
+
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
   });
