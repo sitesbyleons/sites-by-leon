@@ -55,12 +55,45 @@
 		file_server
 	}
 
-	@ishotyouu host ishotyouu-test.leonsites.org
-	handle @ishotyouu {
-		reverse_proxy photographer-test:4321 ishotyouu-demo-test:80 {
-			lb_policy first
-			lb_try_duration 100ms
-			lb_try_interval 50ms
+	@ishotyouu_admin {
+		host ishotyouu-test.leonsites.org
+		path /admin /admin/* /sign-in /sign-in/* /sign-up /sign-up/* /api/*
+	}
+	handle @ishotyouu_admin {
+		reverse_proxy photographer-test:4321
+	}
+
+	@ishotyouu_admin_assets {
+		host ishotyouu-test.leonsites.org
+		path_regexp /_astro/.*\.(js|mjs)$
+	}
+	handle @ishotyouu_admin_assets {
+		reverse_proxy photographer-test:4321
+	}
+
+	@ishotyouu_public {
+		host ishotyouu-test.leonsites.org
+		path / /work /work/* /about /about/* /inquire /inquire/* /favicon.svg
+	}
+	handle @ishotyouu_public {
+		reverse_proxy ishotyouu-demo-test:80
+	}
+
+	@ishotyouu_public_assets {
+		host ishotyouu-test.leonsites.org
+		path_regexp /_astro/.*\.css$
+	}
+	handle @ishotyouu_public_assets {
+		reverse_proxy ishotyouu-demo-test:80
+	}
+
+	@ishotyouu_fallback host ishotyouu-test.leonsites.org
+	handle @ishotyouu_fallback {
+		reverse_proxy photographer-test:4321 {
+			@error status 404
+			handle_response @error {
+				reverse_proxy ishotyouu-demo-test:80
+			}
 		}
 	}
 
