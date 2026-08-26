@@ -34,6 +34,14 @@ a { color: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .studio-icon { width: 1rem; height: 1rem; flex: 0 0 auto; }
 
+/* Clerk UI mobile overrides */
+.cl-rootBox, .cl-card, .cl-internal-b3fm6y { max-width: 100% !important; width: 100% !important; }
+.cl-card { padding: 1.25rem 1rem !important; }
+.cl-formFieldInput, .cl-formButtonPrimary { font-size: 16px !important; min-height: 2.75rem !important; }
+.cl-formFieldInput { padding: 0.65rem 0.75rem !important; }
+.cl-formButtonPrimary { padding: 0.7rem 1rem !important; }
+.cl-footerAction, .cl-footerActionLink { font-size: 0.88rem !important; }
+
 .studio-shell { display: grid; min-height: 100dvh; grid-template-columns: 13.75rem minmax(0, 1fr); }
 .studio-sidebar { position: sticky; z-index: 20; top: 0; display: flex; min-width: 0; height: 100dvh; flex-direction: column; padding: 0.8rem; border-right: 1px solid #292c29; background: var(--sidebar); color: var(--sidebar-text); }
 .studio-sidebar__head { display: flex; align-items: center; justify-content: space-between; min-height: 3.5rem; padding: 0.35rem 0.4rem 0.9rem; }
@@ -361,9 +369,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 @media (max-width: 390px) {
+  html { min-width: 0; }
+  body { min-width: 0; overflow-x: hidden; }
   .studio-file-grid { grid-template-columns: 1fr; }
   .studio-media-browser { gap: 0.42rem; }
   .studio-media-card strong { font-size: 0.6rem; }
+  .studio-topbar { gap: 0.6rem; padding: 0.55rem 0.6rem; }
+  .studio-workspace { padding: 1rem 0.6rem 1.5rem; }
+  .studio-panel { padding: 0.85rem; }
+  .studio-form input, .studio-form select, .studio-form textarea { font-size: 0.75rem; padding: 0.58rem 0.62rem; }
+  .studio-form button, .studio-button { min-height: 2.5rem; padding: 0.62rem 0.7rem; font-size: 0.7rem; }
+  .studio-editor-form { padding: 1rem 0.8rem; }
+  .studio-item-copy { padding: 0 0.6rem; }
+  .studio-gallery-workbench__header { padding: 0.85rem 3.5rem 0.85rem 0.85rem; }
+  .studio-gallery-workbench__section { padding: 0.85rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
