@@ -721,29 +721,29 @@ to leon_photographer_runtime;
 revoke all privileges on table subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime;
 revoke insert, update, delete, truncate, references, trigger on table app_admins from leon_photographer_runtime;
 
--- Test-only ISHOTYOUU demo site (idempotent)
+-- Test-only ISHOTYOUU site (idempotent). Reuse the existing workspace UUID if
+-- slug ishotyouu is already present; do not insert a colliding hardcoded id.
 do $$
 declare
   ws_id uuid;
 begin
-  -- Only run in test/staging environments (check for test domain pattern)
   if exists (select 1 from site_connections where primary_domain like '%-test.leonsites.org' limit 1) then
-    -- Insert or update workspace
-    insert into client_workspaces (id, name, slug, status, clerk_org_id, stripe_customer_id)
-    values ('00000000-0000-0000-0000-000000000099'::uuid, 'ISHOTYOUU', 'ishotyouu', 'lead', null, null)
-    on conflict (id) do update set name = excluded.name, slug = excluded.slug;
+    select id into ws_id from client_workspaces where slug = 'ishotyouu';
+    if ws_id is null then
+      insert into client_workspaces (id, name, slug, status, clerk_org_id, stripe_customer_id)
+      values ('00000000-0000-0000-0000-000000000099'::uuid, 'ISHOTYOUU', 'ishotyouu', 'lead', null, null)
+      returning id into ws_id;
+    end if;
 
-    ws_id := '00000000-0000-0000-0000-000000000099'::uuid;
-    
-    -- Insert or update project
-    insert into website_projects (id, workspace_id, name, status, plan_key, template_key, progress, live_url)
-    values ('00000000-0000-0000-0000-000000000199'::uuid, ws_id, 'ISHOTYOUU Website', 'live', null, 'blank', 100, 'https://ishotyouu-test.leonsites.org')
-    on conflict (id) do update set name = excluded.name, status = excluded.status, progress = excluded.progress, live_url = excluded.live_url;
-    
-    -- Insert or update site connection
+    if not exists (select 1 from website_projects where workspace_id = ws_id) then
+      insert into website_projects (id, workspace_id, name, status, plan_key, template_key, progress, live_url)
+      values ('00000000-0000-0000-0000-000000000199'::uuid, ws_id, 'ISHOTYOUU Website', 'live', null, 'blank', 100, 'https://ishotyouu-test.leonsites.org')
+      on conflict (id) do nothing;
+    end if;
+
     insert into site_connections (workspace_id, site_key, primary_domain, admin_domain, deployment_target, status, billing_mode, desired_status, billing_state)
     values (ws_id, 'ishotyouu-demo', 'ishotyouu-test.leonsites.org', 'ishotyouu-test.leonsites.org', 'ovh:leon-platform-photographer', 'active', 'manual', 'active', 'manual')
-    on conflict (workspace_id) do update set 
+    on conflict (workspace_id) do update set
       site_key = excluded.site_key,
       primary_domain = excluded.primary_domain,
       admin_domain = excluded.admin_domain,

@@ -31,6 +31,12 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(ISHOTYOUU_FALLBACK_WORK.length).toBeGreaterThan(10);
   });
 
+  it('reuses an existing ISHOTYOUU workspace slug instead of inserting a colliding UUID', () => {
+    const schema = readFileSync(new URL('../../infra/ovh/postgres/schema.sql', import.meta.url), 'utf8');
+    expect(schema).toContain("select id into ws_id from client_workspaces where slug = 'ishotyouu'");
+    expect(schema).toContain('if ws_id is null then');
+  });
+
   it('routes TEST HTML to photographer-test while keeping OG work images on the sidecar', () => {
     const caddy = readFileSync(new URL('../../infra/ovh/Caddyfile.test', import.meta.url), 'utf8');
     expect(caddy).toContain('@ishotyouu_media_files');
