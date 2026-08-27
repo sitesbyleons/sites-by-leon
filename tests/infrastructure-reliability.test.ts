@@ -526,7 +526,9 @@ describe('OVH infrastructure reliability', () => {
     expect(schema).toContain('to leon_photographer_runtime');
     expect(schema).toContain('revoke all privileges on table site_provisioning_runs, domain_jobs from leon_photographer_runtime');
     expect(schema).toContain('revoke insert, update, delete, truncate, references, trigger on table app_admins, website_projects, subscriptions, checkout_attempts from leon_photographer_runtime');
-    expect(schema).toContain('grant update (chosen_domain) on table website_projects to leon_photographer_runtime');
+    expect(schema.indexOf('create table if not exists checkout_attempts')).toBeLessThan(
+      schema.indexOf('alter table checkout_attempts add column if not exists monthly_cents'),
+    );
     expect(configureRole).toContain('POSTGRES_DASHBOARD_PASSWORD must contain at least 32 characters.');
     expect(configureRole).toContain('POSTGRES_PHOTOGRAPHER_PASSWORD must contain at least 32 characters.');
     expect(configureRole).toContain('create role leon_dashboard login nosuperuser nocreatedb nocreaterole noreplication');

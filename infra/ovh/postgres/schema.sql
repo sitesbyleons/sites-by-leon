@@ -71,10 +71,6 @@ alter table website_projects add constraint website_projects_chosen_domain_check
     chosen_domain is null
     or chosen_domain ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
   );
-alter table checkout_attempts add column if not exists monthly_cents integer;
-alter table checkout_attempts drop constraint if exists checkout_attempts_monthly_cents_check;
-alter table checkout_attempts add constraint checkout_attempts_monthly_cents_check
-  check (monthly_cents is null or (monthly_cents >= 100 and monthly_cents <= 1000000));
 
 create table if not exists site_provisioning_runs (
   id uuid primary key default gen_random_uuid(),
@@ -134,6 +130,10 @@ create table if not exists checkout_attempts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table checkout_attempts add column if not exists monthly_cents integer;
+alter table checkout_attempts drop constraint if exists checkout_attempts_monthly_cents_check;
+alter table checkout_attempts add constraint checkout_attempts_monthly_cents_check
+  check (monthly_cents is null or (monthly_cents >= 100 and monthly_cents <= 1000000));
 
 create table if not exists workspace_storage_usage (
   workspace_id uuid primary key references client_workspaces(id) on delete cascade,
