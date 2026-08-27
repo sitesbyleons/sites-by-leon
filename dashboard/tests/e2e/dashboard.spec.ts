@@ -76,8 +76,9 @@ test('shows Leon the studio-wide admin overview', async ({ page }) => {
 
 test('splits admin records into sortable pages', async ({ page }) => {
   await page.goto('/admin/users?preview=true&sort=name');
+  await expect(page.getByRole('heading', { name: 'Add a Leon Sites client' })).toBeVisible();
   await expect(page.getByRole('table', { name: 'User accounts' })).toBeVisible();
-  await expect(page.getByText('Maya Carter')).toBeVisible();
+  await expect(page.getByText('Maya Carter', { exact: true })).toBeVisible();
 
   await page.goto('/admin/tickets?preview=true');
   const tools = page.getByRole('form', { name: 'Sort and filter tickets' });
