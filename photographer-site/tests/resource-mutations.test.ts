@@ -113,5 +113,6 @@ describe('studio resource mutations', () => {
     expect(route).toContain("Choose a gallery from this studio.");
     expect(posts).toContain('name="related_gallery_id"');
     expect(schema).toContain('alter table studio_posts add column if not exists related_gallery_id');
+    expect(readWorkspace('platform-core/src/index.ts')).toContain("'related_gallery_id'");
   });
 });
