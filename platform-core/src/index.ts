@@ -26,7 +26,7 @@ export type DataResult<T> = { data: T; error: DataError | null };
 const schema = {
   app_admins: ['clerk_user_id', 'display_name', 'created_at'],
   client_workspaces: ['id', 'clerk_org_id', 'name', 'slug', 'status', 'stripe_customer_id', 'created_at', 'updated_at'],
-  checkout_attempts: ['workspace_id', 'attempt_key', 'plan_key', 'stripe_session_id', 'checkout_url', 'expires_at', 'created_at', 'updated_at'],
+  checkout_attempts: ['workspace_id', 'attempt_key', 'plan_key', 'monthly_cents', 'stripe_session_id', 'checkout_url', 'expires_at', 'created_at', 'updated_at'],
   connected_payment_account_history: ['stripe_account_id', 'workspace_id', 'retired_at'],
   connected_payment_accounts: ['id', 'workspace_id', 'stripe_account_id', 'onboarding_status', 'charges_enabled', 'payouts_enabled', 'details_submitted', 'created_at', 'updated_at'],
   contact_inquiries: ['id', 'created_at', 'name', 'email', 'focus', 'message', 'ip_hash'],
@@ -46,7 +46,7 @@ const schema = {
   studio_settings: ['workspace_id', 'site_title', 'hero_title', 'hero_subtitle', 'contact_email', 'contact_phone', 'paper_color', 'ink_color', 'accent_color', 'font_preset', 'updated_at'],
   stripe_events: ['event_id', 'event_type', 'status', 'attempt_count', 'last_error', 'created_at', 'last_attempt_at', 'processed_at'],
   subscriptions: ['id', 'workspace_id', 'stripe_customer_id', 'stripe_subscription_id', 'stripe_price_id', 'plan_key', 'status', 'current_period_end', 'cancel_at_period_end', 'created_at', 'updated_at'],
-  website_projects: ['id', 'workspace_id', 'name', 'status', 'plan_key', 'template_key', 'progress', 'next_step', 'live_url', 'created_at', 'updated_at'],
+  website_projects: ['id', 'workspace_id', 'name', 'status', 'plan_key', 'template_key', 'progress', 'next_step', 'live_url', 'monthly_cents', 'domain_options', 'chosen_domain', 'created_at', 'updated_at'],
   workspace_storage_usage: ['workspace_id', 'used_bytes', 'quota_bytes', 'updated_at'],
   workspace_uploads: ['storage_path', 'workspace_id', 'size_bytes', 'original_filename', 'media_kind', 'is_retained', 'created_at'],
   workspace_members: ['id', 'workspace_id', 'clerk_user_id', 'role', 'created_at'],
@@ -272,6 +272,7 @@ export type CheckoutAttemptInput = {
   workspace_id: string;
   attempt_key: string;
   plan_key: string;
+  monthly_cents?: number | null;
   expires_at: string;
 };
 
@@ -335,9 +336,9 @@ export function createDataClient(executeQuery: QueryExecutor) {
     },
     async claimCheckoutAttempt(input: CheckoutAttemptInput): Promise<DataResult<Record<string, unknown>[]>> {
       try {
-        const columns = ['workspace_id', 'attempt_key', 'plan_key', 'expires_at'] as const;
-        const values = columns.map((column) => input[column]);
-        const text = `insert into ${quote('checkout_attempts')} (${columns.map(quote).join(', ')}) values ($1, $2, $3, $4) on conflict (${quote('workspace_id')}) do update set ${quote('attempt_key')} = excluded.${quote('attempt_key')}, ${quote('plan_key')} = excluded.${quote('plan_key')}, ${quote('stripe_session_id')} = null, ${quote('checkout_url')} = null, ${quote('expires_at')} = excluded.${quote('expires_at')} where ${quote('checkout_attempts')}.${quote('expires_at')} <= now() or (${quote('checkout_attempts')}.${quote('checkout_url')} is null and ${quote('checkout_attempts')}.${quote('updated_at')} <= now() - interval '2 minutes') returning *`;
+        const columns = ['workspace_id', 'attempt_key', 'plan_key', 'expires_at', 'monthly_cents'] as const;
+        const values = [input.workspace_id, input.attempt_key, input.plan_key, input.expires_at, input.monthly_cents ?? null];
+        const text = `insert into ${quote('checkout_attempts')} (${columns.map(quote).join(', ')}) values ($1, $2, $3, $4, $5) on conflict (${quote('workspace_id')}) do update set ${quote('attempt_key')} = excluded.${quote('attempt_key')}, ${quote('plan_key')} = excluded.${quote('plan_key')}, ${quote('monthly_cents')} = excluded.${quote('monthly_cents')}, ${quote('stripe_session_id')} = null, ${quote('checkout_url')} = null, ${quote('expires_at')} = excluded.${quote('expires_at')} where ${quote('checkout_attempts')}.${quote('expires_at')} <= now() or (${quote('checkout_attempts')}.${quote('checkout_url')} is null and ${quote('checkout_attempts')}.${quote('updated_at')} <= now() - interval '2 minutes') returning *`;
         return { data: await executeQuery(text, values), error: null };
       } catch (error) {
         return { data: [], error: { message: error instanceof Error ? error.message : 'Database query failed.' } };

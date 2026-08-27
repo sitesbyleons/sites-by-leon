@@ -520,12 +520,13 @@ describe('OVH infrastructure reliability', () => {
     expect(schema).toContain('create role leon_photographer_runtime nologin nosuperuser nocreatedb nocreaterole noreplication');
     expect(schema).toContain('revoke create on schema public from public');
     expect(schema).toContain('grant select, insert, update, delete on all tables in schema public to leon_runtime');
-    expect(schema).toContain('grant select on table app_admins, client_workspaces, workspace_members, site_connections, site_domain_aliases to leon_photographer_runtime');
+    expect(schema).toContain('grant select on table app_admins, client_workspaces, workspace_members, site_connections, site_domain_aliases, website_projects, subscriptions, checkout_attempts to leon_photographer_runtime');
     expect(schema).toContain('grant select, insert, update, delete on table');
     expect(schema).toContain('studio_posts');
     expect(schema).toContain('to leon_photographer_runtime');
-    expect(schema).toContain('revoke all privileges on table subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime');
-    expect(schema).toContain('revoke insert, update, delete, truncate, references, trigger on table app_admins from leon_photographer_runtime');
+    expect(schema).toContain('revoke all privileges on table site_provisioning_runs, domain_jobs from leon_photographer_runtime');
+    expect(schema).toContain('revoke insert, update, delete, truncate, references, trigger on table app_admins, website_projects, subscriptions, checkout_attempts from leon_photographer_runtime');
+    expect(schema).toContain('grant update (chosen_domain) on table website_projects to leon_photographer_runtime');
     expect(configureRole).toContain('POSTGRES_DASHBOARD_PASSWORD must contain at least 32 characters.');
     expect(configureRole).toContain('POSTGRES_PHOTOGRAPHER_PASSWORD must contain at least 32 characters.');
     expect(configureRole).toContain('create role leon_dashboard login nosuperuser nocreatedb nocreaterole noreplication');

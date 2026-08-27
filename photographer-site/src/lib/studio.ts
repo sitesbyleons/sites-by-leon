@@ -139,6 +139,17 @@ export type StudioSupportTicket = {
   updated_at: string;
 };
 
+export type StudioHostingBill = {
+  monthly_cents: number | null;
+  domain_options: string;
+  chosen_domain: string | null;
+  plan_key: string | null;
+  subscription_status: string | null;
+  current_period_end: string | null;
+  checkout_url: string | null;
+  checkout_expires_at: string | null;
+};
+
 export type StudioAdminData = {
   workspace: StudioWorkspace | null;
   settings: StudioSettings | null;
@@ -153,6 +164,7 @@ export type StudioAdminData = {
   uploads: StudioUpload[];
   supportTickets: StudioSupportTicket[];
   connect: ConnectStatus | null;
+  hosting: StudioHostingBill | null;
   error: string | null;
 };
 
@@ -205,6 +217,16 @@ export function previewStudioData(): StudioAdminData {
       { id: 'ticket_1', subject: 'Update homepage schedule', details: 'Please change the next available game date on the homepage.', status: 'in_progress', created_at: '2026-07-10T12:00:00.000Z', updated_at: '2026-07-11T12:00:00.000Z' },
     ],
     connect: { onboarding_status: 'pending', charges_enabled: false, payouts_enabled: false, details_submitted: false },
+    hosting: {
+      monthly_cents: 2500,
+      domain_options: 'northlinesports.com\nnorthlinesports.org',
+      chosen_domain: null,
+      plan_key: 'essential',
+      subscription_status: null,
+      current_period_end: null,
+      checkout_url: null,
+      checkout_expires_at: null,
+    },
     error: null,
   };
 }
@@ -215,7 +237,7 @@ export async function loadStudioAdminData(
 ): Promise<StudioAdminData> {
   const empty: StudioAdminData = {
     workspace: null, settings: null, galleries: [], images: [], posts: [], stills: [], services: [],
-    clients: [], invoices: [], inquiries: [], uploads: [], supportTickets: [], connect: null, error: null,
+    clients: [], invoices: [], inquiries: [], uploads: [], supportTickets: [], connect: null, hosting: null, error: null,
   };
   if (!client) return { ...empty, error: 'The secure studio database is not configured.' };
 
@@ -229,7 +251,7 @@ export async function loadStudioAdminData(
   }
   const workspace = workspaceResult.data;
   const id = workspace.id;
-  const [settings, galleries, images, posts, stills, services, clients, invoices, inquiries, uploads, supportTickets, connect] = await Promise.all([
+  const [settings, galleries, images, posts, stills, services, clients, invoices, inquiries, uploads, supportTickets, connect, project, subscription, checkout] = await Promise.all([
     client.from('studio_settings').select('workspace_id,site_title,hero_title,hero_subtitle,contact_email,contact_phone,paper_color,ink_color,accent_color,font_preset').eq('workspace_id', id).maybeSingle<StudioSettings>(),
     client.from('studio_galleries').select('id,workspace_id,title,slug,category,description,cover_image_url,cover_storage_path,layout_mode,grid_columns,image_aspect_ratio,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_gallery_images').select('id,workspace_id,gallery_id,image_url,alt_text,storage_path,aspect_ratio,crop_x,crop_y,crop_zoom,sort_order').eq('workspace_id', id).order('sort_order'),
@@ -242,10 +264,25 @@ export async function loadStudioAdminData(
     client.from('workspace_uploads').select('storage_path,size_bytes,original_filename,media_kind,created_at').eq('workspace_id', id).eq('is_retained', true).order('created_at', { ascending: false }),
     client.from('content_requests').select('id,subject,details,status,created_at,updated_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('connected_payment_accounts').select('onboarding_status,charges_enabled,payouts_enabled,details_submitted').eq('workspace_id', id).maybeSingle<ConnectStatus>(),
+    client.from('website_projects').select('monthly_cents,domain_options,chosen_domain,plan_key').eq('workspace_id', id).maybeSingle<{ monthly_cents: number | null; domain_options: string | null; chosen_domain: string | null; plan_key: string | null }>(),
+    client.from('subscriptions').select('status,plan_key,current_period_end').eq('workspace_id', id).maybeSingle<{ status: string; plan_key: string; current_period_end: string | null }>(),
+    client.from('checkout_attempts').select('checkout_url,expires_at').eq('workspace_id', id).maybeSingle<{ checkout_url: string | null; expires_at: string }>(),
   ]);
 
   const failed = [settings, galleries, images, posts, stills, services, clients, invoices, inquiries, uploads, supportTickets, connect]
     .some((result) => Boolean(result.error));
+  const hosting = project.error || subscription.error || checkout.error
+    ? null
+    : {
+      monthly_cents: typeof project.data?.monthly_cents === 'number' ? project.data.monthly_cents : null,
+      domain_options: project.data?.domain_options ?? '',
+      chosen_domain: project.data?.chosen_domain ?? null,
+      plan_key: project.data?.plan_key ?? subscription.data?.plan_key ?? null,
+      subscription_status: subscription.data?.status ?? null,
+      current_period_end: subscription.data?.current_period_end ?? null,
+      checkout_url: checkout.data?.checkout_url ?? null,
+      checkout_expires_at: checkout.data?.expires_at ?? null,
+    };
   const galleryRows = (galleries.data ?? []) as StudioGallery[];
   const imageRows = (images.data ?? []) as StudioImage[];
   const postRows = (posts.data ?? []) as StudioPost[];
@@ -307,6 +344,7 @@ export async function loadStudioAdminData(
     uploads: [...libraryStills, ...mediaRows],
     supportTickets: (supportTickets.data ?? []) as StudioSupportTicket[],
     connect: connect.data,
+    hosting,
     error: failed ? 'Some studio records could not be loaded.' : null,
   };
 }

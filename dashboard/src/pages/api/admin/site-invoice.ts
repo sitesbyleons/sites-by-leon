@@ -2,7 +2,13 @@ import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
 import { checkAppAdmin } from '../../../lib/admin';
-import { canSendAdminHostingInvoice, getCheckoutPlan } from '../../../lib/billing';
+import {
+  canSendAdminHostingInvoice,
+  catalogPlanForMonthlyCents,
+  getCheckoutPlan,
+  hostingInvoiceAmountCents,
+  parseMonthlyCents,
+} from '../../../lib/billing';
 import { createPlatformDatabase } from '../../../lib/database';
 import { isTrustedOrigin, resolveTrustedOrigin } from '../../../lib/request-security';
 
@@ -49,36 +55,51 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     .maybeSingle();
   const project = await database
     .from('website_projects')
-    .select<{ plan_key: string | null }>('plan_key')
+    .select<{ plan_key: string | null; monthly_cents: number | null }>('plan_key,monthly_cents')
     .eq('workspace_id', workspaceId)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (workspace.error || subscription.error || project.error) {
+  const connection = await database
+    .from('site_connections')
+    .select<{ admin_domain: string }>('admin_domain')
+    .eq('workspace_id', workspaceId)
+    .maybeSingle();
+  if (workspace.error || subscription.error || project.error || connection.error) {
     return Response.json({ message: 'Billing status could not be verified. Try again.' }, { status: 503 });
   }
   if (!workspace.data) return Response.json({ message: 'Site not found.' }, { status: 404 });
 
   const requestedPlan = typeof body?.plan_key === 'string' ? getCheckoutPlan(body.plan_key) : null;
-  const plan = requestedPlan ?? getCheckoutPlan(project.data?.plan_key ?? '');
-  const priceId = plan ? process.env[plan.priceEnv] : null;
-  if (!plan || !priceId) return Response.json({ message: 'Choose Essential or Studio before sending an invoice.' }, { status: 409 });
-  if (!canSendAdminHostingInvoice({
+  const monthlyCents = hostingInvoiceAmountCents({
+    monthlyCents: parseMonthlyCents(body?.monthly_usd) ?? project.data?.monthly_cents ?? null,
+    planKey: requestedPlan?.key ?? project.data?.plan_key ?? '',
+  });
+  const catalogPlan = monthlyCents ? catalogPlanForMonthlyCents(monthlyCents) : null;
+  const reservationPlan = catalogPlan ?? requestedPlan ?? getCheckoutPlan(project.data?.plan_key ?? '') ?? { key: 'essential' as const, name: 'Essential', monthlyUsd: 25, priceEnv: 'STRIPE_PRICE_ESSENTIAL' };
+  if (!monthlyCents || !canSendAdminHostingInvoice({
     workspaceStatus: workspace.data.status,
     subscriptionStatus: subscription.data?.status ?? null,
-    planKey: plan.key,
+    planKey: reservationPlan.key,
+    monthlyCents,
     billingEmail: emailed,
   })) {
     return Response.json({ message: 'This site cannot start another hosting invoice yet.' }, { status: 409 });
   }
 
-  if (project.data?.plan_key !== plan.key) {
-    const savedPlan = await database
-      .from('website_projects')
-      .update({ plan_key: plan.key })
-      .eq('workspace_id', workspaceId);
-    if (savedPlan.error) return Response.json({ message: 'The hosting plan could not be saved.' }, { status: 503 });
+  const catalogPriceId = catalogPlan ? process.env[catalogPlan.priceEnv] : null;
+  if (catalogPlan && !catalogPriceId) {
+    return Response.json({ message: 'Checkout is not configured yet.' }, { status: 503 });
   }
+
+  const savedProject = await database
+    .from('website_projects')
+    .update({
+      monthly_cents: monthlyCents,
+      ...(catalogPlan ? { plan_key: catalogPlan.key } : {}),
+    })
+    .eq('workspace_id', workspaceId);
+  if (savedProject.error) return Response.json({ message: 'The hosting amount could not be saved.' }, { status: 503 });
 
   const savedEmail = await database
     .from('studio_settings')
@@ -91,20 +112,27 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   const claimed = await database.claimCheckoutAttempt({
     workspace_id: workspace.data.id,
     attempt_key: attemptKey,
-    plan_key: plan.key,
+    plan_key: reservationPlan.key,
+    monthly_cents: monthlyCents,
     expires_at: checkoutExpiresAt.toISOString(),
   });
   if (claimed.error) return Response.json({ message: 'Checkout could not be reserved.' }, { status: 503 });
   if (!claimed.data.length) {
     const existing = await database.from('checkout_attempts')
-      .select('attempt_key,plan_key,checkout_url')
+      .select('attempt_key,plan_key,monthly_cents,checkout_url')
       .eq('workspace_id', workspace.data.id)
-      .maybeSingle<{ attempt_key: string; plan_key: string; checkout_url: string | null }>();
+      .maybeSingle<{ attempt_key: string; plan_key: string; monthly_cents: number | null; checkout_url: string | null }>();
     if (existing.error || !existing.data) return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
-    if (existing.data.plan_key !== plan.key) return Response.json({ message: 'Another plan checkout is already open. Finish it or wait for it to expire.' }, { status: 409 });
+    if (existing.data.plan_key !== reservationPlan.key || existing.data.monthly_cents !== monthlyCents) {
+      return Response.json({ message: 'Another hosting checkout is already open. Finish it or wait for it to expire.' }, { status: 409 });
+    }
     if (existing.data.checkout_url) return Response.json({ ok: true, url: existing.data.checkout_url, message: 'Invoice link is ready.' });
     return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
   }
+
+  const clientOrigin = connection.data?.admin_domain
+    ? `https://${connection.data.admin_domain}`
+    : publicOrigin;
 
   try {
     const stripe = new Stripe(stripeKey);
@@ -122,17 +150,43 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       await stripe.customers.update(customerId, { email: emailed, name: workspace.data.name }).catch(() => null);
     }
 
+    const lineItems = catalogPriceId
+      ? [{ price: catalogPriceId, quantity: 1 }]
+      : [{
+        price_data: {
+          currency: 'usd',
+          unit_amount: monthlyCents,
+          recurring: { interval: 'month' as const },
+          product_data: {
+            name: `${workspace.data.name} website hosting`,
+            description: 'Monthly website hosting from Leon Sites',
+          },
+        },
+        quantity: 1,
+      }];
+
     const checkout = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
       client_reference_id: workspace.data.id,
       consent_collection: { terms_of_service: 'required' },
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: lineItems,
       expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
-      success_url: `${publicOrigin}/admin/sites/${workspace.data.id}?invoice=success`,
-      cancel_url: `${publicOrigin}/admin/sites/${workspace.data.id}?invoice=cancelled`,
-      metadata: { workspace_id: workspace.data.id, plan_key: plan.key, created_by: 'leon-admin' },
-      subscription_data: { metadata: { workspace_id: workspace.data.id, plan_key: plan.key } },
+      success_url: `${clientOrigin}/admin/hosting?invoice=success`,
+      cancel_url: `${clientOrigin}/admin/hosting?invoice=cancelled`,
+      metadata: {
+        workspace_id: workspace.data.id,
+        plan_key: reservationPlan.key,
+        monthly_cents: String(monthlyCents),
+        created_by: 'leon-admin',
+      },
+      subscription_data: {
+        metadata: {
+          workspace_id: workspace.data.id,
+          plan_key: reservationPlan.key,
+          monthly_cents: String(monthlyCents),
+        },
+      },
     }, { idempotencyKey: `admin-workspace-checkout:${attemptKey}` });
     if (!checkout.url) return Response.json({ message: 'Stripe did not return a Checkout URL.' }, { status: 502 });
     const saved = await database.from('checkout_attempts').update({

@@ -7,7 +7,7 @@ import '../styles/studio-admin.css';
 
 interface Props {
   title: string;
-  active: 'overview' | 'content' | 'media' | 'work' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries' | 'support';
+  active: 'overview' | 'content' | 'media' | 'work' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries' | 'hosting' | 'support';
   studioName: string;
   isPreview: boolean;
   error?: string | null;
@@ -36,6 +36,7 @@ const groups = ishotyouu
         { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
         { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
         { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
+        { key: 'hosting', label: 'Your website', href: `/admin/hosting${suffix}` },
       ],
     },
   ]
@@ -57,6 +58,7 @@ const groups = ishotyouu
         { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
         { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
         { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
+        { key: 'hosting', label: 'Your website', href: `/admin/hosting${suffix}` },
       ],
     },
   ];

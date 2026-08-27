@@ -18,6 +18,9 @@ export type AdminProject = {
   progress: number;
   live_url: string | null;
   plan_key: string | null;
+  monthly_cents: number | null;
+  domain_options: string;
+  chosen_domain: string | null;
   updated_at: string;
 };
 
@@ -144,10 +147,10 @@ export function getPreviewAdminData(): AdminData {
       { id: 'ws_fieldwork', name: 'Fieldwork Commercial', slug: 'fieldwork', status: 'lead', updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     projects: [
-      { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, plan_key: 'studio', updated_at: '2026-07-10T17:00:00.000Z' },
-      { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, plan_key: 'studio', updated_at: '2026-07-09T15:00:00.000Z' },
-      { id: 'prj_3', workspace_id: 'ws_ishotyouu', name: 'ISHOTYOUU Website', status: 'live', progress: 100, live_url: 'https://ishotyouu-test.leonsites.org', plan_key: 'essential', updated_at: '2026-08-15T10:00:00.000Z' },
-      { id: 'prj_4', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, plan_key: 'studio', updated_at: '2026-07-08T13:00:00.000Z' },
+      { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, plan_key: 'studio', monthly_cents: 3500, domain_options: '', chosen_domain: null, updated_at: '2026-07-10T17:00:00.000Z' },
+      { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, plan_key: 'studio', monthly_cents: 3500, domain_options: '', chosen_domain: null, updated_at: '2026-07-09T15:00:00.000Z' },
+      { id: 'prj_3', workspace_id: 'ws_ishotyouu', name: 'ISHOTYOUU Website', status: 'live', progress: 100, live_url: 'https://ishotyouu-test.leonsites.org', plan_key: 'essential', monthly_cents: 2000, domain_options: 'ishotyouu.com\nishotyouu.org', chosen_domain: null, updated_at: '2026-08-15T10:00:00.000Z' },
+      { id: 'prj_4', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, plan_key: 'studio', monthly_cents: 3500, domain_options: '', chosen_domain: null, updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     subscriptions: [
       { id: 'sub_local', workspace_id: 'ws_northline', stripe_subscription_id: 'sub_preview', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
@@ -288,7 +291,7 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
     database.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
     database
       .from('website_projects')
-      .select('id,workspace_id,name,status,progress,live_url,plan_key,updated_at')
+      .select('id,workspace_id,name,status,progress,live_url,plan_key,monthly_cents,domain_options,chosen_domain,updated_at')
       .order('updated_at', { ascending: false }),
     database
       .from('subscriptions')

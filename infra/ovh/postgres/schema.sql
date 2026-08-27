@@ -56,6 +56,25 @@ alter table website_projects alter column template_key set not null;
 alter table website_projects drop constraint if exists website_projects_template_key_check;
 alter table website_projects add constraint website_projects_template_key_check
   check (template_key in ('blank', 'sports', 'editorial', 'commercial'));
+alter table website_projects add column if not exists monthly_cents integer;
+alter table website_projects drop constraint if exists website_projects_monthly_cents_check;
+alter table website_projects add constraint website_projects_monthly_cents_check
+  check (monthly_cents is null or (monthly_cents >= 100 and monthly_cents <= 1000000));
+alter table website_projects add column if not exists domain_options text not null default '';
+alter table website_projects drop constraint if exists website_projects_domain_options_length;
+alter table website_projects add constraint website_projects_domain_options_length
+  check (char_length(domain_options) <= 4000);
+alter table website_projects add column if not exists chosen_domain text;
+alter table website_projects drop constraint if exists website_projects_chosen_domain_check;
+alter table website_projects add constraint website_projects_chosen_domain_check
+  check (
+    chosen_domain is null
+    or chosen_domain ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
+  );
+alter table checkout_attempts add column if not exists monthly_cents integer;
+alter table checkout_attempts drop constraint if exists checkout_attempts_monthly_cents_check;
+alter table checkout_attempts add constraint checkout_attempts_monthly_cents_check
+  check (monthly_cents is null or (monthly_cents >= 100 and monthly_cents <= 1000000));
 
 create table if not exists site_provisioning_runs (
   id uuid primary key default gen_random_uuid(),
@@ -726,7 +745,7 @@ revoke all privileges on all sequences in schema public from leon_photographer_r
 alter default privileges in schema public revoke all on tables from leon_photographer_runtime;
 alter default privileges in schema public revoke all on sequences from leon_photographer_runtime;
 grant usage on schema public to leon_photographer_runtime;
-grant select on table app_admins, client_workspaces, workspace_members, site_connections, site_domain_aliases to leon_photographer_runtime;
+grant select on table app_admins, client_workspaces, workspace_members, site_connections, site_domain_aliases, website_projects, subscriptions, checkout_attempts to leon_photographer_runtime;
 grant select, insert, update, delete on table
   workspace_storage_usage,
   workspace_uploads,
@@ -745,8 +764,9 @@ grant select, insert, update, delete on table
   inquiry_rate_limits,
   stripe_events
 to leon_photographer_runtime;
-revoke all privileges on table subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime;
-revoke insert, update, delete, truncate, references, trigger on table app_admins from leon_photographer_runtime;
+revoke all privileges on table site_provisioning_runs, domain_jobs from leon_photographer_runtime;
+revoke insert, update, delete, truncate, references, trigger on table app_admins, website_projects, subscriptions, checkout_attempts from leon_photographer_runtime;
+grant update (chosen_domain) on table website_projects to leon_photographer_runtime;
 
 -- Test-only ISHOTYOUU site (idempotent). Reuse the existing workspace UUID if
 -- slug ishotyouu is already present; do not insert a colliding hardcoded id.
@@ -763,10 +783,18 @@ begin
     end if;
 
     if not exists (select 1 from website_projects where workspace_id = ws_id) then
-      insert into website_projects (id, workspace_id, name, status, plan_key, template_key, progress, live_url)
-      values ('00000000-0000-0000-0000-000000000199'::uuid, ws_id, 'ISHOTYOUU Website', 'live', null, 'blank', 100, 'https://ishotyouu-test.leonsites.org')
+      insert into website_projects (id, workspace_id, name, status, plan_key, template_key, progress, live_url, monthly_cents, domain_options)
+      values ('00000000-0000-0000-0000-000000000199'::uuid, ws_id, 'ISHOTYOUU Website', 'live', null, 'blank', 100, 'https://ishotyouu-test.leonsites.org', 2000, 'ishotyouu.com' || chr(10) || 'ishotyouu.org')
       on conflict (id) do nothing;
     end if;
+
+    update website_projects
+    set monthly_cents = 2000,
+        domain_options = case
+          when btrim(coalesce(domain_options, '')) = '' then 'ishotyouu.com' || chr(10) || 'ishotyouu.org'
+          else domain_options
+        end
+    where workspace_id = ws_id;
 
     insert into site_connections (workspace_id, site_key, site_kind, primary_domain, admin_domain, deployment_target, status, billing_mode, desired_status, billing_state)
     values (ws_id, 'ishotyouu-demo', 'client', 'ishotyouu-test.leonsites.org', 'ishotyouu-test.leonsites.org', 'ovh:leon-platform-photographer', 'active', 'manual', 'active', 'manual')
@@ -793,10 +821,7 @@ begin
     from app_admins
     on conflict (workspace_id, clerk_user_id) do nothing;
 
-    -- ISHOTYOUU is Leon's studio only. Do not copy owners from other workspaces.
-    delete from workspace_members
-    where workspace_id = ws_id
-      and clerk_user_id not in (select clerk_user_id from app_admins);
+    -- Keep ISHOTYOUU owners that Leon linked. Do not copy owners from other workspaces.
 
     -- ISHOTYOUU public Work is Instagram stills, not CMS galleries or posts.
     if not exists (select 1 from studio_work_stills where workspace_id = ws_id) then

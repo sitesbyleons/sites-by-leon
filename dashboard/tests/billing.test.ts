@@ -2,12 +2,16 @@ import fs from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { canManageBilling, canManageSubscription, canSendAdminHostingInvoice, canStartCheckout, getCheckoutPlan, getPlan, plans } from '../src/lib/billing';
+import { canManageBilling, canManageSubscription, canSendAdminHostingInvoice, canStartCheckout, getCheckoutPlan, getPlan, parseDomainOptions, parseMonthlyCents, plans } from '../src/lib/billing';
 
 const read = (path: string) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-describe('billing plans', () => {
-  it('keeps the approved monthly prices and Stripe price environment names together', () => {
+describe('custom hosting amounts', () => {
+  it('parses a $20 monthly amount and domain choices without changing catalog prices', () => {
+    expect(parseMonthlyCents('20')).toBe(2000);
+    expect(parseMonthlyCents('20.00')).toBe(2000);
+    expect(parseDomainOptions('ishotyouu.com\nishotyouu.org')).toEqual(['ishotyouu.com', 'ishotyouu.org']);
+    expect(parseDomainOptions('https://ISHOTYOUU.com/')).toEqual(['ishotyouu.com']);
     expect(plans).toEqual([
       { key: 'essential', name: 'Essential', monthlyUsd: 25, priceEnv: 'STRIPE_PRICE_ESSENTIAL' },
       { key: 'studio', name: 'Studio', monthlyUsd: 35, priceEnv: 'STRIPE_PRICE_STUDIO' },
@@ -79,7 +83,7 @@ describe('canSendAdminHostingInvoice', () => {
     expect(canSendAdminHostingInvoice({
       workspaceStatus: 'lead',
       subscriptionStatus: null,
-      planKey: 'essential',
+      monthlyCents: 2000,
       billingEmail: 'hello@studio.example',
     })).toBe(true);
   });
@@ -97,18 +101,29 @@ describe('canSendAdminHostingInvoice', () => {
       planKey: 'studio',
       billingEmail: 'hello@studio.example',
     })).toBe(false);
+    expect(canSendAdminHostingInvoice({
+      workspaceStatus: 'lead',
+      subscriptionStatus: null,
+      monthlyCents: 2000,
+      billingEmail: 'hello@studio.example',
+    })).toBe(true);
   });
 });
 
 describe('admin hosting invoice', () => {
-  it('lets Leon choose Essential or Studio when sending a Checkout link', () => {
+  it('lets Leon send a custom monthly amount without changing public Essential or Studio prices', () => {
     const invoice = read('src/pages/api/admin/site-invoice.ts');
-    expect(invoice).toContain('body?.plan_key');
-    expect(invoice).toContain('update({ plan_key: plan.key })');
+    expect(invoice).toContain('body?.monthly_usd');
+    expect(invoice).toContain('price_data');
+    expect(invoice).toContain("recurring: { interval: 'month'");
+    expect(invoice).toContain('/admin/hosting?invoice=success');
     expect(invoice).not.toContain('payment_method_types');
+    expect(plans.map((plan) => plan.monthlyUsd)).toEqual([25, 35]);
     const page = read('src/pages/admin/sites/[workspaceId].astro');
-    expect(page).toContain('name="plan_key"');
+    expect(page).toContain('name="monthly_usd"');
     expect(page).toContain('Send hosting invoice');
+    expect(page).toContain('Hosting rate and domains');
+    expect(page).toContain('/api/admin/site-onboarding');
   });
 });
 

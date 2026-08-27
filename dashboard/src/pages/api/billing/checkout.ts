@@ -64,6 +64,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     workspace_id: workspace.data.id,
     attempt_key: attemptKey,
     plan_key: plan.key,
+    monthly_cents: plan.monthlyUsd * 100,
     expires_at: checkoutExpiresAt.toISOString(),
   });
   if (claimed.error) return Response.json({ message: 'Checkout could not be reserved.' }, { status: 503 });

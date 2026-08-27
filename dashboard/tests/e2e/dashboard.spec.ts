@@ -120,6 +120,8 @@ test('splits admin records into sortable pages', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'ISHOTYOUU' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Keep live' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Send hosting invoice' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hosting rate and domains' })).toBeVisible();
+  await expect(page.getByLabel('Monthly amount (USD)').first()).toHaveValue('20');
   await page.goto('/admin/sites?preview=true');
   await page.getByRole('link', { name: 'Add client site' }).click();
   await expect(page.getByRole('heading', { name: 'Add client site' })).toBeVisible();

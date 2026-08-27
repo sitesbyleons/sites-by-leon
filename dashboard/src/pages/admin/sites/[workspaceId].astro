@@ -3,7 +3,7 @@ import { clerkClient } from '@clerk/astro/server';
 
 import AdminFrame from '../../../components/AdminFrame.astro';
 import { decideAdminAccess } from '../../../lib/access';
-import { getPlan, plans } from '../../../lib/billing';
+import { catalogPlanForMonthlyCents, getPlan, hostingInvoiceAmountCents, parseDomainOptions, plans } from '../../../lib/billing';
 import { isPortfolioDemo, loadAdminSession } from '../../../lib/admin';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -42,7 +42,32 @@ const ownerNames = owners.map((owner) => {
   return user ? `${user.name} · ${user.email}` : owner.clerk_user_id;
 });
 const assignedPlan = getPlan(project.plan_key ?? subscription?.plan_key ?? '');
-const linkableUsers = session.users.filter((user) => !connectedUserIds.has(user.id) || owners.some((owner) => owner.clerk_user_id === user.id));
+const monthlyCents = hostingInvoiceAmountCents({ monthlyCents: project.monthly_cents, planKey: project.plan_key });
+const monthlyUsdValue = monthlyCents ? (monthlyCents / 100).toString() : '';
+const monthlyLabel = monthlyCents
+  ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlyCents / 100)
+  : null;
+const catalogForAmount = monthlyCents ? catalogPlanForMonthlyCents(monthlyCents) : null;
+const domainOptionsText = project.domain_options || '';
+const chosenDomain = project.chosen_domain;
+const offeredDomains = parseDomainOptions(domainOptionsText);
+const unlinkedUsers = session.users
+  .filter((user) => !connectedUserIds.has(user.id) || owners.some((owner) => owner.clerk_user_id === user.id))
+  .sort((left, right) => {
+    const leftOwner = owners.some((owner) => owner.clerk_user_id === left.id);
+    const rightOwner = owners.some((owner) => owner.clerk_user_id === right.id);
+    if (leftOwner !== rightOwner) return leftOwner ? 1 : -1;
+    return right.createdAt - left.createdAt;
+  });
+const billingHeadline = isDemo
+  ? 'Portfolio example'
+  : subscription
+    ? `${monthlyLabel ?? subscription.plan_key} · ${subscription.status}`
+    : monthlyLabel
+      ? `${monthlyLabel}/month · ${catalogForAmount ? `${catalogForAmount.name} assigned` : 'custom amount'} · not billed yet`
+      : assignedPlan
+        ? `${assignedPlan.key} assigned · not billed yet`
+        : 'No subscription linked';
 ---
 
 <AdminFrame active={isDemo ? 'demos' : 'sites'} title={workspace.name} eyebrow={isDemo ? 'Demo settings' : 'Website settings'} description={isDemo ? 'Public access and editor controls for this example site.' : 'Domains, hosting, client access, and invoices.'} isPreview={isPreview} error={session.error}>
@@ -50,7 +75,7 @@ const linkableUsers = session.users.filter((user) => !connectedUserIds.has(user.
 
   <section class="site-detail-summary">
     <div><small>Website</small><strong>{connection.status}</strong><span>{project.progress}% complete</span></div>
-    <div><small>{isDemo ? 'Type' : 'Hosting'}</small><strong>{isDemo ? 'Demo' : billingLabel}</strong><span>{isDemo ? 'Portfolio example' : subscription ? `${subscription.plan_key} · ${subscription.status}` : assignedPlan ? `${assignedPlan.key} assigned · not billed yet` : 'No subscription linked'}</span></div>
+    <div><small>{isDemo ? 'Type' : 'Hosting'}</small><strong>{isDemo ? 'Demo' : billingLabel}</strong><span>{isDemo ? 'Portfolio example' : billingHeadline}</span></div>
     <div><small>{isDemo ? 'Address' : 'Custom domain'}</small><strong>{isDemo ? connection.primary_domain : aliases.find((item) => item.status === 'active')?.hostname ?? 'Not connected'}</strong><span>{isDemo ? 'Leon Sites domain' : aliases.length ? `${aliases.length} domain request${aliases.length === 1 ? '' : 's'}` : 'Add one below'}</span></div>
   </section>
 
@@ -74,7 +99,7 @@ const linkableUsers = session.users.filter((user) => !connectedUserIds.has(user.
   </section>
 
   <section class="site-detail-section" hidden={isArchived || isDemo}>
-    <header><div><span>Client</span><h2>Billing contact</h2></div><p>Save the name and email used for Stripe invoices. Link their Clerk login when they have one.</p></header>
+    <header><div><span>Client</span><h2>Billing contact</h2></div><p>They sign up at {connection.admin_domain}/sign-up. Then link that Clerk login as the site owner. Signup does not make them owner automatically.</p></header>
     <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-contact" data-preview={isPreview ? 'true' : 'false'}>
       <input type="hidden" name="workspace_id" value={workspaceId} />
       <label><span>Billing email</span><input name="contact_email" type="email" maxlength="254" required value={contactEmail} placeholder="client@studio.com" autocomplete="email" /></label>
@@ -87,9 +112,9 @@ const linkableUsers = session.users.filter((user) => !connectedUserIds.has(user.
       <label><span>Link Clerk user</span>
         <select name="owner_user_id" required>
           <option value="">Choose a user</option>
-          {linkableUsers.map((user) => (
+          {unlinkedUsers.map((user) => (
             <option value={user.id} selected={owners.some((owner) => owner.clerk_user_id === user.id)}>
-              {user.name} · {user.email}{connectedUserIds.has(user.id) && !owners.some((owner) => owner.clerk_user_id === user.id) ? ' · connected' : ''}
+              {user.name} · {user.email}{owners.some((owner) => owner.clerk_user_id === user.id) ? ' · owner' : connectedUserIds.has(user.id) ? ' · connected' : ' · waiting'}
             </option>
           ))}
         </select>
@@ -100,18 +125,32 @@ const linkableUsers = session.users.filter((user) => !connectedUserIds.has(user.
   </section>
 
   <section class="site-detail-section" hidden={isArchived || isDemo}>
-    <header><div><span>Stripe</span><h2>Send hosting invoice</h2></div><p>Creates a Stripe Checkout link for the monthly plan. Nothing is charged until the client pays.</p></header>
+    <header><div><span>Onboarding</span><h2>Hosting rate and domains</h2></div><p>Set the monthly amount for this site and the domain list they can choose from. Public Essential/Studio prices stay $25 and $35.</p></header>
+    <form class="site-detail-form site-detail-form--stack" data-api-form data-endpoint="/api/admin/site-onboarding" data-preview={isPreview ? 'true' : 'false'}>
+      <input type="hidden" name="workspace_id" value={workspaceId} />
+      <label><span>Monthly amount (USD)</span><input name="monthly_usd" type="number" inputmode="decimal" min="1" max="10000" step="0.01" required value={monthlyUsdValue} placeholder="20" /></label>
+      <label><span>Domain choices</span><textarea name="domain_options" rows="4" maxlength="4000" required placeholder={'ishotyouu.com\nishotyouu.org'}>{domainOptionsText}</textarea></label>
+      <p>{chosenDomain ? `Client chose ${chosenDomain}.` : offeredDomains.length ? `${offeredDomains.length} domain${offeredDomains.length === 1 ? '' : 's'} offered. Waiting for their choice.` : 'Add one domain per line.'}</p>
+      <button type="submit">Save hosting setup</button>
+      <small data-result aria-live="polite"></small>
+    </form>
+  </section>
+
+  <section class="site-detail-section" hidden={isArchived || isDemo}>
+    <header><div><span>Stripe</span><h2>Send hosting invoice</h2></div><p>Creates a Stripe Checkout link for the monthly amount. Nothing is charged until the client pays. They can also pay from their admin page.</p></header>
     <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-invoice" data-preview={isPreview ? 'true' : 'false'} data-open-url>
       <input type="hidden" name="workspace_id" value={workspaceId} />
       <label><span>Send to</span><input name="email" type="email" maxlength="254" required value={contactEmail} placeholder="client@studio.com" /></label>
-      <label><span>Plan</span>
-        <select name="plan_key" required>
+      <label><span>Monthly amount (USD)</span><input name="monthly_usd" type="number" inputmode="decimal" min="1" max="10000" step="0.01" required value={monthlyUsdValue} placeholder="20" /></label>
+      <label><span>Standard plan</span>
+        <select name="plan_key">
+          <option value="">Custom amount</option>
           {plans.map((plan) => (
             <option value={plan.key} selected={assignedPlan?.key === plan.key}>{plan.name} · ${plan.monthlyUsd}/month</option>
           ))}
         </select>
       </label>
-      <button type="submit">{assignedPlan ? `Send ${assignedPlan.name} invoice` : 'Send hosting invoice'}</button>
+      <button type="submit">{monthlyLabel ? `Send ${monthlyLabel}/month invoice` : 'Send hosting invoice'}</button>
       <small data-result aria-live="polite"></small>
     </form>
   </section>

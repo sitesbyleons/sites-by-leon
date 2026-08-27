@@ -1,0 +1,107 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { hostingBillCopy, parseDomainOptions } from '../../lib/hosting';
+import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadStudioSession({
+  isPreview,
+  userId: isPreview ? 'preview' : (auth?.userId ?? null),
+  workspaceId: Astro.locals.siteContext.workspaceId,
+  getToken: async () => auth ? (await auth.getToken()) ?? null : null,
+});
+const access = decideStudioAdminAccess(session, '/admin/hosting');
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+const data = session.data!;
+const hosting = data.hosting;
+const options = parseDomainOptions(hosting?.domain_options);
+const chosen = hosting?.chosen_domain && options.includes(hosting.chosen_domain)
+  ? hosting.chosen_domain
+  : '';
+const bill = hosting
+  ? hostingBillCopy({
+    monthly_cents: hosting.monthly_cents,
+    domain_options: options,
+    chosen_domain: hosting.chosen_domain,
+    plan_key: hosting.plan_key,
+    subscription_status: hosting.subscription_status,
+    current_period_end: hosting.current_period_end,
+    checkout_url: hosting.checkout_url,
+    checkout_expires_at: hosting.checkout_expires_at,
+  })
+  : null;
+const invoiceState = Astro.url.searchParams.get('invoice');
+---
+
+<StudioAdminLayout title="Your website" active="hosting" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
+  {invoiceState === 'success' && <p class="studio-notice" role="status">Payment received. Hosting status updates after Stripe confirms it.</p>}
+  {invoiceState === 'cancelled' && <p class="studio-notice" role="status">Checkout was cancelled. Nothing was charged.</p>}
+
+  <section class="studio-grid" aria-label="Website hosting">
+    <article class="studio-card">
+      <small>Amount</small>
+      <strong>{bill?.title ?? 'Not ready'}</strong>
+      <p>{bill?.detail ?? 'Hosting details will show here after Leon sets the monthly amount.'}</p>
+    </article>
+    <article class="studio-card">
+      <small>You owe</small>
+      <strong>{bill?.owe ?? '—'}</strong>
+      <p>{bill?.status === 'paid' ? 'No hosting balance.' : 'This is what you pay Leon Sites for the website, not invoices you send to your clients.'}</p>
+    </article>
+    <article class="studio-card">
+      <small>Domain</small>
+      <strong>{chosen || 'Not chosen'}</strong>
+      <p>{options.length ? 'Pick from the list Leon sent below.' : 'Leon will send domain choices here.'}</p>
+    </article>
+  </section>
+
+  {bill?.payUrl && (
+    <section>
+      <header class="studio-section-heading"><div><small>Stripe</small><h2>Pay hosting</h2></div></header>
+      <div class="studio-panel">
+        <p>Open Stripe to start or finish the monthly hosting payment. Nothing is charged until you complete checkout.</p>
+        <a class="studio-button" href={bill.payUrl} rel="noreferrer">Pay {bill.owe}</a>
+      </div>
+    </section>
+  )}
+
+  <section>
+    <header class="studio-section-heading"><div><small>Address</small><h2>Choose a domain</h2></div></header>
+    <div class="studio-panel">
+      {options.length ? (
+        <form class="studio-form" data-hosting-domain>
+          {options.map((option) => (
+            <label class="studio-choice">
+              <input type="radio" name="chosen_domain" value={option} required checked={option === chosen} />
+              <span>{option}</span>
+            </label>
+          ))}
+          <div><button type="submit">Save domain choice</button></div>
+          <p class="studio-form-status" data-hosting-status aria-live="polite"></p>
+        </form>
+      ) : (
+        <p class="studio-empty">No domain list yet. Leon will add choices such as yourname.com or yourname.org.</p>
+      )}
+    </div>
+  </section>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('[data-hosting-domain]');
+    const status = document.querySelector<HTMLElement>('[data-hosting-status]');
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!status) return;
+      if (document.body.dataset.preview === 'true') { status.textContent = 'Preview domain saved.'; return; }
+      status.textContent = 'Saving...';
+      const chosen = new FormData(form).get('chosen_domain');
+      const response = await fetch('/api/admin/hosting', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ chosen_domain: chosen }),
+      }).catch(() => null);
+      const payload = await response?.json().catch(() => null);
+      status.textContent = response?.ok ? 'Domain choice saved.' : payload?.message ?? 'Domain choice not saved.';
+      if (response?.ok) window.setTimeout(() => window.location.reload(), 400);
+    });
+  </script>
+</StudioAdminLayout>

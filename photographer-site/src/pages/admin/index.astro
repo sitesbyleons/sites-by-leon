@@ -1,6 +1,7 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
 import { ishotyouuLibraryStills } from '../../lib/content/ishotyouu-fallback';
+import { hostingBillCopy, parseDomainOptions } from '../../lib/hosting';
 import { inquiryInstagramHandle } from '../../lib/inquiry';
 import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
@@ -14,6 +15,18 @@ const data = session.data!;
 const studioName = data.workspace?.name ?? 'Studio';
 const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 const stillCount = data.stills.length || ishotyouuLibraryStills().length;
+const hosting = data.hosting
+  ? hostingBillCopy({
+    monthly_cents: data.hosting.monthly_cents,
+    domain_options: parseDomainOptions(data.hosting.domain_options),
+    chosen_domain: data.hosting.chosen_domain,
+    plan_key: data.hosting.plan_key,
+    subscription_status: data.hosting.subscription_status,
+    current_period_end: data.hosting.current_period_end,
+    checkout_url: data.hosting.checkout_url,
+    checkout_expires_at: data.hosting.checkout_expires_at,
+  })
+  : null;
 ---
 
 <StudioAdminLayout title="Overview" active="overview" studioName={studioName} isPreview={isPreview} error={data.error} media={data.uploads}>
@@ -23,12 +36,14 @@ const stillCount = data.stills.length || ishotyouuLibraryStills().length;
         <article class="studio-card"><small>Work stills</small><strong>{stillCount}</strong><p>Shown on Work. <a href={`/admin/work${isPreview ? '?preview=true' : ''}`}>Edit the Work page</a>.</p></article>
         <article class="studio-card"><small>Inquiries</small><strong>{data.inquiries.filter((item) => item.status === 'new').length}</strong><p>{data.inquiries.length} total</p></article>
         <article class="studio-card"><small>Clients</small><strong>{data.clients.length}</strong><p>{data.services.length} services</p></article>
+        <article class="studio-card"><small>Your website</small><strong>{hosting?.owe ?? '—'}</strong><p><a href={`/admin/hosting${isPreview ? '?preview=true' : ''}`}>Hosting, domain, and what you owe</a>.</p></article>
       </>
     ) : (
       <>
         <article class="studio-card"><small>Galleries</small><strong>{data.galleries.length}</strong><p>{data.images.length} photographs</p></article>
         <article class="studio-card"><small>Clients</small><strong>{data.clients.length}</strong><p>{data.inquiries.filter((item) => item.status === 'new').length} new inquiries</p></article>
         <article class="studio-card"><small>Invoices</small><strong>{data.invoices.length}</strong><p>{data.invoices.filter((item) => item.status === 'paid').length} paid</p></article>
+        <article class="studio-card"><small>Your website</small><strong>{hosting?.owe ?? '—'}</strong><p><a href={`/admin/hosting${isPreview ? '?preview=true' : ''}`}>Hosting, domain, and what you owe</a>.</p></article>
       </>
     )}
   </section>

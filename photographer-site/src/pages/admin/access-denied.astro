@@ -21,15 +21,15 @@ if (session.authorized) return Astro.redirect('/admin');
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="robots" content="noindex,nofollow" />
-    <title>Studio access</title>
+    <title>Waiting for access</title>
   </head>
   <body>
     <main class="studio-access-screen">
-      <section class="studio-access-card" role="alert" aria-labelledby="studio-access-title">
+      <section class="studio-access-card" role="status" aria-labelledby="studio-access-title">
         <div class="studio-access-card__account"><ClerkUI kind="user-button" /></div>
         <small>Studio access</small>
-        <h1 id="studio-access-title">This account is not a studio owner.</h1>
-        <p>You are signed in, but this account cannot view or edit this photographer website.</p>
+        <h1 id="studio-access-title">Your account is ready.</h1>
+        <p>Leon will link this login as the site owner from his panel. After that you can edit the site, choose a domain, and see the monthly hosting bill.</p>
         <div>
           <a href="/">View website</a>
           <ClerkSignOutButton>Sign out</ClerkSignOutButton>

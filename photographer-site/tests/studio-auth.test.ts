@@ -12,7 +12,7 @@ describe('studio authentication boundaries', () => {
   });
 
   it('applies Clerk only to the studio owner routes', () => {
-    for (const path of ['/admin', '/admin/galleries', '/sign-in', '/sign-up', '/api/admin/upload', '/api/connect', '/api/invoices/send']) {
+    for (const path of ['/admin', '/admin/galleries', '/admin/hosting', '/sign-in', '/sign-up', '/api/admin/upload', '/api/admin/hosting', '/api/connect', '/api/invoices/send']) {
       expect(requiresStudioAuth(path)).toBe(true);
     }
   });
@@ -26,11 +26,14 @@ describe('studio authorization', () => {
     });
   });
 
-  it('sends signed-in non-owners to an explicit access denied page', () => {
+  it('sends signed-in non-owners to an explicit waiting page', () => {
     expect(decideStudioAdminAccess({ authenticated: true, authorized: false }, '/admin/services')).toEqual({
       kind: 'forbidden',
       location: '/admin/access-denied',
     });
+    const denied = fs.readFileSync(new URL('../src/pages/admin/access-denied.astro', import.meta.url), 'utf8');
+    expect(denied).toContain('Your account is ready.');
+    expect(denied).toContain('link this login as the site owner');
   });
 
   it('allows an authorized owner to open the editor', () => {
@@ -42,12 +45,14 @@ describe('studio authorization', () => {
     expect(studio).toContain("userCanManageWorkspace(client, clerkUserId, workspace.data.id, { allowPlatformAdmin: true })");
   });
 
-  it('does not invite new ISHOTYOUU editor accounts from the sign-up form', () => {
+  it('lets a client create a Clerk account without becoming the site owner automatically', () => {
     const signUp = fs.readFileSync(new URL('../src/pages/sign-up/[...signup].astro', import.meta.url), 'utf8');
     const signIn = fs.readFileSync(new URL('../src/pages/sign-in/[...signin].astro', import.meta.url), 'utf8');
-    expect(signUp).toContain('isIshotyouuSite');
-    expect(signUp).toContain('Astro.redirect');
-    expect(signIn).toContain('isIshotyouuSite');
+    expect(signUp).toContain('ClerkUI kind="sign-up"');
+    expect(signUp).not.toContain('Astro.redirect');
+    expect(signUp).not.toContain('workspace_members');
+    expect(signIn).toContain('/sign-up?redirect_url=');
+    expect(signIn).not.toContain('isIshotyouuSite');
   });
 
   it('sanitizes Clerk return paths instead of accepting external redirects', () => {
