@@ -13,14 +13,14 @@ if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const studioName = data.workspace?.name ?? 'Studio';
 const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
-const stillCount = ishotyouuLibraryStills().length;
+const stillCount = data.stills.length || ishotyouuLibraryStills().length;
 ---
 
 <StudioAdminLayout title="Overview" active="overview" studioName={studioName} isPreview={isPreview} error={data.error} media={data.uploads}>
   <section class="studio-grid" aria-label="Studio summary">
     {ishotyouu ? (
       <>
-        <article class="studio-card"><small>Instagram stills</small><strong>{stillCount}</strong><p>Shown on Work. Each frame opens Instagram.</p></article>
+        <article class="studio-card"><small>Work stills</small><strong>{stillCount}</strong><p>Shown on Work. <a href={`/admin/work${isPreview ? '?preview=true' : ''}`}>Edit the Work page</a>.</p></article>
         <article class="studio-card"><small>Inquiries</small><strong>{data.inquiries.filter((item) => item.status === 'new').length}</strong><p>{data.inquiries.length} total</p></article>
         <article class="studio-card"><small>Clients</small><strong>{data.clients.length}</strong><p>{data.services.length} services</p></article>
       </>

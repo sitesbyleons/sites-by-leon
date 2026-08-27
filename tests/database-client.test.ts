@@ -297,6 +297,7 @@ describe('Leon PostgreSQL data client', () => {
     expect(recorder.calls[0].text).toContain('exists (select 1 from "studio_galleries"');
     expect(recorder.calls[0].text).toContain('exists (select 1 from "studio_gallery_images"');
     expect(recorder.calls[0].text).toContain('exists (select 1 from "studio_posts"');
+    expect(recorder.calls[0].text).toContain('exists (select 1 from "studio_work_stills"');
     expect(recorder.calls[0].text).toContain('"cover_storage_path" = $2');
     expect(recorder.calls[0].text).toContain('"storage_path" = $2');
     expect(recorder.calls[0].values).toEqual(['ws-1', 'ws-1/covers/a.webp']);
@@ -342,6 +343,7 @@ describe('Leon PostgreSQL data client', () => {
     expect(recorder.calls[0].text).toContain('not exists (select 1 from "studio_galleries"');
     expect(recorder.calls[0].text).toContain('not exists (select 1 from "studio_gallery_images"');
     expect(recorder.calls[0].text).toContain('not exists (select 1 from "studio_posts"');
+    expect(recorder.calls[0].text).toContain('not exists (select 1 from "studio_work_stills"');
   });
 
   it('returns an error when maybeSingle receives multiple rows', async () => {

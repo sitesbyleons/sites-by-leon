@@ -41,7 +41,7 @@ describe('fully self-hosted production stack', () => {
     expect(resolver).toContain("return { context: null, error: 'unknown-host' }");
     expect(resolver).toContain("return { context: null, error: 'unavailable' }");
     expect(resolver).toContain("nodeEnv === 'development' || nodeEnv === 'test'");
-    expect(middleware).toContain('sequence(tenantResolution, publicControl, authentication)');
+    expect(middleware).toContain('sequence(tenantResolution, ishotyouuRoutes, publicControl, authentication)');
     expect(middleware).toContain("unavailableResponse('Site not found.', 404)");
     expect(middleware).toContain("unavailableResponse('Site temporarily unavailable. Please try again soon.', 503)");
   });
@@ -130,7 +130,7 @@ describe('fully self-hosted production stack', () => {
 
   it('defines the application schema without Supabase roles or auth functions', () => {
     const schema = read('infra/ovh/postgres/schema.sql');
-    for (const table of ['client_workspaces', 'workspace_members', 'connected_payment_account_history', 'studio_galleries', 'studio_gallery_images', 'studio_posts', 'studio_services', 'site_connections']) {
+    for (const table of ['client_workspaces', 'workspace_members', 'connected_payment_account_history', 'studio_galleries', 'studio_gallery_images', 'studio_posts', 'studio_work_stills', 'studio_services', 'site_connections']) {
       expect(schema).toContain(`create table if not exists ${table}`);
     }
     expect(schema).not.toMatch(/\b(auth|storage)\./i);

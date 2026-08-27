@@ -2,16 +2,22 @@
 import IshotyouuLayout from '../../../layouts/IshotyouuLayout.astro';
 import { ISHOTYOUU_FALLBACK_WORK } from '../../../lib/content/ishotyouu-fallback';
 import { siteRepository } from '../../../lib/content/repository';
+import { createStudioDatabase } from '../../../lib/database';
 import { ISHOTYOUU_INSTAGRAM_HANDLE } from '../../../lib/ishotyouu';
+import { listWorkStills, stillToFrame } from '../../../lib/work-stills';
 
-const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
+const workspaceId = Astro.locals.siteContext.workspaceId;
+const portfolio = await siteRepository.getPortfolio(workspaceId);
 const { canonicalOrigin } = Astro.locals.siteContext;
+const client = createStudioDatabase();
+const savedStills = client ? await listWorkStills(client, workspaceId) : [];
+const frames = savedStills.length ? savedStills.map(stillToFrame) : ISHOTYOUU_FALLBACK_WORK;
 ---
 
 <IshotyouuLayout
   title="Work"
   description={`Photography by ${portfolio.studioName}.`}
-  image={ISHOTYOUU_FALLBACK_WORK[0]?.src}
+  image={frames[0]?.src}
   canonicalPath="/work"
   studioName={portfolio.studioName}
   canonicalOrigin={canonicalOrigin}
@@ -23,7 +29,7 @@ const { canonicalOrigin } = Astro.locals.siteContext;
       <p class="hint">Stills from {ISHOTYOUU_INSTAGRAM_HANDLE} on Instagram. Each frame opens the source post.</p>
     </header>
     <div class="work-wall">
-      {ISHOTYOUU_FALLBACK_WORK.map((frame) => (
+      {frames.map((frame) => (
         <a class="work-item" href={frame.instagramUrl} rel="noreferrer">
           <img src={frame.src} alt={frame.alt} loading="lazy" decoding="async" />
           <span aria-hidden="true">{ISHOTYOUU_INSTAGRAM_HANDLE}</span>

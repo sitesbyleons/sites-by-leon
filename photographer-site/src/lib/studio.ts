@@ -2,6 +2,7 @@ import { userCanManageWorkspace, type DataClient } from '@leon/platform-core';
 
 import { ishotyouuLibraryStills } from './content/ishotyouu-fallback';
 import { createStudioDatabase } from './database';
+import type { StudioWorkStill } from './work-stills';
 
 export type StudioWorkspace = { id: string; name: string; slug: string; status: string };
 export type StudioSettings = {
@@ -123,8 +124,12 @@ export type StudioUpload = {
   media_kind: string;
   size_bytes: number;
   created_at: string;
-  used_in: Array<'galleries' | 'images' | 'posts'>;
+  used_in: Array<'galleries' | 'images' | 'posts' | 'stills'>;
+  alt_text?: string;
+  instagram_url?: string;
 };
+
+export type { StudioWorkStill };
 export type StudioSupportTicket = {
   id: string;
   subject: string;
@@ -140,6 +145,7 @@ export type StudioAdminData = {
   galleries: StudioGallery[];
   images: StudioImage[];
   posts: StudioPost[];
+  stills: StudioWorkStill[];
   services: StudioService[];
   clients: StudioClient[];
   invoices: StudioInvoice[];
@@ -179,6 +185,7 @@ export function previewStudioData(): StudioAdminData {
     posts: [
       { id: 'post_1', workspace_id: previewWorkspace.id, title: 'Working the Sideline', slug: 'working-the-sideline', excerpt: 'A night of football coverage.', body: 'Game notes and selected photographs.', cover_image_url: '/images/sports/football-field.webp', cover_storage_path: null, cover_aspect_ratio: 'wide', cover_crop_x: 50, cover_crop_y: 46, cover_crop_zoom: 1.1, status: 'published', published_at: '2026-07-08T12:00:00.000Z', related_gallery_id: 'gallery_football', sort_order: 1 },
     ],
+    stills: [],
     services,
     clients: [
       { id: 'client_1', workspace_id: previewWorkspace.id, service_id: 'service_game', name: 'Avery Thompson', email: 'avery@example.com', phone: null, notes: 'Home football game.', created_at: '2026-07-10T12:00:00.000Z' },
@@ -207,7 +214,7 @@ export async function loadStudioAdminData(
   workspaceId: string,
 ): Promise<StudioAdminData> {
   const empty: StudioAdminData = {
-    workspace: null, settings: null, galleries: [], images: [], posts: [], services: [],
+    workspace: null, settings: null, galleries: [], images: [], posts: [], stills: [], services: [],
     clients: [], invoices: [], inquiries: [], uploads: [], supportTickets: [], connect: null, error: null,
   };
   if (!client) return { ...empty, error: 'The secure studio database is not configured.' };
@@ -222,11 +229,12 @@ export async function loadStudioAdminData(
   }
   const workspace = workspaceResult.data;
   const id = workspace.id;
-  const [settings, galleries, images, posts, services, clients, invoices, inquiries, uploads, supportTickets, connect] = await Promise.all([
+  const [settings, galleries, images, posts, stills, services, clients, invoices, inquiries, uploads, supportTickets, connect] = await Promise.all([
     client.from('studio_settings').select('workspace_id,site_title,hero_title,hero_subtitle,contact_email,contact_phone,paper_color,ink_color,accent_color,font_preset').eq('workspace_id', id).maybeSingle<StudioSettings>(),
     client.from('studio_galleries').select('id,workspace_id,title,slug,category,description,cover_image_url,cover_storage_path,layout_mode,grid_columns,image_aspect_ratio,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_gallery_images').select('id,workspace_id,gallery_id,image_url,alt_text,storage_path,aspect_ratio,crop_x,crop_y,crop_zoom,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_posts').select('id,workspace_id,title,slug,excerpt,body,cover_image_url,cover_storage_path,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,published_at,related_gallery_id,sort_order').eq('workspace_id', id).order('sort_order'),
+    client.from('studio_work_stills').select('id,workspace_id,image_url,storage_path,instagram_url,alt_text,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_services').select('id,workspace_id,name,description,price_type,price_cents,is_active,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_clients').select('id,workspace_id,service_id,name,email,phone,notes,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('studio_invoices').select('id,workspace_id,client_id,status,description,amount_due_cents,deposit_cents,amount_paid_cents,due_date,hosted_invoice_url,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
@@ -236,14 +244,16 @@ export async function loadStudioAdminData(
     client.from('connected_payment_accounts').select('onboarding_status,charges_enabled,payouts_enabled,details_submitted').eq('workspace_id', id).maybeSingle<ConnectStatus>(),
   ]);
 
-  const failed = [settings, galleries, images, posts, services, clients, invoices, inquiries, uploads, supportTickets, connect]
+  const failed = [settings, galleries, images, posts, stills, services, clients, invoices, inquiries, uploads, supportTickets, connect]
     .some((result) => Boolean(result.error));
   const galleryRows = (galleries.data ?? []) as StudioGallery[];
   const imageRows = (images.data ?? []) as StudioImage[];
   const postRows = (posts.data ?? []) as StudioPost[];
+  const stillRows = (stills.data ?? []) as StudioWorkStill[];
   const galleryPaths = new Set(galleryRows.map((item) => item.cover_storage_path).filter(Boolean));
   const imagePaths = new Set(imageRows.map((item) => item.storage_path).filter(Boolean));
   const postPaths = new Set(postRows.map((item) => item.cover_storage_path).filter(Boolean));
+  const stillPaths = new Set(stillRows.map((item) => item.storage_path).filter(Boolean));
   const mediaOrigin = (process.env.PUBLIC_MEDIA_URL ?? 'https://api.leonsites.org').replace(/\/$/, '');
   const mediaRows = (uploads.data ?? []).map((upload) => {
     const storagePath = String(upload.storage_path ?? '');
@@ -252,6 +262,7 @@ export async function loadStudioAdminData(
     if (galleryPaths.has(storagePath)) usedIn.push('galleries');
     if (imagePaths.has(storagePath)) usedIn.push('images');
     if (postPaths.has(storagePath)) usedIn.push('posts');
+    if (stillPaths.has(storagePath)) usedIn.push('stills');
     return {
       storage_path: storagePath,
       public_url: `${mediaOrigin}/media/${storagePath.split('/').map(encodeURIComponent).join('/')}`,
@@ -268,6 +279,7 @@ export async function loadStudioAdminData(
       if (galleryRows.some((item) => item.cover_image_url === frame.src)) usedIn.push('galleries');
       if (imageRows.some((item) => item.image_url === frame.src)) usedIn.push('images');
       if (postRows.some((item) => item.cover_image_url === frame.src)) usedIn.push('posts');
+      if (stillRows.some((item) => item.image_url === frame.src)) usedIn.push('stills');
       return {
         storage_path: '',
         public_url: frame.src,
@@ -276,6 +288,8 @@ export async function loadStudioAdminData(
         size_bytes: 0,
         created_at: '',
         used_in: usedIn,
+        alt_text: frame.alt,
+        instagram_url: frame.instagramUrl,
       };
     })
     : [];
@@ -285,6 +299,7 @@ export async function loadStudioAdminData(
     galleries: galleryRows,
     images: imageRows,
     posts: postRows,
+    stills: stillRows,
     services: (services.data ?? []) as StudioService[],
     clients: (clients.data ?? []) as StudioClient[],
     invoices: (invoices.data ?? []) as StudioInvoice[],

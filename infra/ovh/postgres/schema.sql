@@ -323,6 +323,18 @@ alter table studio_posts add constraint studio_posts_cover_crop_y_check check (c
 alter table studio_posts drop constraint if exists studio_posts_cover_crop_zoom_check;
 alter table studio_posts add constraint studio_posts_cover_crop_zoom_check check (cover_crop_zoom between 1 and 3);
 
+create table if not exists studio_work_stills (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references client_workspaces(id) on delete cascade,
+  image_url text not null check (char_length(image_url) between 8 and 2048),
+  storage_path text,
+  instagram_url text not null check (char_length(instagram_url) between 20 and 500),
+  alt_text text not null check (char_length(alt_text) between 2 and 300),
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists studio_services (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references client_workspaces(id) on delete cascade,
@@ -603,6 +615,11 @@ where
     select 1 from studio_posts
     where studio_posts.workspace_id = upload.workspace_id
       and studio_posts.cover_storage_path = upload.storage_path
+  )
+  or exists (
+    select 1 from studio_work_stills
+    where studio_work_stills.workspace_id = upload.workspace_id
+      and studio_work_stills.storage_path = upload.storage_path
   );
 
 create index if not exists connected_payment_account_history_workspace_idx on connected_payment_account_history (workspace_id, retired_at desc);
@@ -624,6 +641,8 @@ create index if not exists studio_gallery_images_workspace_idx on studio_gallery
 create unique index if not exists studio_gallery_images_workspace_storage_path_unique_idx on studio_gallery_images (workspace_id, storage_path) where storage_path is not null;
 create index if not exists studio_posts_workspace_sort_idx on studio_posts (workspace_id, sort_order, created_at);
 create unique index if not exists studio_posts_workspace_cover_path_unique_idx on studio_posts (workspace_id, cover_storage_path) where cover_storage_path is not null;
+create index if not exists studio_work_stills_workspace_sort_idx on studio_work_stills (workspace_id, sort_order, created_at);
+create unique index if not exists studio_work_stills_workspace_storage_path_unique_idx on studio_work_stills (workspace_id, storage_path) where storage_path is not null;
 create index if not exists studio_services_workspace_sort_idx on studio_services (workspace_id, sort_order, created_at);
 create index if not exists studio_clients_workspace_idx on studio_clients (workspace_id);
 create index if not exists studio_clients_service_idx on studio_clients (service_id);
@@ -654,6 +673,8 @@ drop trigger if exists studio_gallery_images_updated on studio_gallery_images;
 create trigger studio_gallery_images_updated before update on studio_gallery_images for each row execute function set_updated_at();
 drop trigger if exists studio_posts_updated on studio_posts;
 create trigger studio_posts_updated before update on studio_posts for each row execute function set_updated_at();
+drop trigger if exists studio_work_stills_updated on studio_work_stills;
+create trigger studio_work_stills_updated before update on studio_work_stills for each row execute function set_updated_at();
 drop trigger if exists studio_services_updated on studio_services;
 create trigger studio_services_updated before update on studio_services for each row execute function set_updated_at();
 drop trigger if exists studio_clients_updated on studio_clients;
@@ -713,6 +734,7 @@ grant select, insert, update, delete on table
   studio_galleries,
   studio_gallery_images,
   studio_posts,
+  studio_work_stills,
   studio_services,
   studio_clients,
   studio_invoices,
@@ -767,13 +789,37 @@ begin
     from app_admins
     on conflict (workspace_id, clerk_user_id) do nothing;
 
-    insert into workspace_members (workspace_id, clerk_user_id, role)
-    select distinct ws_id, clerk_user_id, 'owner'
-    from workspace_members
-    where workspace_id <> ws_id and role in ('owner', 'admin')
-    on conflict (workspace_id, clerk_user_id) do nothing;
+    -- ISHOTYOUU is Leon's studio only. Do not copy owners from other workspaces.
+    delete from workspace_members
+    where workspace_id = ws_id
+      and clerk_user_id not in (select clerk_user_id from app_admins);
 
-    -- ISHOTYOUU public Work is the existing Instagram stills, not CMS galleries or posts.
+    -- ISHOTYOUU public Work is Instagram stills, not CMS galleries or posts.
+    if not exists (select 1 from studio_work_stills where workspace_id = ws_id) then
+      insert into studio_work_stills (workspace_id, image_url, storage_path, instagram_url, alt_text, sort_order)
+      values
+        (ws_id, '/work/19-DbxBpe1lvmD.jpg', null, 'https://www.instagram.com/p/DbxBpe1lvmD/', 'Photograph from @180pf.shotit Instagram post DbxBpe1lvmD', 1),
+        (ws_id, '/work/09-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 2),
+        (ws_id, '/work/05-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 3),
+        (ws_id, '/work/08-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 4),
+        (ws_id, '/work/22-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 5),
+        (ws_id, '/work/12-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 6),
+        (ws_id, '/work/16-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 7),
+        (ws_id, '/work/07-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 8),
+        (ws_id, '/work/10-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 9),
+        (ws_id, '/work/13-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 10),
+        (ws_id, '/work/17-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 11),
+        (ws_id, '/work/20-DbxBpe1lvmD.jpg', null, 'https://www.instagram.com/p/DbxBpe1lvmD/', 'Photograph from @180pf.shotit Instagram post DbxBpe1lvmD', 12),
+        (ws_id, '/work/23-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 13),
+        (ws_id, '/work/26-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 14),
+        (ws_id, '/work/06-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 15),
+        (ws_id, '/work/14-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 16),
+        (ws_id, '/work/18-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 17),
+        (ws_id, '/work/24-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 18),
+        (ws_id, '/work/27-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 19),
+        (ws_id, '/work/02-DZsV0ftIIyO.jpg', null, 'https://www.instagram.com/p/DZsV0ftIIyO/', 'Photograph from @180pf.shotit Instagram post DZsV0ftIIyO', 20),
+        (ws_id, '/work/25-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 21);
+    end if;
 
     if not exists (select 1 from studio_services where workspace_id = ws_id) then
       insert into studio_services (workspace_id, name, description, price_type, price_cents, is_active, sort_order)

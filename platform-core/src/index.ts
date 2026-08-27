@@ -41,6 +41,7 @@ const schema = {
   studio_inquiries: ['id', 'workspace_id', 'name', 'email', 'phone', 'desired_date', 'message', 'ip_hash', 'status', 'created_at', 'updated_at'],
   studio_invoices: ['id', 'workspace_id', 'client_id', 'stripe_invoice_id', 'status', 'description', 'amount_due_cents', 'amount_paid_cents', 'deposit_cents', 'due_date', 'hosted_invoice_url', 'created_at', 'updated_at'],
   studio_posts: ['id', 'workspace_id', 'title', 'slug', 'excerpt', 'body', 'cover_image_url', 'cover_storage_path', 'cover_aspect_ratio', 'cover_crop_x', 'cover_crop_y', 'cover_crop_zoom', 'status', 'published_at', 'related_gallery_id', 'sort_order', 'created_at', 'updated_at'],
+  studio_work_stills: ['id', 'workspace_id', 'image_url', 'storage_path', 'instagram_url', 'alt_text', 'sort_order', 'created_at', 'updated_at'],
   studio_services: ['id', 'workspace_id', 'name', 'description', 'price_type', 'price_cents', 'is_active', 'sort_order', 'created_at', 'updated_at'],
   studio_settings: ['workspace_id', 'site_title', 'hero_title', 'hero_subtitle', 'contact_email', 'contact_phone', 'paper_color', 'ink_color', 'accent_color', 'font_preset', 'updated_at'],
   stripe_events: ['event_id', 'event_type', 'status', 'attempt_count', 'last_error', 'created_at', 'last_attempt_at', 'processed_at'],
@@ -64,12 +65,14 @@ const orderedTables = new Set<Table>([
   'studio_galleries',
   'studio_gallery_images',
   'studio_posts',
+  'studio_work_stills',
   'studio_services',
 ]);
 
 const orderedInsertQuotas: Partial<Record<Table, number>> = {
   studio_galleries: 100,
   studio_gallery_images: 5_000,
+  studio_work_stills: 200,
 };
 
 const quote = (identifier: string) => `"${identifier}"`;
@@ -464,7 +467,7 @@ export function createDataClient(executeQuery: QueryExecutor) {
     },
     async isWorkspaceUploadReferenced(workspaceId: string, storagePath: string): Promise<DataResult<boolean>> {
       try {
-        const text = `select (exists (select 1 from ${quote('studio_galleries')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = $2) or exists (select 1 from ${quote('studio_gallery_images')} where ${quote('workspace_id')} = $1 and ${quote('storage_path')} = $2) or exists (select 1 from ${quote('studio_posts')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = $2)) as ${quote('referenced')}`;
+        const text = `select (exists (select 1 from ${quote('studio_galleries')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = $2) or exists (select 1 from ${quote('studio_gallery_images')} where ${quote('workspace_id')} = $1 and ${quote('storage_path')} = $2) or exists (select 1 from ${quote('studio_posts')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = $2) or exists (select 1 from ${quote('studio_work_stills')} where ${quote('workspace_id')} = $1 and ${quote('storage_path')} = $2)) as ${quote('referenced')}`;
         const rows = await executeQuery(text, [workspaceId, storagePath]);
         return { data: rows[0]?.referenced === true, error: null };
       } catch (error) {
@@ -491,7 +494,7 @@ export function createDataClient(executeQuery: QueryExecutor) {
     async findOrphanedWorkspaceUploads(workspaceId: string, createdBefore: string, limit: number): Promise<DataResult<Record<string, unknown>[]>> {
       try {
         if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) throw new Error('Invalid orphan cleanup limit.');
-        const text = `select pending.${quote('storage_path')} from ${quote('workspace_uploads')} as pending where pending.${quote('workspace_id')} = $1 and pending.${quote('is_retained')} = false and pending.${quote('created_at')} < $2 and not exists (select 1 from ${quote('studio_galleries')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_gallery_images')} where ${quote('workspace_id')} = $1 and ${quote('storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_posts')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = pending.${quote('storage_path')}) order by pending.${quote('created_at')} asc limit $3`;
+        const text = `select pending.${quote('storage_path')} from ${quote('workspace_uploads')} as pending where pending.${quote('workspace_id')} = $1 and pending.${quote('is_retained')} = false and pending.${quote('created_at')} < $2 and not exists (select 1 from ${quote('studio_galleries')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_gallery_images')} where ${quote('workspace_id')} = $1 and ${quote('storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_posts')} where ${quote('workspace_id')} = $1 and ${quote('cover_storage_path')} = pending.${quote('storage_path')}) and not exists (select 1 from ${quote('studio_work_stills')} where ${quote('workspace_id')} = $1 and ${quote('storage_path')} = pending.${quote('storage_path')}) order by pending.${quote('created_at')} asc limit $3`;
         return { data: await executeQuery(text, [workspaceId, createdBefore, limit]), error: null };
       } catch (error) {
         return { data: [], error: { message: error instanceof Error ? error.message : 'Orphan upload scan failed.' } };

@@ -37,8 +37,9 @@ describe('studio resource mutations', () => {
 
     expect(core).toContain('studio_galleries: 100');
     expect(core).toContain('studio_gallery_images: 5_000');
+    expect(core).toContain('studio_work_stills: 200');
     expect(core).toContain('capacity.available');
-    expect(route).toContain("quotaLimitedCreate: 'galleries' | 'images' | null");
+    expect(route).toContain("quotaLimitedCreate: 'galleries' | 'images' | 'stills' | null");
     expect(route).toContain("status: 409");
   });
 
@@ -70,6 +71,7 @@ describe('studio resource mutations', () => {
     expect(route).toContain("table: 'studio_galleries', pathColumn: 'cover_storage_path'");
     expect(route).toContain("table: 'studio_gallery_images', pathColumn: 'storage_path'");
     expect(route).toContain("table: 'studio_posts', pathColumn: 'cover_storage_path'");
+    expect(route).toContain("table: 'studio_work_stills', pathColumn: 'storage_path'");
     expect(route).toContain('findUploadBackedResource');
     expect(route).toMatch(/duplicate key|unique constraint/i);
   });
@@ -80,6 +82,7 @@ describe('studio resource mutations', () => {
     expect(schema).toMatch(/create unique index[^;]+studio_galleries[^;]+\(workspace_id, cover_storage_path\)[^;]+where cover_storage_path is not null/i);
     expect(schema).toMatch(/create unique index[^;]+studio_gallery_images[^;]+\(workspace_id, storage_path\)[^;]+where storage_path is not null/i);
     expect(schema).toMatch(/create unique index[^;]+studio_posts[^;]+\(workspace_id, cover_storage_path\)[^;]+where cover_storage_path is not null/i);
+    expect(schema).toMatch(/create unique index[^;]+studio_work_stills[^;]+\(workspace_id, storage_path\)[^;]+where storage_path is not null/i);
   });
 
   it('persists validated gallery layout and image crop controls', () => {

@@ -1,0 +1,43 @@
+import type { DataClient } from '@leon/platform-core';
+
+export type StudioWorkStill = {
+  id: string;
+  workspace_id: string;
+  image_url: string;
+  storage_path: string | null;
+  instagram_url: string;
+  alt_text: string;
+  sort_order: number;
+};
+
+export const WORK_SIDECAR_IMAGE = /^\/work\/[A-Za-z0-9][A-Za-z0-9._-]*\.(jpe?g|png|webp|avif)$/i;
+const INSTAGRAM_POST = /^https?:\/\/(?:www\.)?instagram\.com\/(p|reel)\/([A-Za-z0-9_-]+)\/?/i;
+
+export function isSidecarWorkImage(url: string) {
+  return WORK_SIDECAR_IMAGE.test(url.trim());
+}
+
+export function normalizeInstagramUrl(value: string) {
+  const match = value.trim().match(INSTAGRAM_POST);
+  if (!match) return null;
+  const kind = match[1].toLowerCase() === 'reel' ? 'reel' : 'p';
+  return `https://www.instagram.com/${kind}/${match[2]}/`;
+}
+
+export function stillToFrame(still: Pick<StudioWorkStill, 'image_url' | 'alt_text' | 'instagram_url'>) {
+  return {
+    src: still.image_url,
+    alt: still.alt_text,
+    instagramUrl: still.instagram_url,
+  };
+}
+
+export async function listWorkStills(client: DataClient, workspaceId: string): Promise<StudioWorkStill[]> {
+  const result = await client
+    .from('studio_work_stills')
+    .select('id,workspace_id,image_url,storage_path,instagram_url,alt_text,sort_order')
+    .eq('workspace_id', workspaceId)
+    .order('sort_order');
+  if (result.error) return [];
+  return (result.data ?? []) as StudioWorkStill[];
+}

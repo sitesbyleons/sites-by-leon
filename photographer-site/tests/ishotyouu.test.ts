@@ -41,10 +41,17 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/pages/i/inquire.astro')).toContain('searchParams.get(\'package\')');
     expect(read('src/pages/i/index.astro')).toContain('class="hero"');
     expect(read('src/pages/i/work/index.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
+    expect(read('src/pages/i/work/index.astro')).toContain('listWorkStills');
     expect(read('src/pages/i/work/index.astro')).toContain('instagramUrl');
     expect(read('src/pages/i/work/index.astro')).not.toContain('portfolio.galleries');
     expect(read('src/layouts/StudioAdminLayout.astro')).toContain("label: 'Files'");
+    expect(read('src/layouts/StudioAdminLayout.astro')).toContain("label: 'Work'");
     expect(read('src/layouts/StudioAdminLayout.astro')).toContain('ishotyouu ?');
+    expect(read('src/pages/admin/work.astro')).toContain("data-resource=\"stills\"");
+    expect(read('src/pages/admin/work.astro')).toContain("redirect('/admin/galleries')");
+    expect(read('src/pages/api/admin/[resource].ts')).toContain("resource === 'stills'");
+    expect(read('src/pages/api/admin/[resource].ts')).toContain('isIshotyouuSite');
+    expect(read('src/pages/api/admin/[resource].ts')).toContain('normalizeInstagramUrl');
     expect(read('src/pages/admin/galleries.astro')).toContain("redirect('/admin/media')");
     expect(read('src/pages/admin/posts.astro')).toContain("redirect('/admin/media')");
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Home'");
@@ -88,8 +95,12 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(schema).toContain("select id into ws_id from client_workspaces where slug = 'ishotyouu'");
     expect(schema).toContain('if ws_id is null then');
     expect(schema).toContain("if not exists (select 1 from studio_services where workspace_id = ws_id)");
+    expect(schema).toContain("if not exists (select 1 from studio_work_stills where workspace_id = ws_id)");
     expect(schema).toContain('related_gallery_id');
-    expect(schema).toContain('existing Instagram stills, not CMS galleries or posts');
+    expect(schema).toContain('ISHOTYOUU is Leon\'s studio only. Do not copy owners from other workspaces.');
+    expect(schema).toContain('clerk_user_id not in (select clerk_user_id from app_admins)');
+    expect(schema).not.toContain('where workspace_id <> ws_id and role in');
+    expect(schema).toContain('public Work is Instagram stills, not CMS galleries or posts');
     expect(schema).not.toContain("'selected-stills'");
   });
 

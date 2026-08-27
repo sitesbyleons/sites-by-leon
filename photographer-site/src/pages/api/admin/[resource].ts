@@ -4,10 +4,12 @@ import type { DataClient } from '@leon/platform-core';
 import type { APIRoute } from 'astro';
 
 import { MIN_STRIPE_USD_CENTS, parseUsdCents } from '../../../lib/invoice-events';
+import { isIshotyouuSite } from '../../../lib/ishotyouu';
 import { mediaStorage } from '../../../lib/media-storage';
 import { resolvePublishedAt } from '../../../lib/post-publication';
 import { resolveManagedStudio } from '../../../lib/studio';
 import { sweepOrphanedUploads } from '../../../lib/upload-cleanup';
+import { isSidecarWorkImage, normalizeInstagramUrl } from '../../../lib/work-stills';
 
 export const prerender = false;
 
@@ -16,8 +18,8 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 const colorPattern = /^#[0-9a-f]{6}$/i;
 const mediaAspectRatios = new Set(['square', 'portrait', 'landscape', 'wide']);
 const imageAspectRatios = new Set(['inherit', ...mediaAspectRatios]);
-const orderable = new Set(['galleries', 'images', 'posts', 'services']);
-const deletable = new Set(['galleries', 'images', 'posts', 'services', 'clients', 'invoices']);
+const orderable = new Set(['galleries', 'images', 'posts', 'services', 'stills']);
+const deletable = new Set(['galleries', 'images', 'posts', 'services', 'clients', 'invoices', 'stills']);
 const text = (source: Record<string, unknown>, key: string, max = 2000) => {
   const value = typeof source[key] === 'string' ? source[key].trim() : '';
   return value.slice(0, max);
@@ -36,7 +38,8 @@ const mediaAspectRatio = (source: Record<string, unknown>, key: string, fallback
 type UploadBackedResource =
   | { table: 'studio_galleries'; pathColumn: 'cover_storage_path'; path: string }
   | { table: 'studio_gallery_images'; pathColumn: 'storage_path'; path: string }
-  | { table: 'studio_posts'; pathColumn: 'cover_storage_path'; path: string };
+  | { table: 'studio_posts'; pathColumn: 'cover_storage_path'; path: string }
+  | { table: 'studio_work_stills'; pathColumn: 'storage_path'; path: string };
 
 const findUploadBackedResource = (client: DataClient, workspaceId: string, upload: UploadBackedResource) => client
   .from(upload.table)
@@ -80,11 +83,17 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
   const resource = params.resource ?? '';
   const id = text(source, 'id', 64);
   const method = request.method;
+  const ishotyouu = isIshotyouuSite(locals.siteContext);
+  if (resource === 'stills' && !ishotyouu) return Response.json({ message: 'Unknown studio resource.' }, { status: 404 });
 
   if (method === 'PATCH') {
     const direction = text(source, 'direction', 10);
     if (!orderable.has(resource) || !uuidPattern.test(id) || !['up', 'down'].includes(direction)) return Response.json({ message: 'Invalid move.' }, { status: 422 });
-    const table = resource === 'galleries' ? 'studio_galleries' : resource === 'images' ? 'studio_gallery_images' : resource === 'posts' ? 'studio_posts' : 'studio_services';
+    const table = resource === 'galleries' ? 'studio_galleries'
+      : resource === 'images' ? 'studio_gallery_images'
+        : resource === 'posts' ? 'studio_posts'
+          : resource === 'stills' ? 'studio_work_stills'
+            : 'studio_services';
     const current = await client.from(table).select(resource === 'images' ? 'id,sort_order,gallery_id' : 'id,sort_order').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<Record<string, unknown>>();
     if (!current.data) return Response.json({ message: 'Item not found.' }, { status: 404 });
     const moved = await client.moveOrderedItem(table, workspaceId, id, direction as 'up' | 'down');
@@ -99,7 +108,8 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
         : resource === 'posts' ? 'studio_posts'
           : resource === 'services' ? 'studio_services'
             : resource === 'clients' ? 'studio_clients'
-              : 'studio_invoices';
+              : resource === 'stills' ? 'studio_work_stills'
+                : 'studio_invoices';
     let paths: Array<string | null> = [];
     if (resource === 'galleries') {
       const gallery = await client.from('studio_galleries').select('cover_storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ cover_storage_path: string | null }>();
@@ -111,6 +121,9 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     } else if (resource === 'posts') {
       const row = await client.from(table).select('cover_storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ cover_storage_path: string | null }>();
       paths = [row.data?.cover_storage_path ?? null];
+    } else if (resource === 'stills') {
+      const row = await client.from(table).select('storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ storage_path: string | null }>();
+      paths = [row.data?.storage_path ?? null];
     } else if (resource === 'clients') {
       const invoice = await client.from('studio_invoices').select('id').eq('workspace_id', workspaceId).eq('client_id', id).limit(1).maybeSingle();
       if (invoice.data) return Response.json({ message: 'Keep this client because an invoice is attached.' }, { status: 409 });
@@ -136,7 +149,7 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
   let operation: PromiseLike<{ data: Record<string, unknown>[]; error: { message?: string } | null }>;
   let oldPath: string | null = null;
   let uploadBackedCreate: UploadBackedResource | null = null;
-  let quotaLimitedCreate: 'galleries' | 'images' | null = null;
+  let quotaLimitedCreate: 'galleries' | 'images' | 'stills' | null = null;
 
   if (resource === 'settings') {
     const siteTitle = text(source, 'site_title', 100);
@@ -267,6 +280,36 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
         published_at: resolvePublishedAt(null, status, now),
       });
     }
+  } else if (resource === 'stills') {
+    const imageUrl = text(source, 'image_url', 2048);
+    const rawPath = text(source, 'storage_path', 1024);
+    const storagePath = managedPath(workspaceId, rawPath);
+    const altText = text(source, 'alt_text', 300);
+    const instagramUrl = normalizeInstagramUrl(text(source, 'instagram_url', 500));
+    if (!imageUrl || altText.length < 2 || !instagramUrl) {
+      return Response.json({ message: 'Choose a still, a description, and a valid Instagram post URL.' }, { status: 422 });
+    }
+    if (storagePath) {
+      if (!isManagedUploadPath(workspaceId, storagePath)) return Response.json({ message: 'Choose an image from this studio.' }, { status: 422 });
+    } else if (rawPath || !isSidecarWorkImage(imageUrl)) {
+      return Response.json({ message: 'Choose an Instagram still or an uploaded image from this studio.' }, { status: 422 });
+    }
+    const values = { image_url: imageUrl, storage_path: storagePath, instagram_url: instagramUrl, alt_text: altText };
+    if (id) {
+      if (!uuidPattern.test(id)) return Response.json({ message: 'Invalid still.' }, { status: 422 });
+      const previous = await client.from('studio_work_stills').select('storage_path').eq('workspace_id', workspaceId).eq('id', id).maybeSingle<{ storage_path: string | null }>();
+      oldPath = previous.data?.storage_path ?? null;
+      operation = client.from('studio_work_stills').update(values).eq('workspace_id', workspaceId).eq('id', id);
+    } else {
+      if (storagePath) {
+        uploadBackedCreate = { table: 'studio_work_stills', pathColumn: 'storage_path', path: storagePath };
+        const existing = await findUploadBackedResource(client, workspaceId, uploadBackedCreate);
+        if (existing.error) return Response.json({ message: 'Existing image use could not be checked. Try again.' }, { status: 503 });
+        if (existing.data) return Response.json({ ok: true, id: existing.data.id });
+      }
+      quotaLimitedCreate = 'stills';
+      operation = client.insertOrdered('studio_work_stills', workspaceId, values);
+    }
   } else if (resource === 'services') {
     const name = text(source, 'name', 100);
     const priceType = text(source, 'price_type', 20);
@@ -322,12 +365,14 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     if (quotaLimitedCreate) {
       const message = quotaLimitedCreate === 'galleries'
         ? 'This studio has reached its limit of 100 galleries.'
-        : 'This studio has reached its limit of 5,000 gallery images.';
+        : quotaLimitedCreate === 'stills'
+          ? 'This studio has reached its limit of 200 work stills.'
+          : 'This studio has reached its limit of 5,000 gallery images.';
       return Response.json({ message }, { status: 409 });
     }
     return Response.json({ message: 'This item no longer exists. Refresh and try again.' }, { status: 404 });
   }
-  const newPath = text(source, resource === 'images' ? 'storage_path' : 'cover_storage_path', 1024);
+  const newPath = text(source, resource === 'images' || resource === 'stills' ? 'storage_path' : 'cover_storage_path', 1024);
   if (oldPath && oldPath !== newPath) await removeFiles(client, workspaceId, [managedPath(workspaceId, oldPath)]).catch(() => null);
   await sweepOrphanedUploads(client, workspaceId, mediaStorage());
   const resourceId = typeof result.data[0]?.id === 'string' ? result.data[0].id : null;

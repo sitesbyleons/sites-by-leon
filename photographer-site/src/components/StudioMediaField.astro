@@ -1,16 +1,16 @@
 ---
 interface Props {
-  kind: 'cover' | 'image' | 'post';
-  resource: 'galleries' | 'images' | 'posts';
+  kind: 'cover' | 'image' | 'post' | 'still';
+  resource: 'galleries' | 'images' | 'posts' | 'stills';
   label: string;
   url?: string | null;
   path?: string | null;
   currentId?: string;
 }
 const { kind, resource, label, url = '', path = '', currentId = '' } = Astro.props;
-const urlName = kind === 'image' ? 'image_url' : 'cover_image_url';
-const pathName = kind === 'image' ? 'storage_path' : 'cover_storage_path';
-const uploadKind = kind === 'image' ? 'galleries' : kind === 'post' ? 'posts' : 'covers';
+const urlName = kind === 'image' || kind === 'still' ? 'image_url' : 'cover_image_url';
+const pathName = kind === 'image' || kind === 'still' ? 'storage_path' : 'cover_storage_path';
+const uploadKind = kind === 'image' ? 'galleries' : kind === 'post' ? 'posts' : kind === 'still' ? 'stills' : 'covers';
 ---
 <div class="studio-media-field wide" data-media-field>
   <span class="studio-field-label">{label}</span>

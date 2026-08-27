@@ -1,7 +1,11 @@
 ---
 import ClerkUI from '../../components/ClerkUI.astro';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { normalizeStudioReturnPath } from '../../lib/studio-auth';
 const dashboardUrl = normalizeStudioReturnPath(Astro.url.searchParams.get('redirect_url'));
+if (isIshotyouuSite(Astro.locals.siteContext)) {
+  return Astro.redirect(`/sign-in?redirect_url=${encodeURIComponent(dashboardUrl)}`);
+}
 const signInUrl = `/sign-in?redirect_url=${encodeURIComponent(dashboardUrl)}`;
 ---
 

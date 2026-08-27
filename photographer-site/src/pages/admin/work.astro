@@ -1,0 +1,69 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import StudioMediaField from '../../components/StudioMediaField.astro';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
+import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadStudioSession({
+  isPreview,
+  userId: isPreview ? 'preview' : (auth?.userId ?? null),
+  workspaceId: Astro.locals.siteContext.workspaceId,
+  getToken: async () => auth ? (await auth.getToken()) ?? null : null,
+});
+const access = decideStudioAdminAccess(session, '/admin/work');
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+if (!isIshotyouuSite(Astro.locals.siteContext)) return Astro.redirect('/admin/galleries');
+const data = session.data!;
+---
+
+<StudioAdminLayout title="Work" active="work" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} workspaceId={data.workspace?.id} media={data.uploads}>
+  <header class="studio-section-heading">
+    <div><small>Instagram wall</small><h2>Work stills</h2></div>
+    <p>These frames are the public Work page. Each one opens its Instagram post.</p>
+  </header>
+
+  <section class="studio-stack">
+    {data.stills.length ? data.stills.map((still) => (
+      <article class="studio-item">
+        <img class="studio-item-thumb" src={still.image_url} alt="" />
+        <div class="studio-item-copy">
+          <strong>{still.alt_text}</strong>
+          <small>{still.instagram_url.replace('https://www.instagram.com', '')}</small>
+        </div>
+        <div class="studio-item-actions">
+          <div class="studio-reorder" role="group" aria-label={`Reorder ${still.alt_text}`}>
+            <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="stills" data-id={still.id} aria-label="Move still up">↑</button>
+            <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="stills" data-id={still.id} aria-label="Move still down">↓</button>
+          </div>
+          <div class="studio-item-tools">
+            <details class="studio-editor">
+              <summary>Edit</summary>
+              <form class="studio-form studio-editor-form" data-studio-form data-resource="stills" data-upload-kind="still">
+                <input type="hidden" name="id" value={still.id} />
+                <StudioMediaField kind="still" resource="stills" label="Still" url={still.image_url} path={still.storage_path} currentId={still.id} />
+                <label class="wide"><span>Instagram post</span><input name="instagram_url" value={still.instagram_url} placeholder="https://www.instagram.com/p/..." required /></label>
+                <label class="wide"><span>Description</span><input name="alt_text" value={still.alt_text} minlength="2" maxlength="300" required /></label>
+                <div class="wide"><button type="submit">Save still</button></div>
+                <p class="studio-form-status wide" data-form-status></p>
+              </form>
+            </details>
+            <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="stills" data-id={still.id}>Delete</button>
+          </div>
+        </div>
+      </article>
+    )) : <p class="studio-empty">No stills yet. Add one below, or the public Work page will show the original Instagram wall.</p>}
+  </section>
+
+  <header class="studio-section-heading"><div><small>New still</small><h2>Add to Work</h2></div></header>
+  <section class="studio-panel studio-panel--narrow">
+    <form class="studio-form" data-studio-form data-resource="stills" data-upload-kind="still">
+      <StudioMediaField kind="still" resource="stills" label="Still" />
+      <label class="wide"><span>Instagram post</span><input name="instagram_url" placeholder="https://www.instagram.com/p/..." required /></label>
+      <label class="wide"><span>Description</span><input name="alt_text" minlength="2" maxlength="300" required /></label>
+      <div class="wide"><button type="submit">Add still</button></div>
+      <p class="studio-form-status wide" data-form-status></p>
+    </form>
+  </section>
+</StudioAdminLayout>

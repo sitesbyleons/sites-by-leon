@@ -42,6 +42,14 @@ describe('studio authorization', () => {
     expect(studio).toContain("userCanManageWorkspace(client, clerkUserId, workspace.data.id, { allowPlatformAdmin: true })");
   });
 
+  it('does not invite new ISHOTYOUU editor accounts from the sign-up form', () => {
+    const signUp = fs.readFileSync(new URL('../src/pages/sign-up/[...signup].astro', import.meta.url), 'utf8');
+    const signIn = fs.readFileSync(new URL('../src/pages/sign-in/[...signin].astro', import.meta.url), 'utf8');
+    expect(signUp).toContain('isIshotyouuSite');
+    expect(signUp).toContain('Astro.redirect');
+    expect(signIn).toContain('isIshotyouuSite');
+  });
+
   it('sanitizes Clerk return paths instead of accepting external redirects', () => {
     const signIn = fs.readFileSync(new URL('../src/pages/sign-in/[...signin].astro', import.meta.url), 'utf8');
     const signUp = fs.readFileSync(new URL('../src/pages/sign-up/[...signup].astro', import.meta.url), 'utf8');

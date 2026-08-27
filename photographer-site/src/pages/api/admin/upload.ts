@@ -18,7 +18,7 @@ const workspaceQuotaBytes = Number.isSafeInteger(configuredWorkspaceQuota)
   && configuredWorkspaceQuota <= 1_099_511_627_776
   ? configuredWorkspaceQuota
   : defaultWorkspaceQuotaBytes;
-const uploadKinds = new Set(['galleries', 'posts', 'covers']);
+const uploadKinds = new Set(['galleries', 'posts', 'covers', 'stills']);
 
 const publicUrl = (managedPath: string) =>
   `${mediaOrigin}/media/${managedPath.split('/').map(encodeURIComponent).join('/')}`;
