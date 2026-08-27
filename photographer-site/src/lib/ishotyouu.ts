@@ -12,20 +12,22 @@ export const isIshotyouuSite = (context: Pick<SiteContext, 'siteKey' | 'hostname
 export const isIshotyouuInternalPath = (pathname: string) =>
   pathname === ISHOTYOUU_INTERNAL_PREFIX || pathname.startsWith(`${ISHOTYOUU_INTERNAL_PREFIX}/`);
 
-export const isIshotyouuPublicPath = (pathname: string) =>
-  pathname === '/' || ISHOTYOUU_PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-
-export const isIshotyouuHiddenPublicPath = (pathname: string) =>
-  pathname === '/journal' || pathname.startsWith('/journal/')
-  || pathname === '/packages' || pathname.startsWith('/packages/');
-
-export const ishotyouuInternalPath = (pathname: string) =>
-  pathname === '/' ? ISHOTYOUU_INTERNAL_PREFIX : `${ISHOTYOUU_INTERNAL_PREFIX}${pathname}`;
-
 export const ishotyouuPublicPathname = (pathname: string) => {
   if (pathname === ISHOTYOUU_INTERNAL_PREFIX || pathname === `${ISHOTYOUU_INTERNAL_PREFIX}/`) return '/';
   return pathname.replace(/^\/i(?=\/|$)/, '') || '/';
 };
+
+export const isIshotyouuPublicPath = (pathname: string) =>
+  pathname === '/' || ISHOTYOUU_PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+
+export const isIshotyouuHiddenPublicPath = (pathname: string) => {
+  const publicPath = ishotyouuPublicPathname(pathname);
+  return publicPath === '/journal' || publicPath.startsWith('/journal/')
+    || publicPath === '/packages' || publicPath.startsWith('/packages/');
+};
+
+export const ishotyouuInternalPath = (pathname: string) =>
+  pathname === '/' ? ISHOTYOUU_INTERNAL_PREFIX : `${ISHOTYOUU_INTERNAL_PREFIX}${pathname}`;
 
 export const ishotyouuNavHref = (pathname: string, href: string) => {
   const publicPath = ishotyouuPublicPathname(pathname);

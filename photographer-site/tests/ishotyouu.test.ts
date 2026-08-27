@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
@@ -23,6 +23,8 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(isIshotyouuPublicPath('/packages')).toBe(false);
     expect(isIshotyouuHiddenPublicPath('/journal/selected-stills')).toBe(true);
     expect(isIshotyouuHiddenPublicPath('/packages')).toBe(true);
+    expect(isIshotyouuHiddenPublicPath('/i/journal')).toBe(true);
+    expect(isIshotyouuHiddenPublicPath('/i/packages')).toBe(true);
     expect(isIshotyouuPublicPath('/admin')).toBe(false);
     expect(ishotyouuInternalPath('/work')).toBe('/i/work');
     expect(ishotyouuPublicPathname('/i/work/selected-stills')).toBe('/work/selected-stills');
@@ -37,9 +39,15 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/pages/i/inquire.astro')).toContain('searchParams.get(\'package\')');
     expect(read('src/pages/i/index.astro')).toContain('class="hero"');
     expect(read('src/pages/i/work/index.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
+    expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Home'");
+    expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Work'");
+    expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'About'");
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Inquire'");
+    expect(read('src/layouts/IshotyouuLayout.astro')).toContain('ISHOTYOUU_INSTAGRAM_URL');
     expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain("label: 'Journal'");
     expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain("label: 'Services'");
+    expect(existsSync(new URL('../src/pages/i/journal/index.astro', import.meta.url))).toBe(false);
+    expect(existsSync(new URL('../src/pages/i/packages.astro', import.meta.url))).toBe(false);
     expect(read('src/pages/sitemap.xml.ts')).toContain("path: isIshotyouu ? '/inquire' : '/contact'");
     expect(read('src/pages/sitemap.xml.ts')).toContain('isIshotyouu ? []');
     expect(read('src/layouts/SiteLayout.astro')).not.toContain('IshotyouuLayout');
