@@ -39,3 +39,12 @@ export const ISHOTYOUU_FALLBACK_WORK: IshotyouuFallbackFrame[] = [
   { src: '/work/02-DZsV0ftIIyO.jpg', alt: 'Photograph from @180pf.shotit Instagram post DZsV0ftIIyO', instagramUrl: 'https://www.instagram.com/p/DZsV0ftIIyO/' },
   { src: '/work/25-DbY_1lAoMaf.jpg', alt: 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', instagramUrl: 'https://www.instagram.com/p/DbY_1lAoMaf/' },
 ];
+
+export const ishotyouuLibraryStills = () => {
+  const seen = new Set<string>();
+  return [ISHOTYOUU_FALLBACK_HERO, ISHOTYOUU_FALLBACK_ABOUT, ...ISHOTYOUU_FALLBACK_WORK].filter((frame) => {
+    if (seen.has(frame.src)) return false;
+    seen.add(frame.src);
+    return true;
+  });
+};

@@ -2,9 +2,7 @@
 import SiteLayout from '../../layouts/SiteLayout.astro';
 import { imagePresentationStyle } from '../../lib/content/presentation';
 import { siteRepository } from '../../lib/content/repository';
-import { isIshotyouuSite } from '../../lib/ishotyouu';
 
-const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   month: 'short',
@@ -24,29 +22,6 @@ const posts = portfolio.posts.map((post) => ({
   image={posts[0]?.post.cover?.src}
   canonicalPath="/journal"
 >
-  {ishotyouu ? (
-    <section class="page-shell" aria-labelledby="journal-title">
-      <header class="page-intro">
-        <p class="section-kicker">Journal</p>
-        <h1 id="journal-title">Journal</h1>
-        <p class="hint">{posts.length ? `${portfolio.studioName} notes.` : 'Publish a post in Studio admin and it shows here.'}</p>
-      </header>
-      {posts.length ? (
-        <div class="ishot-stack">
-          {posts.map(({ post, publishedAt }) => (
-            <article class="ishot-card">
-              <p class="ishot-meta"><time datetime={post.publishedAt}>{publishedAt}</time></p>
-              <h2><a href={`/journal/${post.slug}`}>{post.title}</a></h2>
-              <p>{post.excerpt}</p>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p class="ishot-empty">No posts yet.</p>
-      )}
-    </section>
-  ) : (
-  <>
   <header class="page-intro page-gutter">
     <h1 id="journal-title" data-entrance>Photography notes.</h1>
     <p data-entrance>{portfolio.studioName}</p>
@@ -85,6 +60,4 @@ const posts = portfolio.posts.map((post) => ({
       }
     </ol>
   </section>
-  </>
-  )}
 </SiteLayout>

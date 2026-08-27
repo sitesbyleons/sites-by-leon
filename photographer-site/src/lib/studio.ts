@@ -1,5 +1,6 @@
 import { userCanManageWorkspace, type DataClient } from '@leon/platform-core';
 
+import { ishotyouuLibraryStills } from './content/ishotyouu-fallback';
 import { createStudioDatabase } from './database';
 
 export type StudioWorkspace = { id: string; name: string; slug: string; status: string };
@@ -62,6 +63,7 @@ export type StudioPost = {
   cover_crop_zoom: number;
   status: string;
   published_at: string | null;
+  related_gallery_id: string | null;
   sort_order: number;
 };
 export type StudioService = {
@@ -175,7 +177,7 @@ export function previewStudioData(): StudioAdminData {
       { id: 'image_3', workspace_id: previewWorkspace.id, gallery_id: 'gallery_football', image_url: '/images/sports/football-field.webp', alt_text: 'Football field under stadium lights', storage_path: null, aspect_ratio: 'inherit', crop_x: 50, crop_y: 56, crop_zoom: 1.05, sort_order: 3 },
     ],
     posts: [
-      { id: 'post_1', workspace_id: previewWorkspace.id, title: 'Working the Sideline', slug: 'working-the-sideline', excerpt: 'A night of football coverage.', body: 'Game notes and selected photographs.', cover_image_url: '/images/sports/football-field.webp', cover_storage_path: null, cover_aspect_ratio: 'wide', cover_crop_x: 50, cover_crop_y: 46, cover_crop_zoom: 1.1, status: 'published', published_at: '2026-07-08T12:00:00.000Z', sort_order: 1 },
+      { id: 'post_1', workspace_id: previewWorkspace.id, title: 'Working the Sideline', slug: 'working-the-sideline', excerpt: 'A night of football coverage.', body: 'Game notes and selected photographs.', cover_image_url: '/images/sports/football-field.webp', cover_storage_path: null, cover_aspect_ratio: 'wide', cover_crop_x: 50, cover_crop_y: 46, cover_crop_zoom: 1.1, status: 'published', published_at: '2026-07-08T12:00:00.000Z', related_gallery_id: 'gallery_football', sort_order: 1 },
     ],
     services,
     clients: [
@@ -224,7 +226,7 @@ export async function loadStudioAdminData(
     client.from('studio_settings').select('workspace_id,site_title,hero_title,hero_subtitle,contact_email,contact_phone,paper_color,ink_color,accent_color,font_preset').eq('workspace_id', id).maybeSingle<StudioSettings>(),
     client.from('studio_galleries').select('id,workspace_id,title,slug,category,description,cover_image_url,cover_storage_path,layout_mode,grid_columns,image_aspect_ratio,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_gallery_images').select('id,workspace_id,gallery_id,image_url,alt_text,storage_path,aspect_ratio,crop_x,crop_y,crop_zoom,sort_order').eq('workspace_id', id).order('sort_order'),
-    client.from('studio_posts').select('id,workspace_id,title,slug,excerpt,body,cover_image_url,cover_storage_path,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,published_at,sort_order').eq('workspace_id', id).order('sort_order'),
+    client.from('studio_posts').select('id,workspace_id,title,slug,excerpt,body,cover_image_url,cover_storage_path,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,published_at,related_gallery_id,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_services').select('id,workspace_id,name,description,price_type,price_cents,is_active,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_clients').select('id,workspace_id,service_id,name,email,phone,notes,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('studio_invoices').select('id,workspace_id,client_id,status,description,amount_due_cents,deposit_cents,amount_paid_cents,due_date,hosted_invoice_url,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
@@ -260,6 +262,23 @@ export async function loadStudioAdminData(
       used_in: usedIn,
     };
   });
+  const libraryStills = workspace.slug === 'ishotyouu'
+    ? ishotyouuLibraryStills().map((frame) => {
+      const usedIn: StudioUpload['used_in'] = [];
+      if (galleryRows.some((item) => item.cover_image_url === frame.src)) usedIn.push('galleries');
+      if (imageRows.some((item) => item.image_url === frame.src)) usedIn.push('images');
+      if (postRows.some((item) => item.cover_image_url === frame.src)) usedIn.push('posts');
+      return {
+        storage_path: '',
+        public_url: frame.src,
+        original_filename: frame.src.split('/').at(-1) ?? 'still.jpg',
+        media_kind: 'library',
+        size_bytes: 0,
+        created_at: '',
+        used_in: usedIn,
+      };
+    })
+    : [];
   return {
     workspace,
     settings: settings.data,
@@ -270,7 +289,7 @@ export async function loadStudioAdminData(
     clients: (clients.data ?? []) as StudioClient[],
     invoices: (invoices.data ?? []) as StudioInvoice[],
     inquiries: (inquiries.data ?? []) as StudioInquiry[],
-    uploads: mediaRows,
+    uploads: [...libraryStills, ...mediaRows],
     supportTickets: (supportTickets.data ?? []) as StudioSupportTicket[],
     connect: connect.data,
     error: failed ? 'Some studio records could not be loaded.' : null,

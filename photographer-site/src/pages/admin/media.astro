@@ -9,6 +9,7 @@ const session = await loadStudioSession({ isPreview, userId: isPreview ? 'previe
 const access = decideStudioAdminAccess(session, '/admin/media');
 if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
+const files = data.uploads.filter((file) => file.media_kind !== 'library');
 const formatBytes = (bytes: number) => bytes >= 1_048_576 ? `${(bytes / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 const date = (value: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
 const totalBytes = data.uploads.reduce((sum, item) => sum + item.size_bytes, 0);
@@ -16,12 +17,12 @@ const totalBytes = data.uploads.reduce((sum, item) => sum + item.size_bytes, 0);
 
 <StudioAdminLayout title="Files" active="media" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
   <header class="studio-section-heading studio-section-heading--files">
-    <div><small>Image library</small><h2>{data.uploads.length} files</h2></div>
+    <div><small>Image library</small><h2>{files.length} files</h2></div>
     <div class="studio-heading-actions"><span>{formatBytes(totalBytes)} used</span><button class="studio-button" type="button" data-open-media-library><StudioIcon name="upload" />Add images</button></div>
   </header>
-  {data.uploads.length ? (
+  {files.length ? (
     <section class="studio-file-grid" aria-label="Uploaded images">
-      {data.uploads.map((file) => (
+      {files.map((file) => (
         <article class="studio-file-card" data-media-manage-card>
           <img src={file.public_url} alt="" loading="lazy" />
           <div class="studio-file-card__copy">

@@ -104,4 +104,14 @@ describe('studio resource mutations', () => {
     expect(route).toContain('resolvePublishedAt(previous.data.published_at, status, now)');
     expect(route).not.toContain("published_at: status === 'published' ? new Date().toISOString() : null");
   });
+
+  it('lets a post link to a related gallery from the same studio', () => {
+    const route = read('src/pages/api/admin/[resource].ts');
+    const posts = read('src/pages/admin/posts.astro');
+    const schema = readWorkspace('infra/ovh/postgres/schema.sql');
+    expect(route).toContain('related_gallery_id');
+    expect(route).toContain("Choose a gallery from this studio.");
+    expect(posts).toContain('name="related_gallery_id"');
+    expect(schema).toContain('alter table studio_posts add column if not exists related_gallery_id');
+  });
 });

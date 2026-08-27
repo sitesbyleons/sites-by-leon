@@ -1,0 +1,59 @@
+---
+import IshotyouuLayout from '../../../layouts/IshotyouuLayout.astro';
+import { siteRepository } from '../../../lib/content/repository';
+
+const slug = Astro.params.slug ?? '';
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
+const post = portfolio.posts.find((item) => item.slug === slug) ?? null;
+if (!post) {
+  Astro.response.status = 404;
+  Astro.response.statusText = 'Not Found';
+}
+const publishedAt = post
+  ? new Intl.DateTimeFormat('en-US', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(post.publishedAt))
+  : '';
+const { canonicalOrigin } = Astro.locals.siteContext;
+---
+
+<IshotyouuLayout
+  title={post?.title ?? 'Post not found'}
+  description={post?.excerpt ?? `The requested ${portfolio.studioName} post could not be found.`}
+  image={post?.cover?.src}
+  canonicalPath={`/journal/${slug}`}
+  studioName={portfolio.studioName}
+  canonicalOrigin={canonicalOrigin}
+>
+  {post ? (
+    <article class="page-shell">
+      <header class="page-intro">
+        <p class="section-kicker">{publishedAt}</p>
+        <h1>{post.title}</h1>
+      </header>
+      {post.cover && (
+        <figure class="ishot-body-cover">
+          <img src={post.cover.src} alt={post.cover.alt} loading="eager" />
+        </figure>
+      )}
+      <div class="ishot-body">
+        {post.body.map((paragraph) => <p>{paragraph}</p>)}
+      </div>
+      <nav class="journal-story-return">
+        {post.relatedGallerySlug && (
+          <a class="text-link" href={`/work/${post.relatedGallerySlug}`}>Related gallery</a>
+        )}
+        <a class="text-link" href="/journal">All posts</a>
+      </nav>
+    </article>
+  ) : (
+    <section class="page-shell" aria-labelledby="not-found-title">
+      <p class="section-kicker">Journal</p>
+      <h1 id="not-found-title">This post was not found.</h1>
+      <p class="hint"><a class="text-link" href="/journal">Return to journal</a></p>
+    </section>
+  )}
+</IshotyouuLayout>

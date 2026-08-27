@@ -269,7 +269,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
         const usedIn = (card.dataset.mediaUsedIn ?? '').split(',').filter(Boolean);
         const resource = activeMediaPicker.dataset.mediaResource ?? '';
         const status = field.querySelector<HTMLElement>('[data-media-field-status]');
-        if (usedIn.includes(resource) && pathField?.value !== selectedPath) {
+        if (selectedPath && usedIn.includes(resource) && pathField?.value !== selectedPath) {
           if (dialogStatus) dialogStatus.textContent = `That file is already used in another ${resource === 'images' ? 'gallery image' : resource.slice(0, -1)}. Choose another file.`;
           return;
         }

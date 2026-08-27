@@ -267,6 +267,7 @@ create table if not exists studio_posts (
   cover_crop_zoom numeric(4, 2) not null default 1 check (cover_crop_zoom between 1 and 3),
   status text not null default 'draft' check (status in ('draft', 'published')),
   published_at timestamptz,
+  related_gallery_id uuid references studio_galleries(id) on delete set null,
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -312,6 +313,7 @@ alter table studio_posts add column if not exists cover_aspect_ratio text not nu
 alter table studio_posts add column if not exists cover_crop_x smallint not null default 50;
 alter table studio_posts add column if not exists cover_crop_y smallint not null default 50;
 alter table studio_posts add column if not exists cover_crop_zoom numeric(4, 2) not null default 1;
+alter table studio_posts add column if not exists related_gallery_id uuid references studio_galleries(id) on delete set null;
 alter table studio_posts drop constraint if exists studio_posts_cover_aspect_ratio_check;
 alter table studio_posts add constraint studio_posts_cover_aspect_ratio_check check (cover_aspect_ratio in ('square', 'portrait', 'landscape', 'wide'));
 alter table studio_posts drop constraint if exists studio_posts_cover_crop_x_check;
@@ -759,5 +761,100 @@ begin
       '#090807', '#f1eadc', '#d4a45a', 'athletic'
     )
     on conflict (workspace_id) do nothing;
+
+    insert into workspace_members (workspace_id, clerk_user_id, role)
+    select ws_id, clerk_user_id, 'owner'
+    from app_admins
+    on conflict (workspace_id, clerk_user_id) do nothing;
+
+    insert into workspace_members (workspace_id, clerk_user_id, role)
+    select distinct ws_id, clerk_user_id, 'owner'
+    from workspace_members
+    where workspace_id <> ws_id and role in ('owner', 'admin')
+    on conflict (workspace_id, clerk_user_id) do nothing;
+
+    if not exists (select 1 from studio_galleries where workspace_id = ws_id) then
+      insert into studio_galleries (
+        workspace_id, title, slug, category, description, cover_image_url, status, sort_order
+      )
+      values
+        (ws_id, 'Selected stills', 'selected-stills', 'Gallery', 'Recent frames.', '/work/07-DcWUeeYIMSf.jpg', 'published', 1),
+        (ws_id, 'Night work', 'night-work', 'Gallery', 'Night stills.', '/work/26-DbY_1lAoMaf.jpg', 'published', 2),
+        (ws_id, 'Portraits', 'portraits', 'Gallery', 'People and close work.', '/work/02-DZsV0ftIIyO.jpg', 'published', 3);
+
+      insert into studio_gallery_images (workspace_id, gallery_id, image_url, alt_text, sort_order)
+      select ws_id, g.id, frame.image_url, frame.alt_text, frame.sort_order
+      from studio_galleries g
+      join (
+        values
+          ('selected-stills', '/work/19-DbxBpe1lvmD.jpg', 'Photograph from @180pf.shotit', 1),
+          ('selected-stills', '/work/09-DcVIRlvljXH.jpg', 'Photograph from @180pf.shotit', 2),
+          ('selected-stills', '/work/05-DcWUeeYIMSf.jpg', 'Photograph from @180pf.shotit', 3),
+          ('selected-stills', '/work/08-DcVIRlvljXH.jpg', 'Photograph from @180pf.shotit', 4),
+          ('selected-stills', '/work/22-DbrZCy7EZfU.jpg', 'Photograph from @180pf.shotit', 5),
+          ('selected-stills', '/work/12-DcDNKSNlhGL.jpg', 'Photograph from @180pf.shotit', 6),
+          ('selected-stills', '/work/16-Db5XxgzFl73.jpg', 'Photograph from @180pf.shotit', 7),
+          ('selected-stills', '/work/07-DcWUeeYIMSf.jpg', 'Photograph from @180pf.shotit', 8),
+          ('night-work', '/work/10-DcVIRlvljXH.jpg', 'Photograph from @180pf.shotit', 1),
+          ('night-work', '/work/13-DcDNKSNlhGL.jpg', 'Photograph from @180pf.shotit', 2),
+          ('night-work', '/work/17-Db5XxgzFl73.jpg', 'Photograph from @180pf.shotit', 3),
+          ('night-work', '/work/20-DbxBpe1lvmD.jpg', 'Photograph from @180pf.shotit', 4),
+          ('night-work', '/work/23-DbrZCy7EZfU.jpg', 'Photograph from @180pf.shotit', 5),
+          ('night-work', '/work/26-DbY_1lAoMaf.jpg', 'Photograph from @180pf.shotit', 6),
+          ('night-work', '/work/06-DcWUeeYIMSf.jpg', 'Photograph from @180pf.shotit', 7),
+          ('portraits', '/work/14-DcDNKSNlhGL.jpg', 'Photograph from @180pf.shotit', 1),
+          ('portraits', '/work/18-Db5XxgzFl73.jpg', 'Photograph from @180pf.shotit', 2),
+          ('portraits', '/work/24-DbrZCy7EZfU.jpg', 'Photograph from @180pf.shotit', 3),
+          ('portraits', '/work/27-DbY_1lAoMaf.jpg', 'Photograph from @180pf.shotit', 4),
+          ('portraits', '/work/02-DZsV0ftIIyO.jpg', 'Photograph from @180pf.shotit', 5),
+          ('portraits', '/work/25-DbY_1lAoMaf.jpg', 'Photograph from @180pf.shotit', 6)
+      ) as frame(slug, image_url, alt_text, sort_order)
+        on g.slug = frame.slug
+      where g.workspace_id = ws_id;
+    end if;
+
+    if not exists (select 1 from studio_posts where workspace_id = ws_id) then
+      insert into studio_posts (
+        workspace_id, title, slug, excerpt, body, cover_image_url, status, published_at, related_gallery_id, sort_order
+      )
+      select
+        ws_id,
+        'Selected stills',
+        'selected-stills',
+        'Recent frames.',
+        'Selected stills from recent work.',
+        '/work/07-DcWUeeYIMSf.jpg',
+        'published',
+        timestamptz '2026-08-20 14:00:00+00',
+        g.id,
+        1
+      from studio_galleries g
+      where g.workspace_id = ws_id and g.slug = 'selected-stills';
+
+      insert into studio_posts (
+        workspace_id, title, slug, excerpt, body, cover_image_url, status, published_at, related_gallery_id, sort_order
+      )
+      select
+        ws_id,
+        'Night work',
+        'night-work',
+        'Night stills.',
+        'Night work from the current set.',
+        '/work/26-DbY_1lAoMaf.jpg',
+        'published',
+        timestamptz '2026-08-12 14:00:00+00',
+        g.id,
+        2
+      from studio_galleries g
+      where g.workspace_id = ws_id and g.slug = 'night-work';
+    end if;
+
+    if not exists (select 1 from studio_services where workspace_id = ws_id) then
+      insert into studio_services (workspace_id, name, description, price_type, price_cents, is_active, sort_order)
+      values
+        (ws_id, 'Sessions', 'Portrait and personal stills.', 'custom', null, true, 1),
+        (ws_id, 'Events', 'Coverage for a night or a room.', 'custom', null, true, 2),
+        (ws_id, 'Commissions', 'Assigned work. Ask with the date and the place.', 'custom', null, true, 3);
+    end if;
   end if;
 end $$;

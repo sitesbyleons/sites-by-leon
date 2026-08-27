@@ -232,9 +232,15 @@ const route: APIRoute = async ({ request, locals, params, url }) => {
     const coverCropX = Math.round(boundedNumber(source, 'cover_crop_x', 0, 100, 50));
     const coverCropY = Math.round(boundedNumber(source, 'cover_crop_y', 0, 100, 50));
     const coverCropZoom = boundedNumber(source, 'cover_crop_zoom', 1, 3, 1);
+    const relatedGalleryId = nullable(text(source, 'related_gallery_id', 64));
+    if (relatedGalleryId) {
+      if (!uuidPattern.test(relatedGalleryId)) return Response.json({ message: 'Choose a valid related gallery.' }, { status: 422 });
+      const related = await client.from('studio_galleries').select('id').eq('workspace_id', workspaceId).eq('id', relatedGalleryId).maybeSingle();
+      if (!related.data) return Response.json({ message: 'Choose a gallery from this studio.' }, { status: 422 });
+    }
     if (title.length < 2 || !slugPattern.test(slug)) return Response.json({ message: 'Enter a post title and valid URL slug.' }, { status: 422 });
     const now = new Date().toISOString();
-    const values = { title, slug, excerpt: text(source, 'excerpt', 400), body: text(source, 'body', 20000), cover_image_url: nullable(text(source, 'cover_image_url', 2048)), cover_storage_path: coverPath, cover_aspect_ratio: coverAspectRatio, cover_crop_x: coverCropX, cover_crop_y: coverCropY, cover_crop_zoom: coverCropZoom, status };
+    const values = { title, slug, excerpt: text(source, 'excerpt', 400), body: text(source, 'body', 20000), cover_image_url: nullable(text(source, 'cover_image_url', 2048)), cover_storage_path: coverPath, cover_aspect_ratio: coverAspectRatio, cover_crop_x: coverCropX, cover_crop_y: coverCropY, cover_crop_zoom: coverCropZoom, related_gallery_id: relatedGalleryId, status };
     if (id) {
       if (!uuidPattern.test(id)) return Response.json({ message: 'Invalid post.' }, { status: 422 });
       const previous = await client.from('studio_posts')

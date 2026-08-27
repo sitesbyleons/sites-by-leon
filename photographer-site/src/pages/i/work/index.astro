@@ -1,0 +1,51 @@
+---
+import IshotyouuLayout from '../../../layouts/IshotyouuLayout.astro';
+import { ISHOTYOUU_FALLBACK_WORK } from '../../../lib/content/ishotyouu-fallback';
+import { siteRepository } from '../../../lib/content/repository';
+import { ISHOTYOUU_INSTAGRAM_HANDLE } from '../../../lib/ishotyouu';
+
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
+const cmsFrames = portfolio.galleries.flatMap((gallery) =>
+  gallery.images.map((image) => ({
+    href: `/work/${gallery.slug}`,
+    src: image.src,
+    alt: image.alt || gallery.title,
+    label: gallery.title,
+  })),
+);
+const { canonicalOrigin } = Astro.locals.siteContext;
+---
+
+<IshotyouuLayout
+  title="Work"
+  description={`Photography portfolio by ${portfolio.studioName}.`}
+  image={portfolio.galleries[0]?.cover.src}
+  canonicalPath="/work"
+  studioName={portfolio.studioName}
+  canonicalOrigin={canonicalOrigin}
+>
+  <section class="page-shell" aria-labelledby="work-title">
+    <header class="page-intro">
+      <p class="section-kicker">Gallery</p>
+      <h1 id="work-title">Work</h1>
+      <p class="hint">
+        {cmsFrames.length
+          ? `${portfolio.studioName} galleries. Open a frame to see the set.`
+          : `Stills from ${ISHOTYOUU_INSTAGRAM_HANDLE} on Instagram. Each frame opens the source post.`}
+      </p>
+    </header>
+    <div class="work-wall">
+      {(cmsFrames.length ? cmsFrames : ISHOTYOUU_FALLBACK_WORK.map((frame) => ({
+        href: frame.instagramUrl,
+        src: frame.src,
+        alt: frame.alt,
+        label: ISHOTYOUU_INSTAGRAM_HANDLE,
+      }))).map((frame) => (
+        <a class="work-item" href={frame.href} rel={frame.href.startsWith('http') ? 'noreferrer' : undefined}>
+          <img src={frame.src} alt={frame.alt} loading="lazy" decoding="async" />
+          <span aria-hidden="true">{frame.label}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+</IshotyouuLayout>

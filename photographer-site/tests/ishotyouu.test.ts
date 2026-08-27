@@ -2,8 +2,14 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { ISHOTYOUU_FALLBACK_WORK } from '../src/lib/content/ishotyouu-fallback';
-import { ishotyouuNavHref, isIshotyouuSite } from '../src/lib/ishotyouu';
+import { ISHOTYOUU_FALLBACK_WORK, ishotyouuLibraryStills } from '../src/lib/content/ishotyouu-fallback';
+import {
+  ishotyouuInternalPath,
+  ishotyouuNavHref,
+  ishotyouuPublicPathname,
+  isIshotyouuPublicPath,
+  isIshotyouuSite,
+} from '../src/lib/ishotyouu';
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -11,32 +17,52 @@ describe('ISHOTYOUU public CMS wiring', () => {
   it('recognizes the ISHOTYOUU tenant without treating other hosts as that site', () => {
     expect(isIshotyouuSite({ siteKey: 'ishotyouu-demo', hostname: 'ishotyouu-test.leonsites.org' })).toBe(true);
     expect(isIshotyouuSite({ siteKey: 'northline-demo', hostname: 'demo.leonsites.org' })).toBe(false);
-    expect(ishotyouuNavHref('/work/friday-night', '/work')).toBe(true);
+    expect(isIshotyouuPublicPath('/work/selected-stills')).toBe(true);
+    expect(isIshotyouuPublicPath('/admin')).toBe(false);
+    expect(ishotyouuInternalPath('/work')).toBe('/i/work');
+    expect(ishotyouuPublicPathname('/i/work/selected-stills')).toBe('/work/selected-stills');
+    expect(ishotyouuNavHref('/i/work/friday-night', '/work')).toBe(true);
     expect(ishotyouuNavHref('/about', '/work')).toBe(false);
   });
 
-  it('keeps OG public routes and the shared inquire API', () => {
-    expect(read('src/pages/about.astro')).toContain("canonicalPath=\"/about\"");
-    expect(read('src/pages/inquire.astro')).toContain("fetch('/api/inquiry'");
-    expect(read('src/pages/inquire.astro')).toContain('name="instagram"');
-    expect(read('src/pages/index.astro')).toContain('class="hero"');
-    expect(read('src/pages/work/index.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
-    expect(read('src/pages/journal/index.astro')).toContain('No posts yet.');
-    expect(read('src/layouts/SiteLayout.astro')).toContain('IshotyouuLayout');
-    const layout = read('src/layouts/SiteLayout.astro');
-    expect(layout.indexOf('NorthlineLayout')).toBeLessThan(layout.indexOf("from './IshotyouuLayout.astro'"));
+  it('keeps OG public routes on an isolated page tree and the shared inquire API', () => {
+    expect(read('src/pages/i/about.astro')).toContain('canonicalPath="/about"');
+    expect(read('src/pages/i/inquire.astro')).toContain("fetch('/api/inquiry'");
+    expect(read('src/pages/i/inquire.astro')).toContain('name="instagram"');
+    expect(read('src/pages/i/inquire.astro')).toContain('searchParams.get(\'package\')');
+    expect(read('src/pages/i/index.astro')).toContain('class="hero"');
+    expect(read('src/pages/i/work/index.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
+    expect(read('src/pages/i/journal/index.astro')).toContain('title="Journal"');
+    expect(read('src/pages/i/journal/index.astro')).toContain('No posts yet.');
+    expect(read('src/layouts/SiteLayout.astro')).not.toContain('IshotyouuLayout');
+    expect(read('src/pages/i/index.astro')).toContain('IshotyouuLayout');
+    expect(read('src/pages/index.astro')).not.toContain('IshotyouuLayout');
+    expect(read('src/pages/index.astro')).toContain('ContactSheet');
   });
 
   it('does not swap ISHOTYOUU onto the Northline template homepage', () => {
-    expect(read('src/pages/index.astro')).toContain('ishotyouu ? (');
     expect(read('src/pages/index.astro')).toContain('editorial-hero');
+    expect(read('src/pages/i/index.astro')).toContain('class="hero"');
     expect(ISHOTYOUU_FALLBACK_WORK.length).toBeGreaterThan(10);
+    expect(ishotyouuLibraryStills().length).toBeGreaterThan(5);
+  });
+
+  it('rewrites ISHOTYOUU public URLs onto the isolated page tree', () => {
+    const middleware = read('src/middleware.ts');
+    expect(middleware).toContain('ishotyouuRoutes');
+    expect(middleware).toContain('context.rewrite');
+    expect(middleware).toContain('ishotyouuInternalPath');
+    expect(middleware).toContain('tenantResolution, ishotyouuRoutes, publicControl, authentication');
   });
 
   it('reuses an existing ISHOTYOUU workspace slug instead of inserting a colliding UUID', () => {
     const schema = readFileSync(new URL('../../infra/ovh/postgres/schema.sql', import.meta.url), 'utf8');
     expect(schema).toContain("select id into ws_id from client_workspaces where slug = 'ishotyouu'");
     expect(schema).toContain('if ws_id is null then');
+    expect(schema).toContain("if not exists (select 1 from studio_galleries where workspace_id = ws_id)");
+    expect(schema).toContain("if not exists (select 1 from studio_posts where workspace_id = ws_id)");
+    expect(schema).toContain("if not exists (select 1 from studio_services where workspace_id = ws_id)");
+    expect(schema).toContain('related_gallery_id');
   });
 
   it('routes TEST HTML to photographer-test while keeping OG work images on the sidecar', () => {

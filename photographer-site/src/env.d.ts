@@ -29,6 +29,7 @@ declare global {
   namespace App {
     interface Locals {
       siteContext: SiteContext;
+      ishotyouuInternal?: boolean;
     }
   }
 }

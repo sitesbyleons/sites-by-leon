@@ -1,0 +1,52 @@
+---
+import IshotyouuLayout from '../../../layouts/IshotyouuLayout.astro';
+import { siteRepository } from '../../../lib/content/repository';
+
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
+const posts = portfolio.posts.map((post) => ({
+  post,
+  publishedAt: dateFormatter.format(new Date(post.publishedAt)),
+}));
+const { canonicalOrigin } = Astro.locals.siteContext;
+---
+
+<IshotyouuLayout
+  title="Journal"
+  description={`Photography notes from ${portfolio.studioName}.`}
+  image={posts[0]?.post.cover?.src}
+  canonicalPath="/journal"
+  studioName={portfolio.studioName}
+  canonicalOrigin={canonicalOrigin}
+>
+  <section class="page-shell" aria-labelledby="journal-title">
+    <header class="page-intro">
+      <p class="section-kicker">Journal</p>
+      <h1 id="journal-title">Journal</h1>
+      <p class="hint">{posts.length ? `${portfolio.studioName} notes.` : 'Publish a post in Studio admin and it shows here.'}</p>
+    </header>
+    {posts.length ? (
+      <div class="ishot-stack">
+        {posts.map(({ post, publishedAt }) => (
+          <article class="ishot-card">
+            {post.cover && (
+              <a class="ishot-card-cover" href={`/journal/${post.slug}`}>
+                <img src={post.cover.src} alt={post.cover.alt} loading="lazy" decoding="async" />
+              </a>
+            )}
+            <p class="ishot-meta"><time datetime={post.publishedAt}>{publishedAt}</time></p>
+            <h2><a href={`/journal/${post.slug}`}>{post.title}</a></h2>
+            <p>{post.excerpt}</p>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <p class="ishot-empty">No posts yet.</p>
+    )}
+  </section>
+</IshotyouuLayout>

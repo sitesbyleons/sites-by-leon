@@ -1,5 +1,5 @@
 ---
-import { ISHOTYOUU_INSTAGRAM_HANDLE, ISHOTYOUU_INSTAGRAM_URL, ishotyouuNavHref } from '../lib/ishotyouu';
+import { ISHOTYOUU_INSTAGRAM_HANDLE, ISHOTYOUU_INSTAGRAM_URL, ishotyouuNavHref, ishotyouuPublicPathname } from '../lib/ishotyouu';
 import '../styles/ishotyouu.css';
 
 interface Props {
@@ -13,9 +13,9 @@ interface Props {
 
 const { title, description, image, canonicalPath, studioName, canonicalOrigin } = Astro.props;
 const pageTitle = title === studioName ? title : `${title} · ${studioName}`;
-const canonical = new URL(canonicalPath ?? Astro.url.pathname, `${canonicalOrigin}/`);
+const canonical = new URL(canonicalPath ?? ishotyouuPublicPathname(Astro.url.pathname), `${canonicalOrigin}/`);
 const socialImage = image ? new URL(image, `${canonicalOrigin}/`) : undefined;
-const pathname = Astro.url.pathname;
+const pathname = ishotyouuPublicPathname(Astro.url.pathname);
 const links = [
   { href: '/', label: 'Home' },
   { href: '/work', label: 'Work' },
@@ -27,7 +27,7 @@ const links = [
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-site="ishotyouu" style="background:#090807;color:#f1eadc">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -47,7 +47,7 @@ const links = [
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500&family=Spline+Sans+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
     <title>{pageTitle}</title>
   </head>
-  <body>
+  <body style="background:#090807;color:#f1eadc;margin:0">
     <a class="skip" href="#content">Skip to content</a>
     <header class="chrome">
       <a class="brand" href="/">{studioName}</a>
