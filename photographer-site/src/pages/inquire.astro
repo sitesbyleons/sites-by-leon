@@ -1,0 +1,100 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { siteRepository } from '../lib/content/repository';
+import { ISHOTYOUU_INSTAGRAM_HANDLE, isIshotyouuSite } from '../lib/ishotyouu';
+
+if (!isIshotyouuSite(Astro.locals.siteContext)) {
+  return Astro.redirect('/contact', 302);
+}
+
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
+---
+
+<SiteLayout
+  title="Inquire"
+  description={`Inquire with ${portfolio.studioName} (${ISHOTYOUU_INSTAGRAM_HANDLE})`}
+  canonicalPath="/inquire"
+>
+  <section class="inquire-page" aria-labelledby="inquire-title">
+    <div class="inquire-column">
+      <p class="section-kicker">Contact</p>
+      <h1 id="inquire-title">Inquire</h1>
+      <p class="hint">
+        If you already sent a DM, use the same Instagram name here so it matches the thread.
+      </p>
+      <form class="inquiry" data-inquiry-form action="/api/inquiry" method="post" novalidate>
+        <label>
+          Instagram name
+          <input id="inquiry-instagram" name="instagram" autocomplete="username" maxlength="40" required />
+          <small class="field-error" data-field-error="instagram"></small>
+        </label>
+        <label>
+          Name
+          <input id="inquiry-name" name="name" autocomplete="name" minlength="2" maxlength="120" />
+          <small class="field-error" data-field-error="name"></small>
+        </label>
+        <label>
+          Email
+          <input id="inquiry-email" name="email" type="email" autocomplete="email" maxlength="254" required />
+          <small class="field-error" data-field-error="email"></small>
+        </label>
+        <label>
+          Message
+          <textarea id="inquiry-message" name="message" minlength="10" maxlength="3000" required></textarea>
+          <small class="field-error" data-field-error="message"></small>
+        </label>
+        <div class="honeypot" aria-hidden="true">
+          <label>
+            Company
+            <input name="company" tabindex="-1" autocomplete="off" />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Send inquiry</button>
+          <p class="status" data-inquiry-status aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <script>
+    const form = document.querySelector<HTMLFormElement>('[data-inquiry-form]');
+    const status = document.querySelector<HTMLElement>('[data-inquiry-status]');
+    const setFieldErrors = (errors: Record<string, string> = {}) => {
+      form?.querySelectorAll<HTMLElement>('[data-field-error]').forEach((element) => {
+        const key = element.dataset.fieldError ?? '';
+        element.textContent = errors[key] ?? '';
+      });
+    };
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!status) return;
+      status.textContent = '';
+      setFieldErrors();
+      const data = new FormData(form);
+      status.textContent = 'Sending...';
+      const response = await fetch('/api/inquiry', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          instagram: data.get('instagram'),
+          name: data.get('name'),
+          email: data.get('email'),
+          message: data.get('message'),
+          company: data.get('company'),
+        }),
+      }).catch(() => null);
+      const payload = await response?.json().catch(() => null);
+      if (!response?.ok) {
+        setFieldErrors(payload?.errors ?? {});
+        status.textContent = response?.status === 429
+          ? 'Too many attempts. Try again in a few minutes.'
+          : 'Inquiry not sent. Check the fields and try again.';
+        return;
+      }
+      form.reset();
+      status.textContent = 'Inquiry sent. ISHOTYOUU will follow up.';
+    });
+  </script>
+</SiteLayout>

@@ -1,21 +1,27 @@
-type Field = 'name' | 'email' | 'phone' | 'desiredDate' | 'message';
+type Field = 'name' | 'email' | 'phone' | 'desiredDate' | 'message' | 'instagram';
 type InquiryErrors = Partial<Record<Field | 'message', string>>;
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+const utcDate = (value: Date) => value.toISOString().slice(0, 10);
+
+const normalizeInstagram = (value: string) => value.replace(/^@+/, '').replace(/\s+/g, '').slice(0, 40);
 
 export const canAcceptInquiry = (workspaceStatus: string, siteStatus: string) =>
-  workspaceStatus === 'active' && siteStatus === 'active';
+  (workspaceStatus === 'active' || workspaceStatus === 'lead') && siteStatus === 'active';
 
 export function validateInquiry(input: unknown) {
   const source = input && typeof input === 'object' ? input as Record<string, unknown> : {};
+  const instagram = normalizeInstagram(text(source.instagram));
+  const rawName = text(source.name);
   const payload = {
-    name: text(source.name),
+    name: rawName || instagram,
     email: text(source.email).toLowerCase(),
     phone: text(source.phone),
-    desiredDate: text(source.desiredDate),
+    desiredDate: text(source.desiredDate) || utcDate(new Date()),
     message: text(source.message),
     company: text(source.company),
+    instagram,
   };
   const errors: InquiryErrors = {};
 
@@ -30,7 +36,9 @@ export function validateInquiry(input: unknown) {
   const date = new Date(`${payload.desiredDate}T12:00:00Z`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.desiredDate) || Number.isNaN(date.valueOf())) errors.desiredDate = 'Choose a date.';
   if (payload.message.length < 10 || payload.message.length > 3000) errors.message = 'Enter a message between 10 and 3,000 characters.';
-  return Object.keys(errors).length
-    ? { ok: false as const, errors }
-    : { ok: true as const, payload };
+  if (Object.keys(errors).length) return { ok: false as const, errors };
+
+  const instagramLine = payload.instagram ? `Instagram: @${payload.instagram}\n\n` : '';
+  const message = `${instagramLine}${payload.message}`.slice(0, 3000);
+  return { ok: true as const, payload: { ...payload, message } };
 }

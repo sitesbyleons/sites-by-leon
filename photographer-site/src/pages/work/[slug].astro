@@ -2,7 +2,9 @@
 import SiteLayout from '../../layouts/SiteLayout.astro';
 import { imagePresentationStyle } from '../../lib/content/presentation';
 import { siteRepository } from '../../lib/content/repository';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
 
+const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 const slug = Astro.params.slug ?? '';
 const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const gallery = portfolio.galleries.find((item) => item.slug === slug) ?? null;
@@ -21,6 +23,32 @@ const placements = gallery?.images.map((image, index) => ({ image, index }));
   image={gallery?.cover.src}
   canonicalPath={`/work/${slug}`}
 >
+  {ishotyouu && gallery ? (
+    <article class="page-shell" aria-labelledby="gallery-title">
+      <header class="page-intro">
+        <p class="section-kicker">{gallery.category || 'Gallery'}</p>
+        <h1 id="gallery-title">{gallery.title}</h1>
+        <p class="hint">{gallery.description || `${gallery.images.length} photographs.`}</p>
+      </header>
+      <div class="work-wall">
+        {gallery.images.map((image) => (
+          <div class="work-item">
+            <img src={image.src} alt={image.alt} loading="lazy" decoding="async" />
+          </div>
+        ))}
+      </div>
+      <nav class="gallery-return" aria-label="Gallery navigation">
+        <a class="text-link" href="/work">All work</a>
+      </nav>
+    </article>
+  ) : ishotyouu ? (
+    <section class="page-shell" aria-labelledby="not-found-title">
+      <p class="section-kicker">404</p>
+      <h1 id="not-found-title">This gallery was not found.</h1>
+      <p class="hint"><a class="text-link" href="/work">Return to all work</a></p>
+    </section>
+  ) : (
+  <>
   {
     gallery ? (
       <article class="gallery-page">
@@ -68,4 +96,6 @@ const placements = gallery?.images.map((image, index) => ({ image, index }));
       </section>
     )
   }
+  </>
+  )}
 </SiteLayout>

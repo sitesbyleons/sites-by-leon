@@ -1,10 +1,15 @@
 ---
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { siteRepository } from '../lib/content/repository';
+import { isIshotyouuSite } from '../lib/ishotyouu';
 
+const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' })
   .format(portfolio.packages.map((service) => service.name));
+const askHref = (id: string) => ishotyouu
+  ? `/inquire?package=${encodeURIComponent(id)}`
+  : `/contact?package=${encodeURIComponent(id)}`;
 ---
 
 <SiteLayout
@@ -12,23 +17,46 @@ const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conj
   description={`Photography services from ${portfolio.studioName}.`}
   canonicalPath="/packages"
 >
-  <header class="page-intro page-gutter">
-    <h1 id="packages-title" data-entrance>Photography services.</h1>
-    <p data-entrance>{serviceSummary ? `${serviceSummary}.` : `Contact ${portfolio.studioName} for current availability.`}</p>
-  </header>
-
-  <section class="service-list page-gutter" aria-label="Photography services">
-    {
-      portfolio.packages.map((service) => (
-        <article class="service-row" data-entrance>
-          <div class="service-row-copy">
-            <h2>{service.name}</h2>
-            <p>{service.description}</p>
-          </div>
-          <p class="service-price">{service.startingPrice}</p>
-          <a href={`/contact?package=${encodeURIComponent(service.id)}`}>Ask about coverage</a>
-        </article>
-      ))
-    }
-  </section>
+  {ishotyouu ? (
+    <section class="page-shell" aria-labelledby="packages-title">
+      <header class="page-intro">
+        <p class="section-kicker">Services</p>
+        <h1 id="packages-title">Services</h1>
+        <p class="hint">{serviceSummary ? `${serviceSummary}.` : `Inquire with ${portfolio.studioName} for current availability.`}</p>
+      </header>
+      {portfolio.packages.length ? (
+        <div class="ishot-stack">
+          {portfolio.packages.map((service) => (
+            <article class="ishot-card">
+              <p class="ishot-meta">{service.startingPrice}</p>
+              <h2>{service.name}</h2>
+              <p>{service.description}</p>
+              <a class="text-link" href={askHref(service.id)}>Ask about coverage</a>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p class="ishot-empty">No packages published yet. Add them in Studio admin → Services.</p>
+      )}
+    </section>
+  ) : (
+    <>
+      <header class="page-intro page-gutter">
+        <h1 id="packages-title" data-entrance>Photography services.</h1>
+        <p data-entrance>{serviceSummary ? `${serviceSummary}.` : `Contact ${portfolio.studioName} for current availability.`}</p>
+      </header>
+      <section class="service-list page-gutter" aria-label="Photography services">
+        {portfolio.packages.map((service) => (
+          <article class="service-row" data-entrance>
+            <div class="service-row-copy">
+              <h2>{service.name}</h2>
+              <p>{service.description}</p>
+            </div>
+            <p class="service-price">{service.startingPrice}</p>
+            <a href={askHref(service.id)}>Ask about coverage</a>
+          </article>
+        ))}
+      </section>
+    </>
+  )}
 </SiteLayout>

@@ -731,8 +731,8 @@ begin
     -- Insert or update workspace
     insert into client_workspaces (id, name, slug, status, clerk_org_id, stripe_customer_id)
     values ('00000000-0000-0000-0000-000000000099'::uuid, 'ISHOTYOUU', 'ishotyouu', 'lead', null, null)
-    on conflict (id) do update set name = excluded.name, slug = excluded.slug, status = excluded.status;
-    
+    on conflict (id) do update set name = excluded.name, slug = excluded.slug;
+
     ws_id := '00000000-0000-0000-0000-000000000099'::uuid;
     
     -- Insert or update project
@@ -749,5 +749,15 @@ begin
       admin_domain = excluded.admin_domain,
       deployment_target = excluded.deployment_target,
       status = excluded.status;
+
+    insert into studio_settings (
+      workspace_id, site_title, hero_title, hero_subtitle, contact_email, contact_phone,
+      paper_color, ink_color, accent_color, font_preset
+    )
+    values (
+      ws_id, 'ISHOTYOUU', 'ISHOTYOUU', 'ISHOTYOUU.', null, null,
+      '#090807', '#f1eadc', '#d4a45a', 'athletic'
+    )
+    on conflict (workspace_id) do nothing;
   end if;
 end $$;

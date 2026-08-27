@@ -21,7 +21,7 @@ const lastModifiedTag = (value?: string) => {
 };
 
 export const GET: APIRoute = async ({ locals }) => {
-  const { workspaceId, canonicalOrigin } = locals.siteContext;
+  const { workspaceId, canonicalOrigin, siteKey } = locals.siteContext;
   const portfolio = await siteRepository.getPortfolio(workspaceId);
   const entries: SitemapEntry[] = [
     { path: '/' },
@@ -36,7 +36,8 @@ export const GET: APIRoute = async ({ locals }) => {
       lastModified: post.publishedAt,
     })),
     { path: '/packages' },
-    { path: '/contact' },
+    { path: siteKey === 'ishotyouu-demo' ? '/inquire' : '/contact' },
+    ...(siteKey === 'ishotyouu-demo' ? [{ path: '/about' }, { path: '/journal' }] : []),
   ];
   const urls = entries.map((entry) => {
     const location = new URL(entry.path, `${canonicalOrigin}/`).toString();

@@ -1,13 +1,24 @@
 ---
 import GalleryGrid from '../../components/GalleryGrid.astro';
 import SiteLayout from '../../layouts/SiteLayout.astro';
+import { ISHOTYOUU_FALLBACK_WORK } from '../../lib/content/ishotyouu-fallback';
 import { siteRepository } from '../../lib/content/repository';
+import { ISHOTYOUU_INSTAGRAM_HANDLE, isIshotyouuSite } from '../../lib/ishotyouu';
 
+const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const galleries = portfolio.galleries;
 const workHeading = `${portfolio.home.eyebrow?.trim() || 'Photography portfolio'}.`;
 const gallerySummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' })
   .format(galleries.map((gallery) => gallery.title));
+const cmsFrames = galleries.flatMap((gallery) =>
+  gallery.images.map((image) => ({
+    href: `/work/${gallery.slug}`,
+    src: image.src,
+    alt: image.alt || gallery.title,
+    label: gallery.title,
+  })),
+);
 ---
 
 <SiteLayout
@@ -16,6 +27,33 @@ const gallerySummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conj
   image={galleries[0]?.cover.src}
   canonicalPath="/work"
 >
+  {ishotyouu ? (
+    <section class="page-shell" aria-labelledby="work-title">
+      <header class="page-intro">
+        <p class="section-kicker">Gallery</p>
+        <h1 id="work-title">Work</h1>
+        <p class="hint">
+          {cmsFrames.length
+            ? `${portfolio.studioName} galleries. Open a frame to see the set.`
+            : `Stills from ${ISHOTYOUU_INSTAGRAM_HANDLE} on Instagram. Each frame opens the source post.`}
+        </p>
+      </header>
+      <div class="work-wall">
+        {(cmsFrames.length ? cmsFrames : ISHOTYOUU_FALLBACK_WORK.map((frame) => ({
+          href: frame.instagramUrl,
+          src: frame.src,
+          alt: frame.alt,
+          label: ISHOTYOUU_INSTAGRAM_HANDLE,
+        }))).map((frame) => (
+          <a class="work-item" href={frame.href} rel={frame.href.startsWith('http') ? 'noreferrer' : undefined}>
+            <img src={frame.src} alt={frame.alt} loading="lazy" decoding="async" />
+            <span aria-hidden="true">{frame.label}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  ) : (
+  <>
   <header class="page-intro page-gutter">
     <h1 id="work-title" data-entrance>{workHeading}</h1>
     <p data-entrance>{gallerySummary ? `${gallerySummary}.` : `${portfolio.studioName} portfolio.`}</p>
@@ -24,4 +62,6 @@ const gallerySummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conj
   <section class="work-archive page-gutter" aria-label={`${portfolio.studioName} galleries`}>
     <GalleryGrid galleries={galleries} />
   </section>
+  </>
+  )}
 </SiteLayout>

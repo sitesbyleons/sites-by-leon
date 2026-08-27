@@ -32,10 +32,26 @@ describe('inquiry tenant isolation', () => {
     expect(route).toContain('createRateLimitedInquiry');
   });
 
-  it('accepts inquiries only after both the customer and exact site are active', () => {
+  it('accepts a lead workspace on an active site so first-customer inquiries can land', () => {
+    expect(canAcceptInquiry('lead', 'active')).toBe(true);
     expect(canAcceptInquiry('active', 'active')).toBe(true);
     expect(canAcceptInquiry('approved', 'maintenance')).toBe(false);
     expect(canAcceptInquiry('active', 'maintenance')).toBe(false);
     expect(canAcceptInquiry('paused', 'paused')).toBe(false);
+  });
+
+  it('accepts ISHOTYOUU inquire payloads without a desired date', () => {
+    const result = validateInquiry({
+      instagram: '@180pf.shotit',
+      email: 'client@example.com',
+      message: 'Need coverage for a Friday night game.',
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.payload.name).toBe('180pf.shotit');
+      expect(result.payload.message).toContain('Instagram: @180pf.shotit');
+      expect(result.payload.desiredDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
   });
 });

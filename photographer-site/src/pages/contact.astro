@@ -1,6 +1,11 @@
 ---
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { siteRepository } from '../lib/content/repository';
+import { isIshotyouuSite } from '../lib/ishotyouu';
+
+if (isIshotyouuSite(Astro.locals.siteContext)) {
+  return Astro.redirect('/inquire', 302);
+}
 
 const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const inquiryEndpoint = '/api/inquiry';
