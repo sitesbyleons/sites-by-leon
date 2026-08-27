@@ -113,10 +113,11 @@ test('splits admin records into sortable pages', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Demo sites' })).toBeVisible();
   await expect(page.getByText('Northline Portraits')).toBeVisible();
   await expect(page.getByText('Vow & Light')).toBeVisible();
-  await expect(page.getByText('ISHOTYOUU', { exact: true })).toBeVisible();
+  await expect(page.getByText('ISHOTYOUU', { exact: true })).toHaveCount(0);
   await page.goto('/admin/sites/ws_ishotyouu?preview=true');
   await expect(page.getByRole('heading', { name: 'Demo availability' })).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Website settings' })).toBeVisible();
+  await expect(page.getByText('Website settings', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ISHOTYOUU' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Keep live' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Send hosting invoice' })).toBeVisible();
   await page.goto('/admin/sites?preview=true');

@@ -42,10 +42,14 @@ describe('admin site kinds', () => {
     expect(isPortfolioDemo(northlineConnection, northline)).toBe(true);
   });
 
-  it('shows all demos on Demos page', () => {
+  it('keeps lead client sites off the Demos page', () => {
     const data = getPreviewAdminData();
-    const demos = data.connections.filter((connection) => connection.site_kind === 'demo');
+    const demos = data.connections.filter((connection) => {
+      const workspace = data.workspaces.find((item) => item.id === connection.workspace_id);
+      return isPortfolioDemo(connection, workspace);
+    });
 
-    expect(demos.map((d) => d.workspace_id)).toEqual(['ws_northline', 'ws_vow', 'ws_ishotyouu']);
+    expect(demos.map((d) => d.workspace_id)).toEqual(['ws_northline', 'ws_vow']);
+    expect(demos.map((d) => d.workspace_id)).not.toContain('ws_ishotyouu');
   });
 });
