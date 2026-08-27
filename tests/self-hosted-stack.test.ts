@@ -110,6 +110,7 @@ describe('fully self-hosted production stack', () => {
     const stagingDeploy = read('infra/ovh/scripts/deploy-test.sh');
     const verifier = read('photographer-site/scripts/verify-media-storage.mjs');
 
+    expect(productionDeploy).toContain('build_services=(gateway dashboard photographer ishotyouu-stills)');
     expect(productionDeploy).toContain('node ./photographer-site/scripts/verify-media-storage.mjs');
     expect(stagingDeploy).toContain('node ./photographer-site/scripts/verify-media-storage.mjs');
     expect(verifier).toContain('PutObjectCommand');
