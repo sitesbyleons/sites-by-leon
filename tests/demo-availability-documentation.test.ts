@@ -54,16 +54,13 @@ describe('admin demo availability buttons', () => {
     expect(true).toBe(true);
   });
 
-  it('documents that these buttons work for ISHOTYOUU demo', () => {
-    // ISHOTYOUU demo site details:
+  it('documents that these buttons work for ISHOTYOUU when opened from Sites', () => {
+    // ISHOTYOUU site details:
     // - workspace_id: 8a8366b9-b7a5-43a7-9091-eb16830aa8d4
-    // - deployment_target: ovh:ishotyouu-demo
-    // - site_kind: demo
-    // - primary_domain: ishotyouu.leonsites.org
-    //
-    // The buttons should work the same way regardless of deployment_target.
-    // The status is stored in the database and read by the runtime that
-    // serves the public site.
+    // - listed on /admin/sites because workspace.status is lead
+    // - site_kind may still be demo in the database
+    // - the site page must NOT use the Demo heading
+    // - Keep live / Maintenance / Pause still POST to /api/admin/sites
     expect(true).toBe(true);
   });
 

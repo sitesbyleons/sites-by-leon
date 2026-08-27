@@ -2,12 +2,15 @@
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
 import StudioCropControls from '../../components/StudioCropControls.astro';
 import StudioMediaField from '../../components/StudioMediaField.astro';
+import StudioReorder from '../../components/StudioReorder.astro';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
 const session = await loadStudioSession({ isPreview, userId: isPreview ? 'preview' : (auth?.userId ?? null), workspaceId: Astro.locals.siteContext.workspaceId, getToken: async () => auth ? (await auth.getToken()) ?? null : null });
 const access = decideStudioAdminAccess(session, '/admin/posts');
 if (access.kind !== 'admin') return Astro.redirect(access.location);
+if (isIshotyouuSite(Astro.locals.siteContext)) return Astro.redirect('/admin/media');
 const data = session.data!;
 ---
 
@@ -19,16 +22,14 @@ const data = session.data!;
         {post.cover_image_url ? <img class="studio-item-thumb" src={post.cover_image_url} alt="" /> : <span class="studio-item-thumb studio-item-thumb--empty">No image</span>}
         <div class="studio-item-copy"><strong>{post.title}</strong><small>{post.status}</small></div>
         <div class="studio-item-actions">
-          <div class="studio-reorder" role="group" aria-label={`Reorder ${post.title}`}>
-            <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="posts" data-id={post.id} aria-label="Move post up">↑</button>
-            <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="posts" data-id={post.id} aria-label="Move post down">↓</button>
-          </div>
+          <StudioReorder resource="posts" id={post.id} label={post.title} />
           <div class="studio-item-tools">
             <details class="studio-editor"><summary>Edit</summary><form class="studio-form studio-editor-form" data-studio-form data-resource="posts" data-upload-kind="post">
               <input type="hidden" name="id" value={post.id} />
               <label><span>Title</span><input name="title" value={post.title} required /></label><label><span>URL</span><input name="slug" value={post.slug} required /></label>
               <label class="wide"><span>Short description</span><textarea name="excerpt">{post.excerpt}</textarea></label><label class="wide"><span>Post</span><textarea name="body">{post.body}</textarea></label>
               <label><span>Status</span><select name="status"><option value="draft" selected={post.status === 'draft'}>Draft</option><option value="published" selected={post.status === 'published'}>Published</option></select></label>
+              <label class="wide"><span>Related gallery</span><select name="related_gallery_id"><option value="">None</option>{data.galleries.map((gallery) => <option value={gallery.id} selected={post.related_gallery_id === gallery.id}>{gallery.title}</option>)}</select></label>
               <StudioMediaField kind="post" resource="posts" label="Cover image" url={post.cover_image_url} path={post.cover_storage_path} currentId={post.id} />
               <StudioCropControls title="Post cover crop" imageUrl={post.cover_image_url} aspectRatio={post.cover_aspect_ratio} cropX={post.cover_crop_x} cropY={post.cover_crop_y} cropZoom={post.cover_crop_zoom} />
               <div class="wide"><button type="submit">Save post</button></div><p class="studio-form-status wide" data-form-status></p>
@@ -45,6 +46,7 @@ const data = session.data!;
     <label><span>Title</span><input name="title" required /></label><label><span>URL</span><input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /></label>
     <label class="wide"><span>Short description</span><textarea name="excerpt" maxlength="400"></textarea></label><label class="wide"><span>Post</span><textarea name="body" maxlength="20000"></textarea></label>
     <label><span>Status</span><select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
+    <label class="wide"><span>Related gallery</span><select name="related_gallery_id"><option value="">None</option>{data.galleries.map((gallery) => <option value={gallery.id}>{gallery.title}</option>)}</select></label>
     <StudioMediaField kind="post" resource="posts" label="Cover image" />
     <StudioCropControls title="Post cover crop" />
     <div class="wide"><button type="submit">Create post</button></div><p class="studio-form-status wide" data-form-status></p>

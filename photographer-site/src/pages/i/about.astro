@@ -1,0 +1,35 @@
+---
+import IshotyouuLayout from '../../layouts/IshotyouuLayout.astro';
+import { ISHOTYOUU_FALLBACK_ABOUT } from '../../lib/content/ishotyouu-fallback';
+import { siteRepository } from '../../lib/content/repository';
+import { ISHOTYOUU_INSTAGRAM_HANDLE, ISHOTYOUU_INSTAGRAM_URL } from '../../lib/ishotyouu';
+
+const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
+const photo = ISHOTYOUU_FALLBACK_ABOUT;
+const aboutCopy = portfolio.home.introduction.trim() || portfolio.studioName;
+const { canonicalOrigin } = Astro.locals.siteContext;
+---
+
+<IshotyouuLayout
+  title="About"
+  description={`${portfolio.studioName} (${ISHOTYOUU_INSTAGRAM_HANDLE})`}
+  image={photo.src}
+  canonicalPath="/about"
+  studioName={portfolio.studioName}
+  canonicalOrigin={canonicalOrigin}
+>
+  <section class="page-shell about" aria-labelledby="about-title">
+    <figure class="about-frame">
+      <img class="about-photo" src={photo.src} alt={photo.alt} loading="eager" />
+    </figure>
+    <div class="about-copy">
+      <p class="section-kicker">About</p>
+      <h1 id="about-title">{portfolio.studioName}</h1>
+      <p class="quiet">{aboutCopy}</p>
+      <p class="quiet">
+        Instagram: <a href={ISHOTYOUU_INSTAGRAM_URL} rel="noreferrer">{ISHOTYOUU_INSTAGRAM_HANDLE}</a>
+      </p>
+      <p class="quiet"><a href="/inquire">Inquire</a></p>
+    </div>
+  </section>
+</IshotyouuLayout>

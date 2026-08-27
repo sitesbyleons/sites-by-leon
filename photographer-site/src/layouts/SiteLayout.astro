@@ -1,8 +1,6 @@
 ---
-import SiteFooter from '../components/SiteFooter.astro';
-import SiteHeader from '../components/SiteHeader.astro';
 import { loadSiteTheme, siteRepository } from '../lib/content/repository';
-import '../styles/site.css';
+import NorthlineLayout from './NorthlineLayout.astro';
 
 interface Props {
   title: string;
@@ -22,40 +20,17 @@ const canonical = new URL(canonicalPath ?? Astro.url.pathname, `${canonicalOrigi
 const socialImage = image ? new URL(image, `${canonicalOrigin}/`) : undefined;
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="generator" content={Astro.generator} />
-    <meta name="description" content={description} />
-    <meta name="theme-color" content="#f7f7f3" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content={pageTitle} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical.toString()} />
-    {socialImage && <meta property="og:image" content={socialImage.toString()} />}
-    <link rel="canonical" href={canonical.toString()} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
-    <title>{pageTitle}</title>
-  </head>
-  <body
-    data-font-preset={theme.fontPreset}
-    style={`--paper:${theme.paperColor};--ink:${theme.inkColor};--accent:${theme.accentColor}`}
-  >
-    <a class="skip-link" href="#main-content">Skip to content</a>
-    <div class="scroll-progress" data-scroll-progress aria-hidden="true"></div>
-    <SiteHeader studioName={portfolio.studioName} />
-    <main id="main-content">
-      <slot />
-    </main>
-    <SiteFooter
-      studioName={portfolio.studioName}
-      email={portfolio.email}
-    />
-    <script>
-      import '../scripts/motion';
-    </script>
-  </body>
-</html>
+<NorthlineLayout
+  title={pageTitle}
+  description={description}
+  canonical={canonical}
+  socialImage={socialImage}
+  studioName={portfolio.studioName}
+  email={portfolio.email}
+  fontPreset={theme.fontPreset}
+  paperColor={theme.paperColor}
+  inkColor={theme.inkColor}
+  accentColor={theme.accentColor}
+>
+  <slot />
+</NorthlineLayout>

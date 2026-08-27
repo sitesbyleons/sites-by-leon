@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getPreviewAdminData } from '../src/lib/admin';
+import { getPreviewAdminData, isPortfolioDemo } from '../src/lib/admin';
 
 describe('admin site kinds', () => {
   it('keeps demos separate from client builds', () => {
@@ -31,10 +31,24 @@ describe('admin site kinds', () => {
     expect(sitesPageProjects.map((p) => p.workspace_id)).toContain('ws_fieldwork');
   });
 
-  it('shows all demos on Demos page', () => {
+  it('never labels ISHOTYOUU as a portfolio demo', () => {
     const data = getPreviewAdminData();
-    const demos = data.connections.filter((connection) => connection.site_kind === 'demo');
+    const ishotyouu = data.workspaces.find((workspace) => workspace.id === 'ws_ishotyouu');
+    const ishotyouuConnection = data.connections.find((connection) => connection.workspace_id === 'ws_ishotyouu');
 
-    expect(demos.map((d) => d.workspace_id)).toEqual(['ws_northline', 'ws_vow', 'ws_ishotyouu']);
+    expect(isPortfolioDemo(ishotyouuConnection, ishotyouu)).toBe(false);
+    expect(isPortfolioDemo({ site_kind: 'demo', site_key: 'ishotyouu-demo' }, { status: 'active', slug: 'ishotyouu' })).toBe(false);
+    expect(isPortfolioDemo({ site_kind: 'demo', site_key: 'northline-demo' }, { status: 'active', slug: 'northline' })).toBe(true);
+  });
+
+  it('keeps lead client sites off the Demos page', () => {
+    const data = getPreviewAdminData();
+    const demos = data.connections.filter((connection) => {
+      const workspace = data.workspaces.find((item) => item.id === connection.workspace_id);
+      return isPortfolioDemo(connection, workspace);
+    });
+
+    expect(demos.map((d) => d.workspace_id)).toEqual(['ws_northline', 'ws_vow']);
+    expect(demos.map((d) => d.workspace_id)).not.toContain('ws_ishotyouu');
   });
 });

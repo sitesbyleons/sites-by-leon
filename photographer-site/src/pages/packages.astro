@@ -5,6 +5,7 @@ import { siteRepository } from '../lib/content/repository';
 const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
 const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' })
   .format(portfolio.packages.map((service) => service.name));
+const askHref = (id: string) => `/contact?package=${encodeURIComponent(id)}`;
 ---
 
 <SiteLayout
@@ -16,19 +17,16 @@ const serviceSummary = new Intl.ListFormat('en-US', { style: 'long', type: 'conj
     <h1 id="packages-title" data-entrance>Photography services.</h1>
     <p data-entrance>{serviceSummary ? `${serviceSummary}.` : `Contact ${portfolio.studioName} for current availability.`}</p>
   </header>
-
   <section class="service-list page-gutter" aria-label="Photography services">
-    {
-      portfolio.packages.map((service) => (
-        <article class="service-row" data-entrance>
-          <div class="service-row-copy">
-            <h2>{service.name}</h2>
-            <p>{service.description}</p>
-          </div>
-          <p class="service-price">{service.startingPrice}</p>
-          <a href={`/contact?package=${encodeURIComponent(service.id)}`}>Ask about coverage</a>
-        </article>
-      ))
-    }
+    {portfolio.packages.map((service) => (
+      <article class="service-row" data-entrance>
+        <div class="service-row-copy">
+          <h2>{service.name}</h2>
+          <p>{service.description}</p>
+        </div>
+        <p class="service-price">{service.startingPrice}</p>
+        <a href={askHref(service.id)}>Ask about coverage</a>
+      </article>
+    ))}
   </section>
 </SiteLayout>

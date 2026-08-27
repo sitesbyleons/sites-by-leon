@@ -1,0 +1,37 @@
+# Test-only container serving OG ISHOTYOUU public pages
+# Mirrors the live public frontend for test routing demonstration
+FROM alpine:3.20
+
+# Install wget and a minimal web server
+RUN apk add --no-cache wget nginx
+
+# Create directory structure
+RUN mkdir -p /srv/public /srv/public/work /srv/public/_astro /run/nginx
+
+# Fetch live OG ISHOTYOUU pages
+RUN wget -q -O /srv/public/index.html https://ishotyouu.leonsites.org/ && \
+    wget -q -O /srv/public/work.html https://ishotyouu.leonsites.org/work && \
+    wget -q -O /srv/public/about.html https://ishotyouu.leonsites.org/about && \
+    wget -q -O /srv/public/inquire.html https://ishotyouu.leonsites.org/inquire && \
+    wget -q -O /srv/public/favicon.svg https://ishotyouu.leonsites.org/favicon.svg 2>/dev/null || true
+
+# Fetch critical assets (CSS)
+RUN wget -q -r -np -nd -A "*.css" -P /srv/public/_astro/ -l 1 https://ishotyouu.leonsites.org/_astro/ 2>/dev/null || true
+
+# Fetch work images (sample set)
+RUN wget -q -r -np -nd -A "*.jpg,*.png,*.webp" -P /srv/public/work/ -l 1 https://ishotyouu.leonsites.org/work/ 2>/dev/null || true
+
+# Configure nginx
+RUN echo 'server { \
+    listen 80; \
+    root /srv/public; \
+    location / { try_files $uri $uri.html $uri/ =404; } \
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|webp)$ { expires 7d; add_header Cache-Control "public, immutable"; } \
+}' > /etc/nginx/http.d/default.conf
+
+# Clean up default nginx config
+RUN rm -f /etc/nginx/http.d/default.conf.default
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

@@ -17,7 +17,16 @@ export type AdminProject = {
   status: string;
   progress: number;
   live_url: string | null;
+  plan_key: string | null;
+  monthly_cents: number | null;
+  domain_options: string;
+  chosen_domain: string | null;
   updated_at: string;
+};
+
+export type AdminContact = {
+  workspace_id: string;
+  contact_email: string | null;
 };
 
 export type AdminSubscription = {
@@ -27,6 +36,14 @@ export type AdminSubscription = {
   plan_key: string;
   status: string;
   current_period_end: string | null;
+};
+
+export type AdminCheckoutAttempt = {
+  workspace_id: string;
+  checkout_url: string | null;
+  expires_at: string | null;
+  monthly_cents: number | null;
+  plan_key: string;
 };
 
 export type AdminRequest = {
@@ -95,13 +112,23 @@ export type AdminData = {
   workspaces: AdminWorkspace[];
   projects: AdminProject[];
   subscriptions: AdminSubscription[];
+  checkoutAttempts: AdminCheckoutAttempt[];
   requests: AdminRequest[];
   members: AdminMember[];
   connections: AdminConnection[];
   domainAliases: AdminDomainAlias[];
   provisioningRuns: AdminProvisioningRun[];
+  contacts: AdminContact[];
   error: string | null;
 };
+
+export function isPortfolioDemo(
+  connection?: Pick<AdminConnection, 'site_kind' | 'site_key'> | null,
+  workspace?: Pick<AdminWorkspace, 'status' | 'slug'> | null,
+) {
+  if (workspace?.slug === 'ishotyouu' || connection?.site_key === 'ishotyouu-demo') return false;
+  return connection?.site_kind === 'demo' && workspace?.status !== 'lead';
+}
 
 export type ClerkUserClient = {
   users: {
@@ -129,13 +156,22 @@ export function getPreviewAdminData(): AdminData {
       { id: 'ws_fieldwork', name: 'Fieldwork Commercial', slug: 'fieldwork', status: 'lead', updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     projects: [
-      { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, updated_at: '2026-07-10T17:00:00.000Z' },
-      { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, updated_at: '2026-07-09T15:00:00.000Z' },
-      { id: 'prj_3', workspace_id: 'ws_ishotyouu', name: 'ISHOTYOUU Website', status: 'live', progress: 100, live_url: 'https://ishotyouu.leonsites.org', updated_at: '2026-08-15T10:00:00.000Z' },
-      { id: 'prj_4', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, updated_at: '2026-07-08T13:00:00.000Z' },
+      { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, plan_key: 'studio', monthly_cents: 3500, domain_options: '', chosen_domain: null, updated_at: '2026-07-10T17:00:00.000Z' },
+      { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, plan_key: 'studio', monthly_cents: 3500, domain_options: '', chosen_domain: null, updated_at: '2026-07-09T15:00:00.000Z' },
+      { id: 'prj_3', workspace_id: 'ws_ishotyouu', name: 'ISHOTYOUU Website', status: 'live', progress: 100, live_url: 'https://ishotyouu-test.leonsites.org', plan_key: 'essential', monthly_cents: 2000, domain_options: 'ishotyouu.com\nishotyouu.org', chosen_domain: null, updated_at: '2026-08-15T10:00:00.000Z' },
+      { id: 'prj_4', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, plan_key: 'studio', monthly_cents: 3500, domain_options: '', chosen_domain: null, updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     subscriptions: [
       { id: 'sub_local', workspace_id: 'ws_northline', stripe_subscription_id: 'sub_preview', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
+    ],
+    checkoutAttempts: [
+      {
+        workspace_id: 'ws_ishotyouu',
+        checkout_url: 'https://checkout.stripe.com/c/pay/preview_ishotyouu',
+        expires_at: '2099-01-01T00:00:00.000Z',
+        monthly_cents: 2000,
+        plan_key: 'essential',
+      },
     ],
     requests: [
       { id: 'req_1', workspace_id: 'ws_northline', subject: 'Replace the featured gallery', details: 'Use the new championship gallery as the first featured collection.', status: 'new', created_at: '2026-07-10T16:00:00.000Z' },
@@ -150,7 +186,7 @@ export function getPreviewAdminData(): AdminData {
     connections: [
       { workspace_id: 'ws_northline', site_key: 'northline-demo', site_kind: 'demo', primary_domain: 'demo.leonsites.org', admin_domain: 'demo.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: 'sitesbyleons/northline-portraits-demo', status: 'active', current_version: 'editorial-sports-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
       { workspace_id: 'ws_vow', site_key: 'vow-and-light-demo', site_kind: 'demo', primary_domain: 'vow-and-light.leonsites.org', admin_domain: 'vow-and-light.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'active', current_version: 'editorial-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
-      { workspace_id: 'ws_ishotyouu', site_key: 'ishotyouu-demo', site_kind: 'demo', primary_domain: 'ishotyouu.leonsites.org', admin_domain: 'ishotyouu.leonsites.org', deployment_target: 'ovh:ishotyouu-demo', github_repository: null, status: 'active', current_version: 'app-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
+      { workspace_id: 'ws_ishotyouu', site_key: 'ishotyouu-demo', site_kind: 'demo', primary_domain: 'ishotyouu-test.leonsites.org', admin_domain: 'ishotyouu-test.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'active', current_version: 'custom-v1', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'active', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
       { workspace_id: 'ws_fieldwork', site_key: 'fieldwork-site', site_kind: 'client', primary_domain: 'fieldwork.leonsites.org', admin_domain: 'fieldwork.leonsites.org', deployment_target: 'ovh:leon-platform-photographer', github_repository: null, status: 'maintenance', current_version: 'onboarding', last_seen_at: null, hosting_subscription_id: null, billing_mode: 'manual', desired_status: 'maintenance', billing_state: 'manual', billing_updated_at: null, archived_at: null, archive_reason: null },
     ],
     domainAliases: [
@@ -158,6 +194,12 @@ export function getPreviewAdminData(): AdminData {
     ],
     provisioningRuns: [
       { workspace_id: 'ws_northline', status: 'ready', last_error: null, updated_at: '2026-07-10T17:00:00.000Z' },
+    ],
+    contacts: [
+      { workspace_id: 'ws_northline', contact_email: 'maya@northline.test' },
+      { workspace_id: 'ws_vow', contact_email: 'elliot@vowandlight.test' },
+      { workspace_id: 'ws_ishotyouu', contact_email: 'hello@ishotyouu.test' },
+      { workspace_id: 'ws_fieldwork', contact_email: 'hello@fieldwork.test' },
     ],
     error: null,
   };
@@ -260,18 +302,22 @@ export async function checkAppAdmin(database: DataClient | null, clerkUserId: st
 }
 
 export async function loadAdminData(database: DataClient | null): Promise<AdminData> {
-  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [], domainAliases: [], provisioningRuns: [] };
+  const empty = { workspaces: [], projects: [], subscriptions: [], checkoutAttempts: [], requests: [], members: [], connections: [], domainAliases: [], provisioningRuns: [], contacts: [] };
   if (!database) return { ...empty, error: 'The secure database connection is not configured.' };
 
-  const [workspaces, projects, subscriptions, requests, members, connections, domainAliases, provisioningRuns] = await Promise.all([
+  const [workspaces, projects, subscriptions, checkoutAttempts, requests, members, connections, domainAliases, provisioningRuns, contacts] = await Promise.all([
     database.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
     database
       .from('website_projects')
-      .select('id,workspace_id,name,status,progress,live_url,updated_at')
+      .select('id,workspace_id,name,status,progress,live_url,plan_key,monthly_cents,domain_options,chosen_domain,updated_at')
       .order('updated_at', { ascending: false }),
     database
       .from('subscriptions')
       .select('id,workspace_id,stripe_subscription_id,plan_key,status,current_period_end')
+      .order('updated_at', { ascending: false }),
+    database
+      .from('checkout_attempts')
+      .select('workspace_id,checkout_url,expires_at,monthly_cents,plan_key')
       .order('updated_at', { ascending: false }),
     database
       .from('content_requests')
@@ -283,19 +329,22 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
     database.from('site_connections').select('workspace_id,site_key,site_kind,primary_domain,admin_domain,deployment_target,github_repository,status,current_version,last_seen_at,hosting_subscription_id,billing_mode,desired_status,billing_state,billing_updated_at,archived_at,archive_reason'),
     database.from('site_domain_aliases').select('id,workspace_id,hostname,status,is_canonical,cloudflare_hostname_status,cloudflare_ssl_status,dns_target,last_error,last_checked_at').order('created_at', { ascending: false }),
     database.from('site_provisioning_runs').select('workspace_id,status,last_error,updated_at').order('updated_at', { ascending: false }),
+    database.from('studio_settings').select('workspace_id,contact_email'),
   ]);
 
-  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error || domainAliases.error || provisioningRuns.error;
+  const hasError = workspaces.error || projects.error || subscriptions.error || checkoutAttempts.error || requests.error || members.error || connections.error || domainAliases.error || provisioningRuns.error || contacts.error;
 
   return {
     workspaces: (workspaces.data ?? []) as AdminWorkspace[],
     projects: (projects.data ?? []) as AdminProject[],
     subscriptions: (subscriptions.data ?? []) as AdminSubscription[],
+    checkoutAttempts: (checkoutAttempts.data ?? []) as AdminCheckoutAttempt[],
     requests: (requests.data ?? []) as AdminRequest[],
     members: (members.data ?? []) as AdminMember[],
     connections: (connections.data ?? []) as AdminConnection[],
     domainAliases: (domainAliases.data ?? []) as AdminDomainAlias[],
     provisioningRuns: (provisioningRuns.data ?? []) as AdminProvisioningRun[],
+    contacts: (contacts.data ?? []) as AdminContact[],
     error: hasError ? 'Some studio data is temporarily unavailable.' : null,
   };
 }

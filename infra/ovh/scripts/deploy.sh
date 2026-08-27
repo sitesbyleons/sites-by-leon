@@ -64,7 +64,7 @@ fi
 docker compose --env-file "${COMPOSE_ENV_FILE}" up -d database
 docker compose --env-file "${COMPOSE_ENV_FILE}" exec -T database sh -c \
   'until pg_isready --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"; do sleep 1; done'
-build_services=(gateway dashboard photographer)
+build_services=(gateway dashboard photographer ishotyouu-stills)
 if [[ ${domain_profile_enabled} == true ]]; then
   build_services+=(domain-worker)
 fi
@@ -72,6 +72,15 @@ docker compose --env-file "${COMPOSE_ENV_FILE}" build "${build_services[@]}"
 MAINTENANCE_LOCK_HELD=1 SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/migrate-database.sh"
 SOURCE_ROOT="${SOURCE_ROOT}" /usr/bin/bash "${SOURCE_ROOT}/infra/ovh/scripts/configure-runtime-role.sh"
 docker compose --env-file "${COMPOSE_ENV_FILE}" up -d --no-build --remove-orphans
+stills_host=${PLATFORM_ROOT}/ishotyouu-stills/work
+sidecar_id=$(docker compose --env-file "${COMPOSE_ENV_FILE}" ps -q ishotyouu-stills || true)
+if [[ -n ${sidecar_id} && -d ${stills_host} ]]; then
+  docker exec "${sidecar_id}" mkdir -p /srv/public/work
+  docker cp "${stills_host}/." "${sidecar_id}:/srv/public/work/"
+  if [[ -f ${PLATFORM_ROOT}/ishotyouu-stills/favicon.svg ]]; then
+    docker cp "${PLATFORM_ROOT}/ishotyouu-stills/favicon.svg" "${sidecar_id}:/srv/public/favicon.svg"
+  fi
+fi
 docker compose --env-file "${COMPOSE_ENV_FILE}" exec -T photographer \
   node ./photographer-site/scripts/verify-media-storage.mjs
 docker compose --env-file "${COMPOSE_ENV_FILE}" ps

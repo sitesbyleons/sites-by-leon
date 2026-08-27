@@ -76,8 +76,9 @@ test('shows Leon the studio-wide admin overview', async ({ page }) => {
 
 test('splits admin records into sortable pages', async ({ page }) => {
   await page.goto('/admin/users?preview=true&sort=name');
+  await expect(page.getByRole('heading', { name: 'Add a Leon Sites client' })).toBeVisible();
   await expect(page.getByRole('table', { name: 'User accounts' })).toBeVisible();
-  await expect(page.getByText('Maya Carter')).toBeVisible();
+  await expect(page.getByText('Maya Carter', { exact: true })).toBeVisible();
 
   await page.goto('/admin/tickets?preview=true');
   const tools = page.getByRole('form', { name: 'Sort and filter tickets' });
@@ -102,6 +103,12 @@ test('splits admin records into sortable pages', async ({ page }) => {
 
   await page.goto('/admin/subscriptions?preview=true');
   await expect(page.getByRole('table', { name: 'Client subscriptions' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'ISHOTYOUU' })).toBeVisible();
+  await expect(page.getByText('Custom · $20/mo')).toBeVisible();
+  await expect(page.locator('.ticket-status--invoice_open')).toHaveText(/invoice open/i);
+  await expect(page.getByRole('link', { name: 'Fieldwork Commercial' })).toBeVisible();
+  await expect(page.getByText('Studio · $35/mo')).toHaveCount(2);
+  await expect(page.getByRole('link', { name: 'Northline Portraits' })).toBeVisible();
 
   await page.goto('/admin/sites?preview=true&sort=progress_high');
   await expect(page.getByRole('heading', { name: 'Website builds' })).toBeVisible();
@@ -112,7 +119,18 @@ test('splits admin records into sortable pages', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Demo sites' })).toBeVisible();
   await expect(page.getByText('Northline Portraits')).toBeVisible();
   await expect(page.getByText('Vow & Light')).toBeVisible();
-  await expect(page.getByText('ISHOTYOUU', { exact: true })).toBeVisible();
+  await expect(page.getByText('ISHOTYOUU', { exact: true })).toHaveCount(0);
+  await page.goto('/admin/sites/ws_ishotyouu?preview=true');
+  await expect(page.getByRole('heading', { name: 'Demo availability' })).toHaveCount(0);
+  await expect(page.getByText('Website settings', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ISHOTYOUU' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Keep live' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Send hosting invoice' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hosting rate and domains' })).toBeVisible();
+  await expect(page.getByLabel('Monthly amount (USD)').first()).toHaveValue('20');
+  await expect(page.locator('select[name="plan_key"]')).toHaveValue('');
+  await page.getByRole('button', { name: /Send \$20(?:\.00)?\/month invoice/ }).click();
+  await expect(page.getByText('Preview invoice link ready.')).toBeVisible();
   await page.goto('/admin/sites?preview=true');
   await page.getByRole('link', { name: 'Add client site' }).click();
   await expect(page.getByRole('heading', { name: 'Add client site' })).toBeVisible();
@@ -127,7 +145,7 @@ test('splits admin records into sortable pages', async ({ page }) => {
 
 test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const path of ['/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/demos?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/ws_fieldwork?preview=true', '/admin/sites/new?preview=true']) {
+  for (const path of ['/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/demos?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/ws_ishotyouu?preview=true', '/admin/sites/ws_fieldwork?preview=true', '/admin/sites/new?preview=true']) {
     await page.goto(path);
     const dimensions = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
     expect(dimensions.content, path).toBeLessThanOrEqual(dimensions.viewport);
@@ -147,7 +165,7 @@ test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
 });
 
 test('has no serious or critical accessibility violations on the client surfaces', async ({ page }) => {
-  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/demos?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/ws_fieldwork?preview=true', '/admin/sites/new?preview=true']) {
+  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/demos?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/ws_ishotyouu?preview=true', '/admin/sites/ws_fieldwork?preview=true', '/admin/sites/new?preview=true']) {
     await page.goto(path);
     const results = await new AxeBuilder({ page }).analyze();
     const important = results.violations.filter((violation) =>

@@ -1,12 +1,13 @@
 ---
 import ClerkUI from '../components/ClerkUI.astro';
 import StudioIcon from '../components/StudioIcon.astro';
+import { isIshotyouuSite } from '../lib/ishotyouu';
 import type { StudioUpload } from '../lib/studio';
 import '../styles/studio-admin.css';
 
 interface Props {
   title: string;
-  active: 'overview' | 'content' | 'media' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries' | 'support';
+  active: 'overview' | 'content' | 'media' | 'work' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries' | 'hosting' | 'support';
   studioName: string;
   isPreview: boolean;
   error?: string | null;
@@ -16,27 +17,51 @@ interface Props {
 
 const { title, active, studioName, isPreview, error = null, workspaceId = '', media = [] } = Astro.props;
 const suffix = isPreview ? '?preview=true' : '';
-const groups = [
-  {
-    label: 'Studio',
-    links: [
-      { key: 'overview', label: 'Overview', href: `/admin${suffix}` },
-      { key: 'content', label: 'Homepage', href: `/admin/content${suffix}` },
-      { key: 'media', label: 'Files', href: `/admin/media${suffix}` },
-      { key: 'galleries', label: 'Galleries', href: `/admin/galleries${suffix}` },
-      { key: 'posts', label: 'Posts', href: `/admin/posts${suffix}` },
-    ],
-  },
-  {
-    label: 'Business',
-    links: [
-      { key: 'inquiries', label: 'Inquiries', href: `/admin/inquiries${suffix}` },
-      { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
-      { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
-      { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
-    ],
-  },
-] as const;
+const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
+const groups = ishotyouu
+  ? [
+    {
+      label: 'Studio',
+      links: [
+        { key: 'overview', label: 'Overview', href: `/admin${suffix}` },
+        { key: 'content', label: 'Edit homepage', href: `/admin/content${suffix}` },
+        { key: 'media', label: 'Files', href: `/admin/media${suffix}` },
+        { key: 'work', label: 'Edit Work', href: `/admin/work${suffix}` },
+      ],
+    },
+    {
+      label: 'Business',
+      links: [
+        { key: 'inquiries', label: 'Inquiries', href: `/admin/inquiries${suffix}` },
+        { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
+        { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
+        { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
+        { key: 'hosting', label: 'Your website', href: `/admin/hosting${suffix}` },
+      ],
+    },
+  ]
+  : [
+    {
+      label: 'Studio',
+      links: [
+        { key: 'overview', label: 'Overview', href: `/admin${suffix}` },
+        { key: 'content', label: 'Homepage', href: `/admin/content${suffix}` },
+        { key: 'media', label: 'Files', href: `/admin/media${suffix}` },
+        { key: 'galleries', label: 'Galleries', href: `/admin/galleries${suffix}` },
+        { key: 'posts', label: 'Posts', href: `/admin/posts${suffix}` },
+      ],
+    },
+    {
+      label: 'Business',
+      links: [
+        { key: 'inquiries', label: 'Inquiries', href: `/admin/inquiries${suffix}` },
+        { key: 'clients', label: 'Clients', href: `/admin/clients${suffix}` },
+        { key: 'services', label: 'Services', href: `/admin/services${suffix}` },
+        { key: 'invoices', label: 'Invoices', href: `/admin/invoices${suffix}` },
+        { key: 'hosting', label: 'Your website', href: `/admin/hosting${suffix}` },
+      ],
+    },
+  ];
 const formatBytes = (bytes: number) => bytes >= 1_048_576
   ? `${(bytes / 1_048_576).toFixed(1)} MB`
   : `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -48,7 +73,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="color-scheme" content="light" />
     <title>{title} | {studioName}</title>
   </head>
   <body data-preview={isPreview ? 'true' : 'false'} data-workspace-id={workspaceId}>
@@ -108,9 +133,15 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
           <label class="studio-media-search"><StudioIcon name="search" /><input type="search" placeholder="Search files" data-media-search /></label>
           <div class="studio-media-filters" aria-label="Filter files">
             <button type="button" data-media-filter="all" aria-pressed="true">All</button>
-            <button type="button" data-media-filter="galleries" aria-pressed="false">Galleries</button>
-            <button type="button" data-media-filter="covers" aria-pressed="false">Covers</button>
-            <button type="button" data-media-filter="posts" aria-pressed="false">Posts</button>
+            {ishotyouu ? (
+              <button type="button" data-media-filter="library" aria-pressed="false">Instagram</button>
+            ) : (
+              <>
+                <button type="button" data-media-filter="galleries" aria-pressed="false">Galleries</button>
+                <button type="button" data-media-filter="covers" aria-pressed="false">Covers</button>
+                <button type="button" data-media-filter="posts" aria-pressed="false">Posts</button>
+              </>
+            )}
           </div>
           <label class="studio-upload-button"><StudioIcon name="upload" /><span>Add images</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple data-media-upload /></label>
         </div>
@@ -126,9 +157,11 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
               data-media-kind={file.media_kind}
               data-media-name={file.original_filename.toLowerCase()}
               data-media-used-in={file.used_in.join(',')}
+              data-media-instagram={file.instagram_url ?? ''}
+              data-media-alt={file.alt_text ?? ''}
             >
               <img src={file.public_url} alt="" loading="lazy" />
-              <span><strong>{file.original_filename}</strong><small>{formatBytes(file.size_bytes)}{file.used_in.length ? ` · Used in ${file.used_in.join(', ')}` : ''}</small></span>
+              <span><strong>{file.original_filename}</strong><small>{file.media_kind === 'library' ? 'Instagram still' : formatBytes(file.size_bytes)}{file.used_in.length ? ` · Used in ${file.used_in.join(', ')}` : ''}</small></span>
             </button>
           ))}
           {!media.length && <p class="studio-media-empty" data-media-empty>Add your first image to start the file library.</p>}
@@ -261,20 +294,29 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
         const field = activeMediaPicker.closest<HTMLElement>('[data-media-field]');
         const form = activeMediaPicker.closest<HTMLFormElement>('form');
         if (!field || !form) return;
-        const pathName = form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path';
-        const urlName = form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url';
+        const usesImageFields = form.dataset.uploadKind === 'image' || form.dataset.uploadKind === 'still';
+        const pathName = usesImageFields ? 'storage_path' : 'cover_storage_path';
+        const urlName = usesImageFields ? 'image_url' : 'cover_image_url';
         const pathField = form.elements.namedItem(pathName) as HTMLInputElement | null;
         const urlField = form.elements.namedItem(urlName) as HTMLInputElement | null;
         const selectedPath = card.dataset.mediaPath ?? '';
         const usedIn = (card.dataset.mediaUsedIn ?? '').split(',').filter(Boolean);
         const resource = activeMediaPicker.dataset.mediaResource ?? '';
         const status = field.querySelector<HTMLElement>('[data-media-field-status]');
-        if (usedIn.includes(resource) && pathField?.value !== selectedPath) {
+        if (selectedPath && usedIn.includes(resource) && pathField?.value !== selectedPath) {
           if (dialogStatus) dialogStatus.textContent = `That file is already used in another ${resource === 'images' ? 'gallery image' : resource.slice(0, -1)}. Choose another file.`;
           return;
         }
         if (pathField) pathField.value = selectedPath;
         if (urlField) urlField.value = card.dataset.mediaUrl ?? '';
+        const instagramField = form.elements.namedItem('instagram_url') as HTMLInputElement | null;
+        if (instagramField && card.dataset.mediaInstagram && !instagramField.value.trim()) {
+          instagramField.value = card.dataset.mediaInstagram;
+        }
+        const altField = form.elements.namedItem('alt_text') as HTMLInputElement | HTMLTextAreaElement | null;
+        if (altField && card.dataset.mediaAlt && !altField.value.trim()) {
+          altField.value = card.dataset.mediaAlt;
+        }
         const preview = field.querySelector<HTMLElement>('[data-media-preview]');
         if (preview) {
           preview.replaceChildren();
@@ -354,14 +396,15 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
         const input = form.querySelector<HTMLInputElement>('[data-image-upload]');
         const file = input?.files?.[0];
         if (!file) return null;
-        const urlField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
-        const pathField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
+        const usesImageFields = form.dataset.uploadKind === 'image' || form.dataset.uploadKind === 'still';
+        const urlField = form.elements.namedItem(usesImageFields ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
+        const pathField = form.elements.namedItem(usesImageFields ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
         const signature = `${file.name}:${file.size}:${file.lastModified}`;
         if (form.dataset.pendingUploadSignature === signature && form.dataset.pendingUploadPath && pathField?.value === form.dataset.pendingUploadPath) return form.dataset.pendingUploadPath;
         const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
         if (!allowed.has(file.type)) throw new Error('Choose a JPG, PNG, WebP, or AVIF image.');
         if (file.size > 15 * 1024 * 1024) throw new Error('Choose an image smaller than 15 MB.');
-        const kind = form.dataset.uploadKind === 'image' ? 'galleries' : form.dataset.uploadKind === 'post' ? 'posts' : 'covers';
+        const kind = form.dataset.uploadKind === 'image' ? 'galleries' : form.dataset.uploadKind === 'post' ? 'posts' : form.dataset.uploadKind === 'still' ? 'stills' : 'covers';
         const upload = new FormData();
         upload.append('file', file);
         upload.append('kind', kind);
@@ -449,8 +492,9 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
             const definiteRejection = Boolean(response && response.status >= 400 && response.status < 500);
             if (uploadedPath && definiteRejection) {
               await fetch('/api/admin/upload', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: uploadedPath }) });
-              const urlField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
-              const pathField = form.elements.namedItem(form.dataset.uploadKind === 'image' ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
+              const usesImageFields = form.dataset.uploadKind === 'image' || form.dataset.uploadKind === 'still';
+              const urlField = form.elements.namedItem(usesImageFields ? 'image_url' : 'cover_image_url') as HTMLInputElement | null;
+              const pathField = form.elements.namedItem(usesImageFields ? 'storage_path' : 'cover_storage_path') as HTMLInputElement | null;
               if (urlField) urlField.value = form.dataset.previousUploadUrl ?? '';
               if (pathField) pathField.value = form.dataset.previousUploadPath ?? '';
               delete form.dataset.pendingUploadSignature;

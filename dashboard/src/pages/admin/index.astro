@@ -3,7 +3,7 @@ import { clerkClient } from '@clerk/astro/server';
 
 import AdminFrame from '../../components/AdminFrame.astro';
 import { decideAdminAccess } from '../../lib/access';
-import { loadAdminSession } from '../../lib/admin';
+import { isPortfolioDemo, loadAdminSession } from '../../lib/admin';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -26,7 +26,11 @@ const connections = new Map(data.connections.map((connection) => [connection.wor
 const openTickets = data.requests.filter((request) => !['completed', 'declined'].includes(request.status));
 const activeSubscriptions = data.subscriptions.filter((subscription) => ['active', 'trialing'].includes(subscription.status));
 const recentTickets = openTickets.slice(0, 4);
-const clientProjects = data.projects.filter((project) => connections.get(project.workspace_id)?.site_kind !== 'demo');
+const clientProjects = data.projects.filter((project) => {
+  const connection = connections.get(project.workspace_id);
+  const workspace = data.workspaces.find((item) => item.id === project.workspace_id);
+  return !isPortfolioDemo(connection, workspace);
+});
 const recentSites = clientProjects.slice(0, 3);
 const preview = isPreview ? '?preview=true' : '';
 const date = (value: string | number | null) => value

@@ -1,0 +1,68 @@
+---
+import { ISHOTYOUU_INSTAGRAM_HANDLE, ISHOTYOUU_INSTAGRAM_URL, ishotyouuNavHref, ishotyouuPublicPathname } from '../lib/ishotyouu';
+import '../styles/ishotyouu.css';
+
+interface Props {
+  title: string;
+  description: string;
+  image?: string;
+  canonicalPath?: string;
+  studioName: string;
+  canonicalOrigin: string;
+}
+
+const { title, description, image, canonicalPath, studioName, canonicalOrigin } = Astro.props;
+const pageTitle = title === studioName ? title : `${title} · ${studioName}`;
+const canonical = new URL(canonicalPath ?? ishotyouuPublicPathname(Astro.url.pathname), `${canonicalOrigin}/`);
+const socialImage = image ? new URL(image, `${canonicalOrigin}/`) : undefined;
+const pathname = ishotyouuPublicPathname(Astro.url.pathname);
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/work', label: 'Work' },
+  { href: '/about', label: 'About' },
+  { href: '/inquire', label: 'Inquire' },
+] as const;
+---
+
+<!doctype html>
+<html lang="en" data-site="ishotyouu" style="background:#090807;color:#f1eadc">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#090807" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical.toString()} />
+    {socialImage && <meta property="og:image" content={socialImage.toString()} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href={canonical.toString()} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500&family=Spline+Sans+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+    <title>{pageTitle}</title>
+  </head>
+  <body style="background:#090807;color:#f1eadc;margin:0">
+    <a class="skip" href="#content">Skip to content</a>
+    <header class="chrome">
+      <a class="brand" href="/">{studioName}</a>
+      <nav class="nav" aria-label="Site">
+        {links.map((link) => (
+          <a href={link.href} aria-current={ishotyouuNavHref(pathname, link.href) ? 'page' : undefined}>{link.label}</a>
+        ))}
+        <a href={ISHOTYOUU_INSTAGRAM_URL} rel="noreferrer">Instagram</a>
+      </nav>
+    </header>
+    <main id="content">
+      <slot />
+    </main>
+    <footer class="site-foot">
+      <span>{studioName}</span>
+      <a href={ISHOTYOUU_INSTAGRAM_URL} rel="noreferrer">{ISHOTYOUU_INSTAGRAM_HANDLE}</a>
+      <a href="https://leonsites.org">A site by Leon</a>
+    </footer>
+  </body>
+</html>

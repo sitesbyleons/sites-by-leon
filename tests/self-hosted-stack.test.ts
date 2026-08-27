@@ -34,14 +34,19 @@ describe('fully self-hosted production stack', () => {
     expect(caddy).not.toContain('root * /srv/uploads');
     expect(caddy).not.toMatch(/DEMO_DOMAIN|@test_site|reverse_proxy northline:/);
     expect(compose).toMatch(/\n  photographer:\n/);
+    expect(compose).toMatch(/\n  ishotyouu-stills:\n/);
+    expect(compose).not.toMatch(/\n  ishotyouu-demo:\n/);
     expect(compose).not.toMatch(/\n  northline:\n/);
+    expect(caddy).toContain('host ishotyouu.leonsites.org');
+    expect(caddy).toContain('reverse_proxy ishotyouu-stills:80');
+    expect(caddy).not.toContain('reverse_proxy ishotyouu-demo:4321');
 
     expect(resolver).toContain(".eq('primary_domain', input.hostname)");
     expect(resolver).toContain(".eq('admin_domain', input.hostname)");
     expect(resolver).toContain("return { context: null, error: 'unknown-host' }");
     expect(resolver).toContain("return { context: null, error: 'unavailable' }");
     expect(resolver).toContain("nodeEnv === 'development' || nodeEnv === 'test'");
-    expect(middleware).toContain('sequence(tenantResolution, publicControl, authentication)');
+    expect(middleware).toContain('sequence(tenantResolution, ishotyouuRoutes, publicControl, authentication)');
     expect(middleware).toContain("unavailableResponse('Site not found.', 404)");
     expect(middleware).toContain("unavailableResponse('Site temporarily unavailable. Please try again soon.', 503)");
   });
@@ -105,6 +110,7 @@ describe('fully self-hosted production stack', () => {
     const stagingDeploy = read('infra/ovh/scripts/deploy-test.sh');
     const verifier = read('photographer-site/scripts/verify-media-storage.mjs');
 
+    expect(productionDeploy).toContain('build_services=(gateway dashboard photographer ishotyouu-stills)');
     expect(productionDeploy).toContain('node ./photographer-site/scripts/verify-media-storage.mjs');
     expect(stagingDeploy).toContain('node ./photographer-site/scripts/verify-media-storage.mjs');
     expect(verifier).toContain('PutObjectCommand');
@@ -130,7 +136,7 @@ describe('fully self-hosted production stack', () => {
 
   it('defines the application schema without Supabase roles or auth functions', () => {
     const schema = read('infra/ovh/postgres/schema.sql');
-    for (const table of ['client_workspaces', 'workspace_members', 'connected_payment_account_history', 'studio_galleries', 'studio_gallery_images', 'studio_posts', 'studio_services', 'site_connections']) {
+    for (const table of ['client_workspaces', 'workspace_members', 'connected_payment_account_history', 'studio_galleries', 'studio_gallery_images', 'studio_posts', 'studio_work_stills', 'studio_services', 'site_connections']) {
       expect(schema).toContain(`create table if not exists ${table}`);
     }
     expect(schema).not.toMatch(/\b(auth|storage)\./i);

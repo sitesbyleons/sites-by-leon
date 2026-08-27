@@ -3,6 +3,7 @@ import type { StudioGallery, StudioImage } from '../lib/studio';
 import StudioCropControls from './StudioCropControls.astro';
 import StudioGalleryLayoutControls from './StudioGalleryLayoutControls.astro';
 import StudioMediaField from './StudioMediaField.astro';
+import StudioReorder from './StudioReorder.astro';
 
 interface Props {
   gallery?: StudioGallery;
@@ -68,10 +69,7 @@ const imageAspect = gallery?.image_aspect_ratio ?? 'landscape';
               </div>
               <div class="studio-gallery-photo__copy"><strong>{image.alt_text}</strong></div>
               <div class="studio-gallery-photo__actions">
-                <div class="studio-reorder" role="group" aria-label={`Reorder ${image.alt_text}`}>
-                  <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="images" data-id={image.id} data-reopen-gallery={galleryId} aria-label="Move photo up">↑</button>
-                  <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="images" data-id={image.id} data-reopen-gallery={galleryId} aria-label="Move photo down">↓</button>
-                </div>
+                <StudioReorder resource="images" id={image.id} label={image.alt_text} reopenGallery={galleryId} />
                 <div class="studio-gallery-photo__tools">
                   <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="images" data-id={image.id} data-reopen-gallery={galleryId}>Delete</button>
                 </div>

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { canAcceptInquiry, validateInquiry } from '../src/lib/inquiry';
+import { canAcceptInquiry, inquiryInstagramHandle, inquiryPublicMessage, validateInquiry } from '../src/lib/inquiry';
 
 describe('portfolio inquiry validation', () => {
   it('accepts a normal inquiry with either email or phone', () => {
@@ -15,6 +15,27 @@ describe('portfolio inquiry validation', () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.payload.email).toBe('jordan@example.com');
+  });
+
+  it('accepts a phone-only inquiry', () => {
+    const result = validateInquiry({
+      name: 'Jordan Lee',
+      phone: '765-555-0123',
+      message: 'Please photograph our home football game.',
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.payload.phone).toBe('765-555-0123');
+  });
+
+  it('rejects a phone value that does not contain a real number', () => {
+    const result = validateInquiry({
+      instagram: '180pf.shotit',
+      phone: 'not-a-phone',
+      message: 'Need a quote for a session next month',
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors.phone).toBe('Enter a valid phone number.');
   });
 
   it('rejects honeypots, missing contact details, and invalid dates', () => {
@@ -32,10 +53,31 @@ describe('inquiry tenant isolation', () => {
     expect(route).toContain('createRateLimitedInquiry');
   });
 
-  it('accepts inquiries only after both the customer and exact site are active', () => {
+  it('accepts a lead workspace on an active site so first-customer inquiries can land', () => {
+    expect(canAcceptInquiry('lead', 'active')).toBe(true);
     expect(canAcceptInquiry('active', 'active')).toBe(true);
     expect(canAcceptInquiry('approved', 'maintenance')).toBe(false);
     expect(canAcceptInquiry('active', 'maintenance')).toBe(false);
     expect(canAcceptInquiry('paused', 'paused')).toBe(false);
+  });
+
+  it('accepts ISHOTYOUU inquire payloads without a desired date', () => {
+    const result = validateInquiry({
+      instagram: '@180pf.shotit',
+      email: 'client@example.com',
+      message: 'Need coverage for a Friday night game.',
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.payload.name).toBe('180pf.shotit');
+      expect(result.payload.message).toContain('Instagram: @180pf.shotit');
+      expect(result.payload.desiredDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it('reads the Instagram handle back out of a stored inquiry message', () => {
+    expect(inquiryInstagramHandle('Instagram: @qa.browser\n\nNeed coverage.')).toBe('qa.browser');
+    expect(inquiryPublicMessage('Instagram: @qa.browser\n\nNeed coverage.')).toBe('Need coverage.');
   });
 });

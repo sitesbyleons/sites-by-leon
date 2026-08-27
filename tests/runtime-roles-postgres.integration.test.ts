@@ -41,6 +41,10 @@ integrationSuite('PostgreSQL photographer runtime grants', () => {
       insert into workspace_members (workspace_id, clerk_user_id, role)
       values (${workspaceId}, 'user_runtime_role_test', 'owner')
     `;
+    await control`
+      insert into website_projects (workspace_id, name, status, template_key, monthly_cents, domain_options)
+      values (${workspaceId}, 'Runtime Role Site', 'live', 'blank', 2000, 'example.com')
+    `;
 
     parsedUrl.username = roleName;
     parsedUrl.password = rolePassword;
@@ -83,10 +87,20 @@ integrationSuite('PostgreSQL photographer runtime grants', () => {
     await expect(photographer`delete from studio_posts where id = ${postId}`).resolves.toBeDefined();
   });
 
+  it('can read hosting records and save a chosen domain without changing the monthly amount', async () => {
+    await expect(photographer`select monthly_cents from website_projects where workspace_id = ${workspaceId}`)
+      .resolves.toEqual([expect.objectContaining({ monthly_cents: 2000 })]);
+    await expect(photographer`select status from subscriptions limit 1`).resolves.toBeDefined();
+    await expect(photographer`select checkout_url from checkout_attempts limit 1`).resolves.toBeDefined();
+    await expect(photographer`
+      update website_projects set chosen_domain = 'example.com' where workspace_id = ${workspaceId}
+    `).resolves.toBeDefined();
+    await expect(photographer`
+      update website_projects set monthly_cents = 9999 where workspace_id = ${workspaceId}
+    `).rejects.toThrow(/permission denied/i);
+  });
+
   it.each([
-    'subscriptions',
-    'checkout_attempts',
-    'website_projects',
     'site_provisioning_runs',
     'domain_jobs',
   ])('cannot read the protected %s table', async (table) => {

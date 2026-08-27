@@ -32,7 +32,26 @@ const users = session.users
 const date = (value: number) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value));
 ---
 
-<AdminFrame active="users" title="Users" eyebrow="Accounts" description="Find every photographer account and the site connected to it." isPreview={isPreview} error={session.error}>
+<AdminFrame active="users" title="Users" eyebrow="Accounts" description="Add a client by name and email, then link their login when they have one." isPreview={isPreview} error={session.error}>
+  <section class="admin-list-section">
+    <header><div><span>New client</span><h2>Add a Leon Sites client</h2></div><p>Name and email are enough. Link a Clerk user now or later, then send the Stripe invoice from the site page.</p></header>
+    <form class="provision-form" data-add-client data-preview={isPreview ? 'true' : 'false'} data-domain-suffix="leonsites.org" data-domain-joiner={Astro.url.hostname === 'test.leonsites.org' ? '-test.' : '.'}>
+      <input type="hidden" name="idempotency_key" value={crypto.randomUUID()} />
+      <input type="hidden" name="template_key" value="sports" />
+      <div class="provision-fields provision-fields--two">
+        <label><span>Client name</span><input name="studio_name" required minlength="2" maxlength="80" autocomplete="organization" placeholder="Studio name" /><small data-field-error="studio_name"></small></label>
+        <label><span>Billing email</span><input name="billing_email" type="email" required maxlength="254" autocomplete="email" placeholder="hello@studio.com" /><small data-field-error="billing_email"></small></label>
+        <label><span>Link Clerk user <em>optional</em></span><select name="owner_user_id"><option value="">Link later</option>{session.users.map((user) => <option value={user.id} disabled={memberWorkspaces.has(user.id)}>{user.name} · {user.email}{memberWorkspaces.has(user.id) ? ' · connected' : ''}</option>)}</select><small data-field-error="owner_user_id"></small></label>
+        <label><span>Monthly plan</span><select name="plan_key"><option value="essential" selected>Essential · $25/month</option><option value="studio">Studio · $35/month</option></select><small data-field-error="plan_key"></small></label>
+      </div>
+      <footer class="provision-submit">
+        <div><strong>Creates their site</strong><small>Review it, then send the Stripe invoice from the site page.</small></div>
+        <button type="submit">Add client</button>
+      </footer>
+      <div class="provision-result" data-provision-result aria-live="polite"></div>
+    </form>
+  </section>
+
   <form class="admin-tools" method="get" aria-label="Filter users">
     {isPreview && <input type="hidden" name="preview" value="true" />}
     <label class="admin-search"><span>Search</span><input type="search" name="q" value={query} placeholder="Name, email, or client" /></label>
@@ -53,4 +72,71 @@ const date = (value: number) => new Intl.DateTimeFormat('en-US', { month: 'short
       )) : <p class="simple-empty">No users match those filters.</p>}
     </div>
   </section>
+  <script>
+    const form = document.querySelector<HTMLFormElement>('[data-add-client]');
+    if (form) {
+      const studio = form.elements.namedItem('studio_name') as HTMLInputElement;
+      const result = form.querySelector<HTMLElement>('[data-provision-result]')!;
+      const domainSuffix = form.dataset.domainSuffix ?? 'leonsites.org';
+      const domainJoiner = form.dataset.domainJoiner ?? '.';
+      const toSlug = (value: string) => value.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        result.className = 'provision-result';
+        result.textContent = '';
+        form.querySelectorAll<HTMLElement>('[data-field-error]').forEach((element) => { element.textContent = ''; });
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+        button.disabled = true;
+        button.textContent = 'Creating…';
+
+        if (form.dataset.preview === 'true') {
+          result.classList.add('is-success');
+          result.textContent = 'Preview complete. Production creates the client site together.';
+          button.disabled = false;
+          button.textContent = 'Add client';
+          return;
+        }
+
+        const slug = toSlug(studio.value);
+        const domain = slug ? `${slug}${domainJoiner}${domainSuffix}` : '';
+        const body = {
+          ...Object.fromEntries(new FormData(form).entries()),
+          slug,
+          primary_domain: domain,
+          admin_domain: domain,
+        };
+        try {
+          const response = await fetch('/api/admin/provision', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            Object.entries(payload.errors ?? {}).forEach(([field, message]) => {
+              const target = form.querySelector<HTMLElement>(`[data-field-error="${CSS.escape(field)}"]`);
+              if (target) target.textContent = String(message);
+            });
+            throw new Error(payload.message ?? 'The client was not created.');
+          }
+          const summary = document.createElement('strong');
+          summary.textContent = `${payload.studioName} is ready.`;
+          const link = document.createElement('a');
+          link.textContent = 'Open site settings';
+          link.href = `/admin/sites/${payload.workspaceId}`;
+          result.replaceChildren(summary, link);
+          result.classList.add('is-success');
+          button.textContent = 'Client added';
+          form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('input, select, button').forEach((control) => { control.disabled = true; });
+        } catch (error) {
+          result.classList.add('is-error');
+          result.textContent = error instanceof Error ? error.message : 'The client was not created.';
+          button.disabled = false;
+          button.textContent = 'Add client';
+        }
+      });
+    }
+  </script>
 </AdminFrame>
+

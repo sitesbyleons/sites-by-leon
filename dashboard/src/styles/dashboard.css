@@ -662,6 +662,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .business-table__row { min-height: 4.8rem; border-bottom: 1px solid #e6e7e9; color: #5f6369; font-size: 0.7rem; }
 .business-table__row:last-child { border-bottom: 0; }
 .business-table__row > div { display: grid; }
+.business-table__row a { color: #181a1d; text-decoration: underline; text-underline-offset: 0.14em; }
 .business-table__row strong { color: #181a1d; font-size: 0.78rem; }
 .business-table__row small { color: #686b70; font-size: 0.62rem; }
 .user-connect-link { width: fit-content; margin-top: 0.2rem; color: #485fae; font-size: 0.58rem; font-weight: 700; text-underline-offset: 0.18rem; }
@@ -695,7 +696,8 @@ a { -webkit-tap-highlight-color: transparent; }
 .ticket-status--completed { background: #def4e7; color: #276c45; }
 .ticket-status--planned,
 .ticket-status--in_progress,
-.ticket-status--trialing { background: #e3eaff; color: #294fba; }
+.ticket-status--trialing,
+.ticket-status--invoice_open { background: #e3eaff; color: #294fba; }
 .site-list article { display: grid; min-height: 5rem; padding: 1rem 1.2rem; grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 1fr) 9rem; gap: 1rem; align-items: center; border-bottom: 1px solid #e6e7e9; }
 .site-list article:last-child { border-bottom: 0; }
 .site-list--compact article { grid-template-columns: minmax(10rem, 1fr); gap: 0.65rem; }
@@ -840,6 +842,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .provision-section header p { max-width: 20rem; margin: 0.25rem 0 0; color: #686d67; font-size: 0.63rem; line-height: 1.45; }
 .provision-fields { display: grid; gap: 0.7rem; }
 .provision-fields--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.provision-fields .wide { grid-column: 1 / -1; }
 .provision-fields label, .template-options legend { display: grid; gap: 0.35rem; color: #565b56; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; }
 .provision-fields input, .provision-fields select { width: 100%; min-height: 2.55rem; padding: 0 0.75rem; border: 1px solid #c9ccc5; border-radius: 6px; background: #fff; color: #20221f; font: inherit; font-size: 0.68rem; text-transform: none; }
 .provision-fields input:focus, .provision-fields select:focus { border-color: #5c72e8; outline: 2px solid rgb(92 114 232 / 0.16); outline-offset: 1px; }
@@ -889,11 +892,14 @@ a { -webkit-tap-highlight-color: transparent; }
 .site-address-list span { color: #686b70; font-size: 0.58rem; }
 .site-address-list strong { overflow: hidden; font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
 .site-detail-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 1rem; align-items: end; gap: 0.7rem; border: 1px solid #d9dbde; border-radius: 8px; background: #fff; }
+.site-detail-form--stack { grid-template-columns: 1fr; }
 .site-detail-form label { display: grid; gap: 0.35rem; }
-.site-detail-form input { min-height: 2.55rem; padding: 0 0.72rem; border: 1px solid #cfd2d6; border-radius: 6px; background: #fff; color: #181a1d; font: inherit; font-size: 0.72rem; }
+.site-detail-form input, .site-detail-form select, .site-detail-form textarea { min-height: 2.55rem; padding: 0 0.72rem; border: 1px solid #cfd2d6; border-radius: 6px; background: #fff; color: #181a1d; font: inherit; font-size: 0.72rem; }
+.site-detail-form textarea { min-height: 6.5rem; padding: 0.65rem 0.72rem; resize: vertical; }
 .site-detail-form button, .domain-actions button, .billing-control-actions button, .site-status-grid button { min-height: 2.75rem; padding: 0 0.85rem; border: 1px solid #272a27; border-radius: 6px; background: #272a27; color: #fff; cursor: pointer; font: inherit; font-size: 0.72rem; font-weight: 700; }
 .site-detail-form button:disabled, .domain-actions button:disabled, .billing-control-actions button:disabled, .site-status-grid button:disabled { cursor: wait; opacity: 0.55; }
 .site-detail-form > small { grid-column: 1 / -1; }
+.site-detail-form > small a { color: #17181a; font-weight: 700; text-decoration: underline; text-underline-offset: 0.12em; }
 .site-detail-form > p { grid-column: 1 / -1; margin: 0; color: #686b70; font-size: 0.66rem; }
 .domain-list { display: grid; margin-top: 0.7rem; gap: 0.7rem; }
 .domain-list > article { padding: 1rem; border: 1px solid #d9dbde; border-radius: 8px; background: #fff; }

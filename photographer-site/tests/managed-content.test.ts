@@ -168,7 +168,11 @@ describe('managed portfolio content', () => {
   it('uses the request tenant origin for canonical and social URLs', () => {
     const layout = fs.readFileSync(new URL('../src/layouts/SiteLayout.astro', import.meta.url), 'utf8');
     expect(layout).toMatch(/canonicalOrigin\s*}\s*=\s*Astro\.locals\.siteContext/);
-    expect(layout).toContain('property="og:url"');
     expect(layout).not.toContain('Astro.site');
+    for (const path of ['../src/layouts/NorthlineLayout.astro', '../src/layouts/IshotyouuLayout.astro']) {
+      const shell = fs.readFileSync(new URL(path, import.meta.url), 'utf8');
+      expect(shell, path).toContain('property="og:url"');
+      expect(shell, path).not.toContain('Astro.site');
+    }
   });
 });

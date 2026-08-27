@@ -1,0 +1,67 @@
+---
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import '../styles/site.css';
+
+interface Props {
+  title: string;
+  description: string;
+  image?: string;
+  canonical?: URL;
+  socialImage?: URL;
+  studioName: string;
+  email: string;
+  fontPreset: string;
+  paperColor: string;
+  inkColor: string;
+  accentColor: string;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  socialImage,
+  studioName,
+  email,
+  fontPreset,
+  paperColor,
+  inkColor,
+  accentColor,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f7f7f3" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical?.toString()} />
+    {socialImage && <meta property="og:image" content={socialImage.toString()} />}
+    <link rel="canonical" href={canonical?.toString()} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <title>{title}</title>
+  </head>
+  <body
+    data-font-preset={fontPreset}
+    style={`--paper:${paperColor};--ink:${inkColor};--accent:${accentColor}`}
+  >
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="scroll-progress" data-scroll-progress aria-hidden="true"></div>
+    <SiteHeader studioName={studioName} />
+    <main id="main-content">
+      <slot />
+    </main>
+    <SiteFooter studioName={studioName} email={email} />
+    <script>
+      import '../scripts/motion';
+    </script>
+  </body>
+</html>

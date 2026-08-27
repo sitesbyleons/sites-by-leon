@@ -8,6 +8,7 @@ import { normalizeSiteSlug, validateSiteProvisioningInput } from '../../../lib/s
 
 const DEFAULT_CAPACITY_BYTES = 60 * 1024 * 1024 * 1024;
 const MAX_BODY_BYTES = 16 * 1024;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function platformCapacityBytes() {
   const configured = Number(process.env.PLATFORM_PROVISIONABLE_STORAGE_BYTES ?? DEFAULT_CAPACITY_BYTES);
@@ -48,24 +49,33 @@ export const POST: APIRoute = async (context) => {
     return Response.json({ message: 'Check the highlighted details.', errors: validation.errors }, { status: 400 });
   }
 
-  let owner: Awaited<ReturnType<ReturnType<typeof clerkClient>['users']['getUser']>>;
-  try {
-    owner = await clerkClient(context).users.getUser(validation.value.ownerUserId);
-  } catch {
-    return Response.json({ message: 'That Clerk user no longer exists.', errors: { owner_user_id: 'Choose another user.' } }, { status: 400 });
+  const value = validation.value;
+  let ownerUserId = value.ownerUserId;
+  let contactEmail = value.billingEmail;
+  if (ownerUserId) {
+    try {
+      const owner = await clerkClient(context).users.getUser(ownerUserId);
+      const primaryEmail = owner.emailAddresses.find((email) => email.id === owner.primaryEmailAddressId)
+        ?? owner.emailAddresses[0];
+      if (!primaryEmail?.emailAddress) {
+        return Response.json({ message: 'The owner needs a verified email address first.', errors: { owner_user_id: 'No email address is available.' } }, { status: 400 });
+      }
+      contactEmail = contactEmail || primaryEmail.emailAddress;
+    } catch {
+      return Response.json({ message: 'That Clerk user no longer exists.', errors: { owner_user_id: 'Choose another user.' } }, { status: 400 });
+    }
+  } else {
+    ownerUserId = auth.userId;
   }
-  const primaryEmail = owner.emailAddresses.find((email) => email.id === owner.primaryEmailAddressId)
-    ?? owner.emailAddresses[0];
-  if (!primaryEmail?.emailAddress) {
-    return Response.json({ message: 'The owner needs a verified email address first.', errors: { owner_user_id: 'No email address is available.' } }, { status: 400 });
+  if (!contactEmail || !emailPattern.test(contactEmail)) {
+    return Response.json({ message: 'Add a billing email for this client.', errors: { billing_email: 'Enter a valid billing email.' } }, { status: 400 });
   }
 
-  const value = validation.value;
   const provisioned = await database.provisionClientSite({
     idempotency_key: value.idempotencyKey,
     requested_by_clerk_user_id: auth.userId,
-    owner_clerk_user_id: value.ownerUserId,
-    contact_email: primaryEmail.emailAddress,
+    owner_clerk_user_id: ownerUserId,
+    contact_email: contactEmail,
     clerk_org_id: null,
     workspace_name: value.studioName,
     workspace_slug: value.slug,

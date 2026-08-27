@@ -1,7 +1,7 @@
 ---
 import AdminFrame from '../../components/AdminFrame.astro';
 import { decideAdminAccess } from '../../lib/access';
-import { loadAdminSession } from '../../lib/admin';
+import { isPortfolioDemo, loadAdminSession } from '../../lib/admin';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -19,7 +19,7 @@ const sites = data.projects
   .filter((project) => {
     const connection = connections.get(project.workspace_id);
     const workspace = data.workspaces.find((w) => w.id === project.workspace_id);
-    if (connection?.site_kind === 'demo' && workspace?.status !== 'lead') return false;
+    if (isPortfolioDemo(connection, workspace)) return false;
     if (status === 'archived') return connection?.status === 'archived';
     if (connection?.status === 'archived') return status === 'all';
     return status === 'all' || project.status === status;
@@ -47,7 +47,7 @@ const provisioningRuns = new Map(data.provisioningRuns.map((run) => [run.workspa
       {sites.length ? sites.map((project) => {
         const connection = connections.get(project.workspace_id);
         const workspace = data.workspaces.find((w) => w.id === project.workspace_id);
-        const isDemo = connection?.site_kind === 'demo';
+        const isDemo = isPortfolioDemo(connection, workspace);
         const hasPhotographerCms = connection?.deployment_target === 'ovh:leon-platform-photographer';
         const editorUrl = hasPhotographerCms ? `https://${connection.admin_domain}/admin` : `https://${connection?.primary_domain}/dashboard`;
         return (

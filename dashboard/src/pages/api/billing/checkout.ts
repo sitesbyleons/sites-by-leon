@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import Stripe from 'stripe';
 
-import { canManageBilling, canStartCheckout, getCheckoutPlan } from '../../../lib/billing';
+import { canManageBilling, canStartCheckout, checkoutAttemptIsOpen, getCheckoutPlan, publicBillingErrorMessage } from '../../../lib/billing';
 import { createPlatformDatabase } from '../../../lib/database';
 import { resolveTrustedOrigin } from '../../../lib/request-security';
 import { resolveClientWorkspace } from '../../../lib/workspaces';
@@ -64,17 +64,18 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     workspace_id: workspace.data.id,
     attempt_key: attemptKey,
     plan_key: plan.key,
+    monthly_cents: plan.monthlyUsd * 100,
     expires_at: checkoutExpiresAt.toISOString(),
   });
   if (claimed.error) return Response.json({ message: 'Checkout could not be reserved.' }, { status: 503 });
   if (!claimed.data.length) {
     const existing = await database.from('checkout_attempts')
-      .select('attempt_key,plan_key,checkout_url')
+      .select('attempt_key,plan_key,checkout_url,expires_at')
       .eq('workspace_id', workspace.data.id)
-      .maybeSingle<{ attempt_key: string; plan_key: string; checkout_url: string | null }>();
+      .maybeSingle<{ attempt_key: string; plan_key: string; checkout_url: string | null; expires_at: string | null }>();
     if (existing.error || !existing.data) return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
     if (existing.data.plan_key !== plan.key) return Response.json({ message: 'Another plan checkout is already open. Finish it or wait for it to expire.' }, { status: 409 });
-    if (existing.data.checkout_url) return checkoutResponse(existing.data.checkout_url);
+    if (checkoutAttemptIsOpen(existing.data) && existing.data.checkout_url) return checkoutResponse(existing.data.checkout_url);
     return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
   }
 
@@ -117,7 +118,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       }, { status: saved.error ? 503 : 409 });
     }
     return checkoutResponse(session.url);
-  } catch {
-    return Response.json({ message: 'Checkout could not start. Nothing was charged.' }, { status: 502 });
+  } catch (error) {
+    return Response.json({ message: publicBillingErrorMessage(error, 'Checkout could not start. Nothing was charged.') }, { status: 502 });
   }
 };

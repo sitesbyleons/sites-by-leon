@@ -1,8 +1,8 @@
 ---
-import ContactSheet from '../components/ContactSheet.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { selectHomeHeroImages } from '../lib/content/home';
 import { loadSiteTheme, siteRepository } from '../lib/content/repository';
+import ContactSheet from '../components/ContactSheet.astro';
 
 const [portfolio, theme] = await Promise.all([
   siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId),

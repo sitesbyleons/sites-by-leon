@@ -1,5 +1,9 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { ishotyouuLibraryStills } from '../../lib/content/ishotyouu-fallback';
+import { hostingBillCopy, parseDomainOptions } from '../../lib/hosting';
+import { inquiryInstagramHandle } from '../../lib/inquiry';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -9,13 +13,39 @@ const access = decideStudioAdminAccess(session, '/admin');
 if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const studioName = data.workspace?.name ?? 'Studio';
+const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
+const stillCount = data.stills.length || ishotyouuLibraryStills().length;
+const hosting = data.hosting
+  ? hostingBillCopy({
+    monthly_cents: data.hosting.monthly_cents,
+    domain_options: parseDomainOptions(data.hosting.domain_options),
+    chosen_domain: data.hosting.chosen_domain,
+    plan_key: data.hosting.plan_key,
+    subscription_status: data.hosting.subscription_status,
+    current_period_end: data.hosting.current_period_end,
+    checkout_url: data.hosting.checkout_url,
+    checkout_expires_at: data.hosting.checkout_expires_at,
+  })
+  : null;
 ---
 
 <StudioAdminLayout title="Overview" active="overview" studioName={studioName} isPreview={isPreview} error={data.error} media={data.uploads}>
   <section class="studio-grid" aria-label="Studio summary">
-    <article class="studio-card"><small>Galleries</small><strong>{data.galleries.length}</strong><p>{data.images.length} photographs</p></article>
-    <article class="studio-card"><small>Clients</small><strong>{data.clients.length}</strong><p>{data.inquiries.filter((item) => item.status === 'new').length} new inquiries</p></article>
-    <article class="studio-card"><small>Invoices</small><strong>{data.invoices.length}</strong><p>{data.invoices.filter((item) => item.status === 'paid').length} paid</p></article>
+    {ishotyouu ? (
+      <>
+        <article class="studio-card"><small>Homepage</small><strong>Home</strong><p>Title and description on the live site. <a href={`/admin/content${isPreview ? '?preview=true' : ''}`}>Edit homepage</a>.</p></article>
+        <article class="studio-card"><small>Work stills</small><strong>{stillCount}</strong><p>Same frames as the public Work page. <a href={`/admin/work${isPreview ? '?preview=true' : ''}`}>Edit Work</a>.</p></article>
+        <article class="studio-card"><small>Inquiries</small><strong>{data.inquiries.filter((item) => item.status === 'new').length}</strong><p>{data.inquiries.length} total</p></article>
+        <article class="studio-card"><small>Your website</small><strong>{hosting?.owe ?? '—'}</strong><p><a href={`/admin/hosting${isPreview ? '?preview=true' : ''}`}>Choose a domain and see what you owe</a>.</p></article>
+      </>
+    ) : (
+      <>
+        <article class="studio-card"><small>Galleries</small><strong>{data.galleries.length}</strong><p>{data.images.length} photographs</p></article>
+        <article class="studio-card"><small>Clients</small><strong>{data.clients.length}</strong><p>{data.inquiries.filter((item) => item.status === 'new').length} new inquiries</p></article>
+        <article class="studio-card"><small>Invoices</small><strong>{data.invoices.length}</strong><p>{data.invoices.filter((item) => item.status === 'paid').length} paid</p></article>
+        <article class="studio-card"><small>Your website</small><strong>{hosting?.owe ?? '—'}</strong><p><a href={`/admin/hosting${isPreview ? '?preview=true' : ''}`}>Hosting, domain, and what you owe</a>.</p></article>
+      </>
+    )}
   </section>
 
   <div class="studio-split">
@@ -23,7 +53,18 @@ const studioName = data.workspace?.name ?? 'Studio';
       <header class="studio-section-heading"><div><small>Inbox</small><h2>Recent inquiries</h2></div></header>
       <div class="studio-panel">
         {data.inquiries.length ? <ul class="studio-list">
-          {data.inquiries.slice(0, 5).map((inquiry) => <li><div><strong>{inquiry.name}</strong><small>{inquiry.desired_date} · {inquiry.email ?? inquiry.phone}</small></div><span class={`studio-status studio-status--${inquiry.status}`}>{inquiry.status}</span></li>)}
+          {data.inquiries.slice(0, 5).map((inquiry) => {
+            const handle = inquiryInstagramHandle(inquiry.message);
+            return (
+              <li>
+                <div>
+                  <strong>{handle ? `@${handle}` : inquiry.name}</strong>
+                  <small>{ishotyouu ? (inquiry.email ?? inquiry.phone) : `${inquiry.desired_date} · ${inquiry.email ?? inquiry.phone}`}</small>
+                </div>
+                <span class={`studio-status studio-status--${inquiry.status}`}>{inquiry.status}</span>
+              </li>
+            );
+          })}
         </ul> : <p class="studio-empty">No inquiries yet.</p>}
       </div>
     </section>

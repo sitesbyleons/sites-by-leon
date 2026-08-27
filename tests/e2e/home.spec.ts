@@ -10,6 +10,24 @@ test('hero states the offer and reaches contact', async ({ page }) => {
 
   await expect(page.getByText('Websites and hosting for photographers', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Websites for photographers. Hosting included.');
+  const headingLines = page.locator('#hero-title span, #hero-title em');
+  await expect(headingLines).toHaveCount(3);
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    const lines = await headingLines.evaluateAll((elements) => elements.map((element) => ({
+      text: (element.textContent ?? '').trim(),
+      whiteSpace: getComputedStyle(element).whiteSpace,
+      display: getComputedStyle(element).display,
+      rects: element.getClientRects().length,
+    })));
+    expect(lines.map((line) => line.text)).toEqual(['Websites for', 'photographers.', 'Hosting included.']);
+    for (const line of lines) {
+      expect(line.whiteSpace, `${viewport.width}px ${line.text}`).toBe('nowrap');
+      expect(line.display, `${viewport.width}px ${line.text}`).toBe('block');
+      expect(line.rects, `${viewport.width}px ${line.text}`).toBe(1);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+  }
   await page.locator('.site-header').getByRole('link', { name: 'Contact', exact: true }).click();
   await expect(page.locator('#contact')).toBeInViewport();
 });

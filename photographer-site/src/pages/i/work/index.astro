@@ -1,0 +1,39 @@
+---
+import IshotyouuLayout from '../../../layouts/IshotyouuLayout.astro';
+import { siteRepository } from '../../../lib/content/repository';
+import { createStudioDatabase } from '../../../lib/database';
+import { ISHOTYOUU_INSTAGRAM_HANDLE } from '../../../lib/ishotyouu';
+import { listWorkStills, publicWorkFrames } from '../../../lib/work-stills';
+
+const workspaceId = Astro.locals.siteContext.workspaceId;
+const portfolio = await siteRepository.getPortfolio(workspaceId);
+const { canonicalOrigin } = Astro.locals.siteContext;
+const client = createStudioDatabase();
+const savedStills = client ? await listWorkStills(client, workspaceId) : [];
+const frames = publicWorkFrames(savedStills);
+---
+
+<IshotyouuLayout
+  title="Work"
+  description={`Photography by ${portfolio.studioName}.`}
+  image={frames[0]?.src}
+  canonicalPath="/work"
+  studioName={portfolio.studioName}
+  canonicalOrigin={canonicalOrigin}
+>
+  <section class="page-shell" aria-labelledby="work-title">
+    <header class="page-intro">
+      <p class="section-kicker">Work</p>
+      <h1 id="work-title">Work</h1>
+      <p class="hint">Stills from {ISHOTYOUU_INSTAGRAM_HANDLE} on Instagram. Each frame opens the source post.</p>
+    </header>
+    <div class="work-wall">
+      {frames.map((frame) => (
+        <a class="work-item" href={frame.instagramUrl} rel="noreferrer">
+          <img src={frame.src} alt={frame.alt} loading="lazy" decoding="async" />
+          <span aria-hidden="true">{ISHOTYOUU_INSTAGRAM_HANDLE}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+</IshotyouuLayout>
