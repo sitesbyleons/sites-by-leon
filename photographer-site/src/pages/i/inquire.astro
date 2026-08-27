@@ -23,8 +23,8 @@ const { canonicalOrigin } = Astro.locals.siteContext;
       <h1 id="inquire-title">Inquire</h1>
       <p class="hint">
         {selectedPackage
-          ? `Asking about ${selectedPackage.name}. If you already sent a DM, use the same Instagram name here so it matches the thread.`
-          : 'If you already sent a DM, use the same Instagram name here so it matches the thread.'}
+          ? `Asking about ${selectedPackage.name}. Leave an email or a phone number. If you already sent a DM, use the same Instagram name here so it matches the thread.`
+          : 'Leave an email or a phone number. If you already sent a DM, use the same Instagram name here so it matches the thread.'}
       </p>
       <form class="inquiry" data-inquiry-form action="/api/inquiry" method="post" novalidate>
         <label>
@@ -39,8 +39,13 @@ const { canonicalOrigin } = Astro.locals.siteContext;
         </label>
         <label>
           Email
-          <input id="inquiry-email" name="email" type="email" autocomplete="email" maxlength="254" required />
+          <input id="inquiry-email" name="email" type="email" autocomplete="email" maxlength="254" />
           <small class="field-error" data-field-error="email"></small>
+        </label>
+        <label>
+          Phone
+          <input id="inquiry-phone" name="phone" type="tel" autocomplete="tel" maxlength="32" />
+          <small class="field-error" data-field-error="phone"></small>
         </label>
         <label>
           Message
@@ -85,6 +90,7 @@ const { canonicalOrigin } = Astro.locals.siteContext;
           instagram: data.get('instagram'),
           name: data.get('name'),
           email: data.get('email'),
+          phone: data.get('phone'),
           message: data.get('message'),
           company: data.get('company'),
         }),

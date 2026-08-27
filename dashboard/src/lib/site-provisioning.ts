@@ -13,7 +13,8 @@ export type SiteTemplateKey = (typeof siteTemplateOptions)[number]['key'];
 export type SitePlanKey = (typeof planOptions)[number]['key'];
 
 export type SiteProvisioningInput = {
-  ownerUserId: string;
+  ownerUserId: string | null;
+  billingEmail: string | null;
   studioName: string;
   slug: string;
   primaryDomain: string;
@@ -35,6 +36,7 @@ const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const domainPattern = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 const repositoryPattern = /^[a-z0-9_.-]+\/[a-z0-9_.-]+$/i;
 const idempotencyPattern = /^[a-zA-Z0-9:_-]{16,128}$/;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const reservedLeonDomains = new Set([
   'leonsites.org',
   'www.leonsites.org',
@@ -71,6 +73,7 @@ export function validateSiteProvisioningInput(
 ): SiteProvisioningValidation {
   const source = input && typeof input === 'object' ? input as Record<string, unknown> : {};
   const ownerUserId = text(source.owner_user_id ?? source.ownerUserId);
+  const billingEmail = text(source.billing_email ?? source.billingEmail).toLowerCase();
   const studioName = text(source.studio_name ?? source.studioName);
   const slug = normalizeSiteSlug(source.slug);
   const primaryDomain = normalizeSiteDomain(source.primary_domain ?? source.primaryDomain);
@@ -81,7 +84,14 @@ export function validateSiteProvisioningInput(
   const idempotencyKey = text(source.idempotency_key ?? source.idempotencyKey);
   const errors: Record<string, string> = {};
 
-  if (!/^user_[a-zA-Z0-9_-]{4,}$/.test(ownerUserId)) errors.owner_user_id = 'Choose a valid Clerk user.';
+  if (ownerUserId && !/^user_[a-zA-Z0-9_-]{4,}$/.test(ownerUserId)) errors.owner_user_id = 'Choose a valid Clerk user.';
+  if (billingEmail && (billingEmail.length > 254 || !emailPattern.test(billingEmail))) {
+    errors.billing_email = 'Enter a valid billing email.';
+  }
+  if (!ownerUserId && !billingEmail) {
+    errors.billing_email = 'Add a billing email, or link a Clerk user.';
+    errors.owner_user_id = 'Link a Clerk user, or add a billing email.';
+  }
   if (studioName.length < 2 || studioName.length > 80) errors.studio_name = 'Use a studio name between 2 and 80 characters.';
   if (slug.length < 3 || !slugPattern.test(slug)) errors.slug = 'Use at least 3 letters or numbers, separated with hyphens.';
   if (!domainPattern.test(primaryDomain)) errors.primary_domain = 'Enter a full domain such as studio.leonsites.org.';
@@ -104,7 +114,8 @@ export function validateSiteProvisioningInput(
   return {
     ok: true,
     value: {
-      ownerUserId,
+      ownerUserId: ownerUserId || null,
+      billingEmail: billingEmail || null,
       studioName,
       slug,
       primaryDomain,

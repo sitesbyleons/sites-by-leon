@@ -1,7 +1,10 @@
 ---
+import { clerkClient } from '@clerk/astro/server';
+
 import AdminFrame from '../../../components/AdminFrame.astro';
 import { decideAdminAccess } from '../../../lib/access';
-import { loadAdminSession } from '../../../lib/admin';
+import { getPlan } from '../../../lib/billing';
+import { isPortfolioDemo, loadAdminSession } from '../../../lib/admin';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -9,6 +12,8 @@ const session = await loadAdminSession({
   isPreview,
   userId: isPreview ? 'preview_admin' : (auth?.userId ?? null),
   getToken: async () => (auth ? (await auth.getToken()) ?? null : null),
+  includeUsers: true,
+  userClient: isPreview ? undefined : clerkClient(Astro),
 });
 const access = decideAdminAccess({ userId: isPreview ? 'preview_admin' : (auth?.userId ?? null), isAdmin: session.isAdmin });
 if (access.kind !== 'admin') return Astro.redirect(access.location);
@@ -23,20 +28,29 @@ const aliases = data.domainAliases.filter((item) => item.workspace_id === worksp
 if (!workspace || !project || !connection) return new Response('Site not found', { status: 404 });
 
 const preview = isPreview ? '?preview=true' : '';
-const isDemo = connection.site_kind === 'demo';
+const isDemo = isPortfolioDemo(connection, workspace);
 const domainAutomationEnabled = isPreview || process.env.CUSTOM_DOMAIN_AUTOMATION_ENABLED === 'true';
 const isArchived = connection.status === 'archived';
 const billingLabel = connection.billing_mode === 'automatic'
   ? connection.billing_state.replaceAll('_', ' ')
   : 'manual';
+const contactEmail = data.contacts.find((item) => item.workspace_id === workspaceId)?.contact_email ?? '';
+const connectedUserIds = new Set(data.members.map((member) => member.clerk_user_id));
+const owners = data.members.filter((member) => member.workspace_id === workspaceId && member.role === 'owner');
+const ownerNames = owners.map((owner) => {
+  const user = session.users.find((item) => item.id === owner.clerk_user_id);
+  return user ? `${user.name} · ${user.email}` : owner.clerk_user_id;
+});
+const assignedPlan = getPlan(project.plan_key ?? subscription?.plan_key ?? '');
+const linkableUsers = session.users.filter((user) => !connectedUserIds.has(user.id) || owners.some((owner) => owner.clerk_user_id === user.id));
 ---
 
-<AdminFrame active={isDemo ? 'demos' : 'sites'} title={workspace.name} eyebrow={isDemo ? 'Demo settings' : 'Website settings'} description={isDemo ? 'Public access and editor controls for this example site.' : 'Domains, hosting, and site access.'} isPreview={isPreview} error={session.error}>
+<AdminFrame active={isDemo ? 'demos' : 'sites'} title={workspace.name} eyebrow={isDemo ? 'Demo settings' : 'Website settings'} description={isDemo ? 'Public access and editor controls for this example site.' : 'Domains, hosting, client access, and invoices.'} isPreview={isPreview} error={session.error}>
   <div class="provision-back"><a href={`${isDemo ? '/admin/demos' : '/admin/sites'}${preview}`}>← Back to {isDemo ? 'demos' : 'sites'}</a></div>
 
   <section class="site-detail-summary">
     <div><small>Website</small><strong>{connection.status}</strong><span>{project.progress}% complete</span></div>
-    <div><small>{isDemo ? 'Type' : 'Hosting'}</small><strong>{isDemo ? 'Demo' : billingLabel}</strong><span>{isDemo ? 'Portfolio example' : subscription ? `${subscription.plan_key} · ${subscription.status}` : 'No subscription linked'}</span></div>
+    <div><small>{isDemo ? 'Type' : 'Hosting'}</small><strong>{isDemo ? 'Demo' : billingLabel}</strong><span>{isDemo ? 'Portfolio example' : subscription ? `${subscription.plan_key} · ${subscription.status}` : assignedPlan ? `${assignedPlan.key} assigned · not billed yet` : 'No subscription linked'}</span></div>
     <div><small>{isDemo ? 'Address' : 'Custom domain'}</small><strong>{isDemo ? connection.primary_domain : aliases.find((item) => item.status === 'active')?.hostname ?? 'Not connected'}</strong><span>{isDemo ? 'Leon Sites domain' : aliases.length ? `${aliases.length} domain request${aliases.length === 1 ? '' : 's'}` : 'Add one below'}</span></div>
   </section>
 
@@ -57,6 +71,42 @@ const billingLabel = connection.billing_mode === 'automatic'
       <a href={`https://${connection.primary_domain}`} target="_blank" rel="noreferrer"><span>Public fallback</span><strong>{connection.primary_domain}</strong></a>
       <a href={`https://${connection.admin_domain}/admin`} target="_blank" rel="noreferrer"><span>Private editor</span><strong>{connection.admin_domain}/admin</strong></a>
     </div>
+  </section>
+
+  <section class="site-detail-section" hidden={isArchived || isDemo}>
+    <header><div><span>Client</span><h2>Billing contact</h2></div><p>Save the name and email used for Stripe invoices. Link their Clerk login when they have one.</p></header>
+    <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-contact" data-preview={isPreview ? 'true' : 'false'}>
+      <input type="hidden" name="workspace_id" value={workspaceId} />
+      <label><span>Billing email</span><input name="contact_email" type="email" maxlength="254" required value={contactEmail} placeholder="client@studio.com" autocomplete="email" /></label>
+      <button type="submit">Save email</button>
+      <small data-result aria-live="polite"></small>
+    </form>
+    <p class="simple-empty">{ownerNames.length ? `Linked user: ${ownerNames.join(', ')}` : 'No Clerk user is linked yet.'}</p>
+    <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-owner" data-preview={isPreview ? 'true' : 'false'}>
+      <input type="hidden" name="workspace_id" value={workspaceId} />
+      <label><span>Link Clerk user</span>
+        <select name="owner_user_id" required>
+          <option value="">Choose a user</option>
+          {linkableUsers.map((user) => (
+            <option value={user.id} selected={owners.some((owner) => owner.clerk_user_id === user.id)}>
+              {user.name} · {user.email}{connectedUserIds.has(user.id) && !owners.some((owner) => owner.clerk_user_id === user.id) ? ' · connected' : ''}
+            </option>
+          ))}
+        </select>
+      </label>
+      <button type="submit">Link user</button>
+      <small data-result aria-live="polite"></small>
+    </form>
+  </section>
+
+  <section class="site-detail-section" hidden={isArchived || isDemo}>
+    <header><div><span>Stripe</span><h2>Send hosting invoice</h2></div><p>Creates a Stripe Checkout link for the assigned monthly plan. Nothing is charged until the client pays.</p></header>
+    <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-invoice" data-preview={isPreview ? 'true' : 'false'} data-open-url>
+      <input type="hidden" name="workspace_id" value={workspaceId} />
+      <label><span>Send to</span><input name="email" type="email" maxlength="254" required value={contactEmail} placeholder="client@studio.com" /></label>
+      <button type="submit">{assignedPlan ? `Send ${assignedPlan.name} invoice` : 'Send hosting invoice'}</button>
+      <small data-result aria-live="polite"></small>
+    </form>
   </section>
 
   <section class="site-detail-section" hidden={isArchived || isDemo}>
@@ -153,7 +203,7 @@ const billingLabel = connection.billing_mode === 'automatic'
         result.textContent = 'Updating…';
         button.disabled = true;
         if (form.dataset.preview === 'true') {
-          result.textContent = 'Preview updated.';
+          result.textContent = form.dataset.openUrl ? 'Preview invoice link ready.' : 'Preview updated.';
           button.disabled = false;
           return;
         }
@@ -166,6 +216,12 @@ const billingLabel = connection.billing_mode === 'automatic'
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.message ?? 'This change was not saved.');
           result.textContent = payload.message ?? 'Saved.';
+          if (form.dataset.openUrl && typeof payload.url === 'string') {
+            result.textContent = 'Invoice link created.';
+            window.open(payload.url, '_blank', 'noreferrer');
+            button.disabled = false;
+            return;
+          }
           const action = new FormData(form).get('action');
           if (form.dataset.endpoint === '/api/admin/site-domains' && action === 'refresh') {
             result.textContent = 'Connection check queued. Refresh this page in a few seconds.';

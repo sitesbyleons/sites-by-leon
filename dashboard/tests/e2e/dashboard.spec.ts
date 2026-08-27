@@ -113,6 +113,11 @@ test('splits admin records into sortable pages', async ({ page }) => {
   await expect(page.getByText('Northline Portraits')).toBeVisible();
   await expect(page.getByText('Vow & Light')).toBeVisible();
   await expect(page.getByText('ISHOTYOUU', { exact: true })).toBeVisible();
+  await page.goto('/admin/sites/ws_ishotyouu?preview=true');
+  await expect(page.getByRole('heading', { name: 'Demo availability' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Website settings' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Keep live' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Send hosting invoice' })).toBeVisible();
   await page.goto('/admin/sites?preview=true');
   await page.getByRole('link', { name: 'Add client site' }).click();
   await expect(page.getByRole('heading', { name: 'Add client site' })).toBeVisible();
@@ -127,7 +132,7 @@ test('splits admin records into sortable pages', async ({ page }) => {
 
 test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const path of ['/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/demos?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/ws_fieldwork?preview=true', '/admin/sites/new?preview=true']) {
+  for (const path of ['/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/demos?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/ws_ishotyouu?preview=true', '/admin/sites/ws_fieldwork?preview=true', '/admin/sites/new?preview=true']) {
     await page.goto(path);
     const dimensions = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
     expect(dimensions.content, path).toBeLessThanOrEqual(dimensions.viewport);
@@ -147,7 +152,7 @@ test('keeps the admin overview inside an iPhone viewport', async ({ page }) => {
 });
 
 test('has no serious or critical accessibility violations on the client surfaces', async ({ page }) => {
-  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/demos?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/ws_fieldwork?preview=true', '/admin/sites/new?preview=true']) {
+  for (const path of ['/?preview=true', '/dashboard?preview=true', '/admin?preview=true', '/admin/users?preview=true', '/admin/tickets?preview=true', '/admin/subscriptions?preview=true', '/admin/sites?preview=true', '/admin/demos?preview=true', '/admin/sites/ws_northline?preview=true', '/admin/sites/ws_ishotyouu?preview=true', '/admin/sites/ws_fieldwork?preview=true', '/admin/sites/new?preview=true']) {
     await page.goto(path);
     const results = await new AxeBuilder({ page }).analyze();
     const important = results.violations.filter((violation) =>

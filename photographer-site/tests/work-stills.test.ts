@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  instagramShortcode,
   isSidecarWorkImage,
+  libraryStillsForInstagramUrl,
   normalizeInstagramUrl,
   stillToFrame,
 } from '../src/lib/work-stills';
@@ -22,6 +24,15 @@ describe('ISHOTYOUU work stills', () => {
     expect(normalizeInstagramUrl('https://www.instagram.com/reel/DcWUeeYIMSf')).toBe('https://www.instagram.com/reel/DcWUeeYIMSf/');
     expect(normalizeInstagramUrl('https://evil.example/p/DbxBpe1lvmD/')).toBeNull();
     expect(normalizeInstagramUrl('not-a-url')).toBeNull();
+  });
+
+  it('matches library stills from a pasted Instagram URL without scraping Instagram', () => {
+    expect(instagramShortcode('https://www.instagram.com/p/DbxBpe1lvmD/?img_index=2')).toBe('DbxBpe1lvmD');
+    expect(libraryStillsForInstagramUrl('https://instagram.com/p/DbxBpe1lvmD/').map((frame) => frame.src)).toEqual([
+      '/work/19-DbxBpe1lvmD.jpg',
+      '/work/20-DbxBpe1lvmD.jpg',
+    ]);
+    expect(libraryStillsForInstagramUrl('https://evil.example/p/DbxBpe1lvmD/')).toEqual([]);
   });
 
   it('maps saved stills onto the public Work frame shape', () => {

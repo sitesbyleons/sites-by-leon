@@ -17,7 +17,13 @@ export type AdminProject = {
   status: string;
   progress: number;
   live_url: string | null;
+  plan_key: string | null;
   updated_at: string;
+};
+
+export type AdminContact = {
+  workspace_id: string;
+  contact_email: string | null;
 };
 
 export type AdminSubscription = {
@@ -100,8 +106,16 @@ export type AdminData = {
   connections: AdminConnection[];
   domainAliases: AdminDomainAlias[];
   provisioningRuns: AdminProvisioningRun[];
+  contacts: AdminContact[];
   error: string | null;
 };
+
+export function isPortfolioDemo(
+  connection?: Pick<AdminConnection, 'site_kind'> | null,
+  workspace?: Pick<AdminWorkspace, 'status'> | null,
+) {
+  return connection?.site_kind === 'demo' && workspace?.status !== 'lead';
+}
 
 export type ClerkUserClient = {
   users: {
@@ -129,10 +143,10 @@ export function getPreviewAdminData(): AdminData {
       { id: 'ws_fieldwork', name: 'Fieldwork Commercial', slug: 'fieldwork', status: 'lead', updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     projects: [
-      { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, updated_at: '2026-07-10T17:00:00.000Z' },
-      { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, updated_at: '2026-07-09T15:00:00.000Z' },
-      { id: 'prj_3', workspace_id: 'ws_ishotyouu', name: 'ISHOTYOUU Website', status: 'live', progress: 100, live_url: 'https://ishotyouu-test.leonsites.org', updated_at: '2026-08-15T10:00:00.000Z' },
-      { id: 'prj_4', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, updated_at: '2026-07-08T13:00:00.000Z' },
+      { id: 'prj_1', workspace_id: 'ws_northline', name: 'Northline Portfolio', status: 'review', progress: 72, live_url: null, plan_key: 'studio', updated_at: '2026-07-10T17:00:00.000Z' },
+      { id: 'prj_2', workspace_id: 'ws_vow', name: 'Wedding Editorial', status: 'design', progress: 45, live_url: null, plan_key: 'studio', updated_at: '2026-07-09T15:00:00.000Z' },
+      { id: 'prj_3', workspace_id: 'ws_ishotyouu', name: 'ISHOTYOUU Website', status: 'live', progress: 100, live_url: 'https://ishotyouu-test.leonsites.org', plan_key: 'essential', updated_at: '2026-08-15T10:00:00.000Z' },
+      { id: 'prj_4', workspace_id: 'ws_fieldwork', name: 'Fieldwork Website', status: 'onboarding', progress: 18, live_url: null, plan_key: 'studio', updated_at: '2026-07-08T13:00:00.000Z' },
     ],
     subscriptions: [
       { id: 'sub_local', workspace_id: 'ws_northline', stripe_subscription_id: 'sub_preview', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
@@ -158,6 +172,12 @@ export function getPreviewAdminData(): AdminData {
     ],
     provisioningRuns: [
       { workspace_id: 'ws_northline', status: 'ready', last_error: null, updated_at: '2026-07-10T17:00:00.000Z' },
+    ],
+    contacts: [
+      { workspace_id: 'ws_northline', contact_email: 'maya@northline.test' },
+      { workspace_id: 'ws_vow', contact_email: 'elliot@vowandlight.test' },
+      { workspace_id: 'ws_ishotyouu', contact_email: 'hello@ishotyouu.test' },
+      { workspace_id: 'ws_fieldwork', contact_email: 'hello@fieldwork.test' },
     ],
     error: null,
   };
@@ -260,14 +280,14 @@ export async function checkAppAdmin(database: DataClient | null, clerkUserId: st
 }
 
 export async function loadAdminData(database: DataClient | null): Promise<AdminData> {
-  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [], domainAliases: [], provisioningRuns: [] };
+  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [], domainAliases: [], provisioningRuns: [], contacts: [] };
   if (!database) return { ...empty, error: 'The secure database connection is not configured.' };
 
-  const [workspaces, projects, subscriptions, requests, members, connections, domainAliases, provisioningRuns] = await Promise.all([
+  const [workspaces, projects, subscriptions, requests, members, connections, domainAliases, provisioningRuns, contacts] = await Promise.all([
     database.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
     database
       .from('website_projects')
-      .select('id,workspace_id,name,status,progress,live_url,updated_at')
+      .select('id,workspace_id,name,status,progress,live_url,plan_key,updated_at')
       .order('updated_at', { ascending: false }),
     database
       .from('subscriptions')
@@ -283,9 +303,10 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
     database.from('site_connections').select('workspace_id,site_key,site_kind,primary_domain,admin_domain,deployment_target,github_repository,status,current_version,last_seen_at,hosting_subscription_id,billing_mode,desired_status,billing_state,billing_updated_at,archived_at,archive_reason'),
     database.from('site_domain_aliases').select('id,workspace_id,hostname,status,is_canonical,cloudflare_hostname_status,cloudflare_ssl_status,dns_target,last_error,last_checked_at').order('created_at', { ascending: false }),
     database.from('site_provisioning_runs').select('workspace_id,status,last_error,updated_at').order('updated_at', { ascending: false }),
+    database.from('studio_settings').select('workspace_id,contact_email'),
   ]);
 
-  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error || domainAliases.error || provisioningRuns.error;
+  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error || domainAliases.error || provisioningRuns.error || contacts.error;
 
   return {
     workspaces: (workspaces.data ?? []) as AdminWorkspace[],
@@ -296,6 +317,7 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
     connections: (connections.data ?? []) as AdminConnection[],
     domainAliases: (domainAliases.data ?? []) as AdminDomainAlias[],
     provisioningRuns: (provisioningRuns.data ?? []) as AdminProvisioningRun[],
+    contacts: (contacts.data ?? []) as AdminContact[],
     error: hasError ? 'Some studio data is temporarily unavailable.' : null,
   };
 }

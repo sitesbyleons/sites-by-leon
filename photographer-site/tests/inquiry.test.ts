@@ -17,6 +17,17 @@ describe('portfolio inquiry validation', () => {
     if (result.ok) expect(result.payload.email).toBe('jordan@example.com');
   });
 
+  it('accepts a phone-only inquiry', () => {
+    const result = validateInquiry({
+      name: 'Jordan Lee',
+      phone: '765-555-0123',
+      message: 'Please photograph our home football game.',
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.payload.phone).toBe('765-555-0123');
+  });
+
   it('rejects honeypots, missing contact details, and invalid dates', () => {
     expect(validateInquiry({ name: 'Jordan', desiredDate: 'bad', message: 'A useful message', company: 'bot' }).ok).toBe(false);
     expect(validateInquiry({ name: 'Jordan', desiredDate: 'bad', message: 'A useful message' }).ok).toBe(false);

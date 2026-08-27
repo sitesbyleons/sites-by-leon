@@ -840,6 +840,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .provision-section header p { max-width: 20rem; margin: 0.25rem 0 0; color: #686d67; font-size: 0.63rem; line-height: 1.45; }
 .provision-fields { display: grid; gap: 0.7rem; }
 .provision-fields--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.provision-fields .wide { grid-column: 1 / -1; }
 .provision-fields label, .template-options legend { display: grid; gap: 0.35rem; color: #565b56; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; }
 .provision-fields input, .provision-fields select { width: 100%; min-height: 2.55rem; padding: 0 0.75rem; border: 1px solid #c9ccc5; border-radius: 6px; background: #fff; color: #20221f; font: inherit; font-size: 0.68rem; text-transform: none; }
 .provision-fields input:focus, .provision-fields select:focus { border-color: #5c72e8; outline: 2px solid rgb(92 114 232 / 0.16); outline-offset: 1px; }
@@ -890,7 +891,7 @@ a { -webkit-tap-highlight-color: transparent; }
 .site-address-list strong { overflow: hidden; font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
 .site-detail-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 1rem; align-items: end; gap: 0.7rem; border: 1px solid #d9dbde; border-radius: 8px; background: #fff; }
 .site-detail-form label { display: grid; gap: 0.35rem; }
-.site-detail-form input { min-height: 2.55rem; padding: 0 0.72rem; border: 1px solid #cfd2d6; border-radius: 6px; background: #fff; color: #181a1d; font: inherit; font-size: 0.72rem; }
+.site-detail-form input, .site-detail-form select { min-height: 2.55rem; padding: 0 0.72rem; border: 1px solid #cfd2d6; border-radius: 6px; background: #fff; color: #181a1d; font: inherit; font-size: 0.72rem; }
 .site-detail-form button, .domain-actions button, .billing-control-actions button, .site-status-grid button { min-height: 2.75rem; padding: 0 0.85rem; border: 1px solid #272a27; border-radius: 6px; background: #272a27; color: #fff; cursor: pointer; font: inherit; font-size: 0.72rem; font-weight: 700; }
 .site-detail-form button:disabled, .domain-actions button:disabled, .billing-control-actions button:disabled, .site-status-grid button:disabled { cursor: wait; opacity: 0.55; }
 .site-detail-form > small { grid-column: 1 / -1; }

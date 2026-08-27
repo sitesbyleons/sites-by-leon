@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { canManageBilling, canManageSubscription, canStartCheckout, getCheckoutPlan, getPlan, plans } from '../src/lib/billing';
+import { canManageBilling, canManageSubscription, canSendAdminHostingInvoice, canStartCheckout, getCheckoutPlan, getPlan, plans } from '../src/lib/billing';
 
 const read = (path: string) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -71,6 +71,32 @@ describe('canManageSubscription', () => {
     expect(canManageSubscription('canceled')).toBe(false);
     expect(canManageSubscription('incomplete_expired')).toBe(false);
     expect(canManageSubscription(null)).toBe(false);
+  });
+});
+
+describe('canSendAdminHostingInvoice', () => {
+  it('allows Leon to invoice a lead client with an assigned plan and email', () => {
+    expect(canSendAdminHostingInvoice({
+      workspaceStatus: 'lead',
+      subscriptionStatus: null,
+      planKey: 'essential',
+      billingEmail: 'hello@studio.example',
+    })).toBe(true);
+  });
+
+  it('blocks invoices without a billing email or while a subscription is already active', () => {
+    expect(canSendAdminHostingInvoice({
+      workspaceStatus: 'lead',
+      subscriptionStatus: null,
+      planKey: 'essential',
+      billingEmail: '',
+    })).toBe(false);
+    expect(canSendAdminHostingInvoice({
+      workspaceStatus: 'active',
+      subscriptionStatus: 'active',
+      planKey: 'studio',
+      billingEmail: 'hello@studio.example',
+    })).toBe(false);
   });
 });
 

@@ -38,6 +38,8 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/pages/i/about.astro')).toContain('canonicalPath="/about"');
     expect(read('src/pages/i/inquire.astro')).toContain("fetch('/api/inquiry'");
     expect(read('src/pages/i/inquire.astro')).toContain('name="instagram"');
+    expect(read('src/pages/i/inquire.astro')).toContain('name="phone"');
+    expect(read('src/pages/i/inquire.astro')).not.toContain('name="email" type="email" autocomplete="email" maxlength="254" required');
     expect(read('src/pages/i/inquire.astro')).toContain('searchParams.get(\'package\')');
     expect(read('src/pages/i/index.astro')).toContain('class="hero"');
     expect(read('src/pages/i/work/index.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
@@ -47,7 +49,10 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/layouts/StudioAdminLayout.astro')).toContain("label: 'Files'");
     expect(read('src/layouts/StudioAdminLayout.astro')).toContain("label: 'Work'");
     expect(read('src/layouts/StudioAdminLayout.astro')).toContain('ishotyouu ?');
-    expect(read('src/pages/admin/work.astro')).toContain("data-resource=\"stills\"");
+    expect(read('src/pages/admin/work.astro')).toContain('Add to Work');
+    expect(read('src/pages/admin/work.astro')).toContain('studio-panel--add-work');
+    expect(read('src/pages/admin/work.astro')).toContain('data-add-matching');
+    expect(read('src/pages/admin/work.astro')).toContain('WORK_STILLS_PAGE_SIZE');
     expect(read('src/pages/admin/work.astro')).toContain("redirect('/admin/galleries')");
     expect(read('src/pages/api/admin/[resource].ts')).toContain("resource === 'stills'");
     expect(read('src/pages/api/admin/[resource].ts')).toContain('isIshotyouuSite');
@@ -106,10 +111,14 @@ describe('ISHOTYOUU public CMS wiring', () => {
 
   it('routes TEST HTML to photographer-test while keeping OG work images on the sidecar', () => {
     const caddy = readFileSync(new URL('../../infra/ovh/Caddyfile.test', import.meta.url), 'utf8');
+    const production = readFileSync(new URL('../../infra/ovh/Caddyfile', import.meta.url), 'utf8');
     expect(caddy).toContain('@ishotyouu_media_files');
     expect(caddy).toContain('path /work/*.jpg');
     expect(caddy).toContain('@ishotyouu host ishotyouu-test.leonsites.org');
     expect(caddy).not.toContain('@ishotyouu_public');
     expect(caddy).toContain('reverse_proxy photographer-test:4321');
+    expect(production).toContain('host ishotyouu.leonsites.org');
+    expect(production).toContain('reverse_proxy ishotyouu-demo:80');
+    expect(production).toContain('reverse_proxy photographer:4321');
   });
 });

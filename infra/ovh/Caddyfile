@@ -83,6 +83,32 @@
 		}
 	}
 
+	@ishotyouu_media_files {
+		host ishotyouu.leonsites.org
+		path /work/*.jpg /work/*.jpeg /work/*.webp /work/*.png /favicon.svg
+	}
+	handle @ishotyouu_media_files {
+		reverse_proxy ishotyouu-demo:80
+	}
+
+	@ishotyouu_assets {
+		host ishotyouu.leonsites.org
+		path /_astro/*
+	}
+	handle @ishotyouu_assets {
+		reverse_proxy photographer:4321 {
+			@error status 404
+			handle_response @error {
+				reverse_proxy ishotyouu-demo:80
+			}
+		}
+	}
+
+	@ishotyouu host ishotyouu.leonsites.org
+	handle @ishotyouu {
+		reverse_proxy photographer:4321
+	}
+
 	# Cloudflare publishes the allowed customer hostnames. The shared photographer
 	# runtime performs a second exact-host database lookup and rejects unknown hosts.
 	handle {

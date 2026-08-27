@@ -34,7 +34,10 @@ describe('fully self-hosted production stack', () => {
     expect(caddy).not.toContain('root * /srv/uploads');
     expect(caddy).not.toMatch(/DEMO_DOMAIN|@test_site|reverse_proxy northline:/);
     expect(compose).toMatch(/\n  photographer:\n/);
+    expect(compose).toMatch(/\n  ishotyouu-demo:\n/);
     expect(compose).not.toMatch(/\n  northline:\n/);
+    expect(caddy).toContain('host ishotyouu.leonsites.org');
+    expect(caddy).toContain('reverse_proxy ishotyouu-demo:80');
 
     expect(resolver).toContain(".eq('primary_domain', input.hostname)");
     expect(resolver).toContain(".eq('admin_domain', input.hostname)");

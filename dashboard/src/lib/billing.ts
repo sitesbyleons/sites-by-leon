@@ -40,3 +40,20 @@ export function canStartCheckout(context: CheckoutContext) {
       (!context.subscriptionStatus || replaceableSubscriptionStatuses.has(context.subscriptionStatus)),
   );
 }
+
+export function canSendAdminHostingInvoice(context: {
+  workspaceStatus: string | null;
+  subscriptionStatus: string | null;
+  planKey: string | null;
+  billingEmail: string | null;
+}) {
+  const email = context.billingEmail?.trim().toLowerCase() ?? '';
+  return Boolean(
+    (context.workspaceStatus === 'lead' || context.workspaceStatus === 'approved' || context.workspaceStatus === 'active')
+      && getCheckoutPlan(context.planKey ?? '')
+      && email
+      && email.length <= 254
+      && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
+      && (!context.subscriptionStatus || replaceableSubscriptionStatuses.has(context.subscriptionStatus)),
+  );
+}
