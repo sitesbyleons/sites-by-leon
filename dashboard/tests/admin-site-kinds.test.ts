@@ -31,15 +31,14 @@ describe('admin site kinds', () => {
     expect(sitesPageProjects.map((p) => p.workspace_id)).toContain('ws_fieldwork');
   });
 
-  it('treats lead demos as client sites so ISHOTYOUU is not labeled Demo', () => {
+  it('never labels ISHOTYOUU as a portfolio demo', () => {
     const data = getPreviewAdminData();
     const ishotyouu = data.workspaces.find((workspace) => workspace.id === 'ws_ishotyouu');
-    const northline = data.workspaces.find((workspace) => workspace.id === 'ws_northline');
     const ishotyouuConnection = data.connections.find((connection) => connection.workspace_id === 'ws_ishotyouu');
-    const northlineConnection = data.connections.find((connection) => connection.workspace_id === 'ws_northline');
 
     expect(isPortfolioDemo(ishotyouuConnection, ishotyouu)).toBe(false);
-    expect(isPortfolioDemo(northlineConnection, northline)).toBe(true);
+    expect(isPortfolioDemo({ site_kind: 'demo', site_key: 'ishotyouu-demo' }, { status: 'active', slug: 'ishotyouu' })).toBe(false);
+    expect(isPortfolioDemo({ site_kind: 'demo', site_key: 'northline-demo' }, { status: 'active', slug: 'northline' })).toBe(true);
   });
 
   it('keeps lead client sites off the Demos page', () => {

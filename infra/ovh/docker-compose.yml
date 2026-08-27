@@ -39,7 +39,7 @@ services:
         condition: service_healthy
       photographer:
         condition: service_healthy
-      ishotyouu-demo:
+      ishotyouu-stills:
         condition: service_started
     networks:
       - leon-edge
@@ -102,7 +102,7 @@ services:
     cpus: 3
     pids_limit: 250
 
-  ishotyouu-demo:
+  ishotyouu-stills:
     build:
       context: ../..
       dockerfile: infra/ovh/docker/Dockerfile.ishotyouu-demo-test

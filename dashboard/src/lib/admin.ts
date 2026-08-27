@@ -111,9 +111,10 @@ export type AdminData = {
 };
 
 export function isPortfolioDemo(
-  connection?: Pick<AdminConnection, 'site_kind'> | null,
-  workspace?: Pick<AdminWorkspace, 'status'> | null,
+  connection?: Pick<AdminConnection, 'site_kind' | 'site_key'> | null,
+  workspace?: Pick<AdminWorkspace, 'status' | 'slug'> | null,
 ) {
+  if (workspace?.slug === 'ishotyouu' || connection?.site_key === 'ishotyouu-demo') return false;
   return connection?.site_kind === 'demo' && workspace?.status !== 'lead';
 }
 

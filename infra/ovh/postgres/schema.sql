@@ -445,7 +445,10 @@ alter table site_connections alter column admin_domain set not null;
 alter table site_connections add column if not exists site_kind text not null default 'client';
 update site_connections
 set site_kind = 'demo'
-where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org', 'ishotyouu.leonsites.org', 'ishotyouu-test.leonsites.org');
+where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org');
+update site_connections
+set site_kind = 'client'
+where primary_domain in ('ishotyouu.leonsites.org', 'ishotyouu-test.leonsites.org');
 alter table site_connections drop constraint if exists site_connections_site_kind_check;
 alter table site_connections add constraint site_connections_site_kind_check
   check (site_kind in ('client', 'demo'));
@@ -765,10 +768,11 @@ begin
       on conflict (id) do nothing;
     end if;
 
-    insert into site_connections (workspace_id, site_key, primary_domain, admin_domain, deployment_target, status, billing_mode, desired_status, billing_state)
-    values (ws_id, 'ishotyouu-demo', 'ishotyouu-test.leonsites.org', 'ishotyouu-test.leonsites.org', 'ovh:leon-platform-photographer', 'active', 'manual', 'active', 'manual')
+    insert into site_connections (workspace_id, site_key, site_kind, primary_domain, admin_domain, deployment_target, status, billing_mode, desired_status, billing_state)
+    values (ws_id, 'ishotyouu-demo', 'client', 'ishotyouu-test.leonsites.org', 'ishotyouu-test.leonsites.org', 'ovh:leon-platform-photographer', 'active', 'manual', 'active', 'manual')
     on conflict (workspace_id) do update set
       site_key = excluded.site_key,
+      site_kind = 'client',
       primary_domain = excluded.primary_domain,
       admin_domain = excluded.admin_domain,
       deployment_target = excluded.deployment_target,

@@ -88,7 +88,7 @@
 		path /work/*.jpg /work/*.jpeg /work/*.webp /work/*.png /favicon.svg
 	}
 	handle @ishotyouu_media_files {
-		reverse_proxy ishotyouu-demo:80
+		reverse_proxy ishotyouu-stills:80
 	}
 
 	@ishotyouu_assets {
@@ -99,7 +99,7 @@
 		reverse_proxy photographer:4321 {
 			@error status 404
 			handle_response @error {
-				reverse_proxy ishotyouu-demo:80
+				reverse_proxy ishotyouu-stills:80
 			}
 		}
 	}

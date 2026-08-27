@@ -106,7 +106,10 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(schema).toContain('clerk_user_id not in (select clerk_user_id from app_admins)');
     expect(schema).not.toContain('where workspace_id <> ws_id and role in');
     expect(schema).toContain('public Work is Instagram stills, not CMS galleries or posts');
-    expect(schema).not.toContain("'selected-stills'");
+    expect(schema).toContain("values (ws_id, 'ishotyouu-demo', 'client', 'ishotyouu-test.leonsites.org'");
+    expect(schema).toContain("site_kind = 'client'");
+    expect(schema).toContain("where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org');");
+    expect(schema).not.toContain("vow-and-light.leonsites.org', 'ishotyouu.leonsites.org");
   });
 
   it('routes TEST HTML to photographer-test while keeping OG work images on the sidecar', () => {
@@ -118,7 +121,8 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(caddy).not.toContain('@ishotyouu_public');
     expect(caddy).toContain('reverse_proxy photographer-test:4321');
     expect(production).toContain('host ishotyouu.leonsites.org');
-    expect(production).toContain('reverse_proxy ishotyouu-demo:80');
+    expect(production).toContain('reverse_proxy ishotyouu-stills:80');
+    expect(production).not.toContain('reverse_proxy ishotyouu-demo:4321');
     expect(production).toContain('reverse_proxy photographer:4321');
   });
 });
