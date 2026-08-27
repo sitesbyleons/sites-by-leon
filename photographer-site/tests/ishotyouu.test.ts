@@ -7,6 +7,7 @@ import {
   ishotyouuInternalPath,
   ishotyouuNavHref,
   ishotyouuPublicPathname,
+  isIshotyouuHiddenPublicPath,
   isIshotyouuPublicPath,
   isIshotyouuSite,
 } from '../src/lib/ishotyouu';
@@ -18,6 +19,10 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(isIshotyouuSite({ siteKey: 'ishotyouu-demo', hostname: 'ishotyouu-test.leonsites.org' })).toBe(true);
     expect(isIshotyouuSite({ siteKey: 'northline-demo', hostname: 'demo.leonsites.org' })).toBe(false);
     expect(isIshotyouuPublicPath('/work/selected-stills')).toBe(true);
+    expect(isIshotyouuPublicPath('/journal')).toBe(false);
+    expect(isIshotyouuPublicPath('/packages')).toBe(false);
+    expect(isIshotyouuHiddenPublicPath('/journal/selected-stills')).toBe(true);
+    expect(isIshotyouuHiddenPublicPath('/packages')).toBe(true);
     expect(isIshotyouuPublicPath('/admin')).toBe(false);
     expect(ishotyouuInternalPath('/work')).toBe('/i/work');
     expect(ishotyouuPublicPathname('/i/work/selected-stills')).toBe('/work/selected-stills');
@@ -32,8 +37,11 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/pages/i/inquire.astro')).toContain('searchParams.get(\'package\')');
     expect(read('src/pages/i/index.astro')).toContain('class="hero"');
     expect(read('src/pages/i/work/index.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
-    expect(read('src/pages/i/journal/index.astro')).toContain('title="Journal"');
-    expect(read('src/pages/i/journal/index.astro')).toContain('No posts yet.');
+    expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Inquire'");
+    expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain("label: 'Journal'");
+    expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain("label: 'Services'");
+    expect(read('src/pages/sitemap.xml.ts')).toContain("path: isIshotyouu ? '/inquire' : '/contact'");
+    expect(read('src/pages/sitemap.xml.ts')).toContain('isIshotyouu ? []');
     expect(read('src/layouts/SiteLayout.astro')).not.toContain('IshotyouuLayout');
     expect(read('src/pages/i/index.astro')).toContain('IshotyouuLayout');
     expect(read('src/pages/index.astro')).not.toContain('IshotyouuLayout');
@@ -52,7 +60,7 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(middleware).toContain('ishotyouuRoutes');
     expect(middleware).toContain('context.rewrite');
     expect(middleware).toContain('ishotyouuInternalPath');
-    expect(middleware).toContain('tenantResolution, ishotyouuRoutes, publicControl, authentication');
+    expect(middleware).toContain('isIshotyouuHiddenPublicPath');
   });
 
   it('reuses an existing ISHOTYOUU workspace slug instead of inserting a colliding UUID', () => {

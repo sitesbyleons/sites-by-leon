@@ -23,6 +23,7 @@ const lastModifiedTag = (value?: string) => {
 export const GET: APIRoute = async ({ locals }) => {
   const { workspaceId, canonicalOrigin, siteKey } = locals.siteContext;
   const portfolio = await siteRepository.getPortfolio(workspaceId);
+  const isIshotyouu = siteKey === 'ishotyouu-demo';
   const entries: SitemapEntry[] = [
     { path: '/' },
     { path: '/work' },
@@ -30,14 +31,16 @@ export const GET: APIRoute = async ({ locals }) => {
       path: `/work/${encodeURIComponent(gallery.slug)}`,
       lastModified: gallery.publishedAt,
     })),
-    ...(portfolio.posts.length > 0 ? [{ path: '/journal' }] : []),
-    ...portfolio.posts.map((post) => ({
-      path: `/journal/${encodeURIComponent(post.slug)}`,
-      lastModified: post.publishedAt,
-    })),
-    { path: '/packages' },
-    { path: siteKey === 'ishotyouu-demo' ? '/inquire' : '/contact' },
-    ...(siteKey === 'ishotyouu-demo' ? [{ path: '/about' }, { path: '/journal' }] : []),
+    ...(isIshotyouu ? [] : [
+      ...(portfolio.posts.length > 0 ? [{ path: '/journal' }] : []),
+      ...portfolio.posts.map((post) => ({
+        path: `/journal/${encodeURIComponent(post.slug)}`,
+        lastModified: post.publishedAt,
+      })),
+      { path: '/packages' },
+    ]),
+    { path: isIshotyouu ? '/inquire' : '/contact' },
+    ...(isIshotyouu ? [{ path: '/about' }] : []),
   ];
   const urls = entries.map((entry) => {
     const location = new URL(entry.path, `${canonicalOrigin}/`).toString();

@@ -4,6 +4,7 @@ import { defineMiddleware, sequence } from 'astro:middleware';
 import { ManagedContentUnavailableError } from './lib/content/repository';
 import { createStudioDatabase } from './lib/database';
 import {
+  isIshotyouuHiddenPublicPath,
   isIshotyouuInternalPath,
   isIshotyouuPublicPath,
   isIshotyouuSite,
@@ -79,6 +80,9 @@ const ishotyouuRoutes = defineMiddleware(async (context, next) => {
       return unavailableResponse('Site not found.', 404);
     }
     return next();
+  }
+  if (isIshotyouuHiddenPublicPath(pathname)) {
+    return context.redirect('/', 302);
   }
   if (isIshotyouuPublicPath(pathname)) {
     context.locals.ishotyouuInternal = true;
