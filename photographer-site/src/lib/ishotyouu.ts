@@ -4,7 +4,6 @@ export const ISHOTYOUU_SITE_KEYS = new Set(['ishotyouu-demo']);
 export const ISHOTYOUU_INSTAGRAM_URL = 'https://www.instagram.com/180pf.shotit/';
 export const ISHOTYOUU_INSTAGRAM_HANDLE = '@180pf.shotit';
 export const ISHOTYOUU_INTERNAL_PREFIX = '/i';
-const ISHOTYOUU_PUBLIC_PREFIXES = ['/work', '/about', '/inquire'] as const;
 
 export const isIshotyouuSite = (context: Pick<SiteContext, 'siteKey' | 'hostname'>) =>
   ISHOTYOUU_SITE_KEYS.has(context.siteKey) || context.hostname.includes('ishotyouu');
@@ -18,7 +17,15 @@ export const ishotyouuPublicPathname = (pathname: string) => {
 };
 
 export const isIshotyouuPublicPath = (pathname: string) =>
-  pathname === '/' || ISHOTYOUU_PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  pathname === '/'
+  || pathname === '/work'
+  || pathname === '/about' || pathname.startsWith('/about/')
+  || pathname === '/inquire' || pathname.startsWith('/inquire/');
+
+export const isIshotyouuWorkDetailPath = (pathname: string) => {
+  const publicPath = ishotyouuPublicPathname(pathname);
+  return publicPath.startsWith('/work/') && !/\.(jpe?g|png|webp|avif|gif|svg)$/i.test(publicPath);
+};
 
 export const isIshotyouuHiddenPublicPath = (pathname: string) => {
   const publicPath = ishotyouuPublicPathname(pathname);

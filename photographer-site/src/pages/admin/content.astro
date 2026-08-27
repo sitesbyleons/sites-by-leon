@@ -1,5 +1,6 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -8,10 +9,11 @@ const access = decideStudioAdminAccess(session, '/admin/content');
 if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const settings = data.settings;
+const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 ---
 
 <StudioAdminLayout title="Homepage" active="content" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
-  <header class="studio-section-heading"><div><small>Homepage</small><h2>Text and style</h2></div><p>Edit the homepage text, colors, and fonts.</p></header>
+  <header class="studio-section-heading"><div><small>Homepage</small><h2>{ishotyouu ? 'Name and about text' : 'Text and style'}</h2></div><p>{ishotyouu ? 'Work stills stay the Instagram frames already on the site. This text goes on Home and About.' : 'Edit the homepage text, colors, and fonts.'}</p></header>
   <section class="studio-panel">
     <form class="studio-form" data-studio-form data-resource="settings">
       <label><span>Site name</span><input name="site_title" value={settings?.site_title ?? ''} minlength="2" maxlength="100" required /></label>
@@ -19,6 +21,14 @@ const settings = data.settings;
       <label class="wide"><span>Homepage description</span><textarea name="hero_subtitle" maxlength="240" required>{settings?.hero_subtitle ?? ''}</textarea></label>
       <label><span>Contact email</span><input name="contact_email" type="email" value={settings?.contact_email ?? ''} /></label>
       <label><span>Contact phone</span><input name="contact_phone" type="tel" value={settings?.contact_phone ?? ''} /></label>
+      {ishotyouu ? (
+        <>
+          <input type="hidden" name="paper_color" value={settings?.paper_color ?? '#090807'} />
+          <input type="hidden" name="ink_color" value={settings?.ink_color ?? '#f1eadc'} />
+          <input type="hidden" name="accent_color" value={settings?.accent_color ?? '#d4a45a'} />
+          <input type="hidden" name="font_preset" value={settings?.font_preset ?? 'athletic'} />
+        </>
+      ) : (
       <fieldset class="studio-brand-controls wide">
         <legend>Website style</legend>
         <label><span>Page color</span><input name="paper_color" type="color" value={settings?.paper_color ?? '#f4f6f8'} /></label>
@@ -30,6 +40,7 @@ const settings = data.settings;
           <option value="modern" selected={settings?.font_preset === 'modern'}>Modern</option>
         </select></label>
       </fieldset>
+      )}
       <div class="wide"><button type="submit">Save homepage</button></div>
       <p class="studio-form-status wide" data-form-status aria-live="polite"></p>
     </form>

@@ -8,6 +8,7 @@ import {
   isIshotyouuInternalPath,
   isIshotyouuPublicPath,
   isIshotyouuSite,
+  isIshotyouuWorkDetailPath,
   ishotyouuInternalPath,
 } from './lib/ishotyouu';
 import {
@@ -80,6 +81,9 @@ const ishotyouuRoutes = defineMiddleware(async (context, next) => {
       return unavailableResponse('Site not found.', 404);
     }
     return next();
+  }
+  if (isIshotyouuWorkDetailPath(pathname)) {
+    return context.redirect('/work', 302);
   }
   if (isIshotyouuHiddenPublicPath(pathname)) {
     return context.redirect('/', 302);

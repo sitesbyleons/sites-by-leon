@@ -27,10 +27,10 @@ export const GET: APIRoute = async ({ locals }) => {
   const entries: SitemapEntry[] = [
     { path: '/' },
     { path: '/work' },
-    ...portfolio.galleries.map((gallery) => ({
+    ...(isIshotyouu ? [] : portfolio.galleries.map((gallery) => ({
       path: `/work/${encodeURIComponent(gallery.slug)}`,
       lastModified: gallery.publishedAt,
-    })),
+    }))),
     ...(isIshotyouu ? [] : [
       ...(portfolio.posts.length > 0 ? [{ path: '/journal' }] : []),
       ...portfolio.posts.map((post) => ({

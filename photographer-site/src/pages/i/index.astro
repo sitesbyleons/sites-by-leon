@@ -5,9 +5,7 @@ import { siteRepository } from '../../lib/content/repository';
 import { ISHOTYOUU_INSTAGRAM_HANDLE, ISHOTYOUU_INSTAGRAM_URL } from '../../lib/ishotyouu';
 
 const portfolio = await siteRepository.getPortfolio(Astro.locals.siteContext.workspaceId);
-const hero = portfolio.galleries[0]?.cover.src
-  ? { src: portfolio.galleries[0].cover.src, alt: portfolio.galleries[0].cover.alt }
-  : ISHOTYOUU_FALLBACK_HERO;
+const hero = ISHOTYOUU_FALLBACK_HERO;
 const { canonicalOrigin } = Astro.locals.siteContext;
 ---
 

@@ -1,5 +1,7 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { inquiryInstagramHandle, inquiryPublicMessage } from '../../lib/inquiry';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -9,25 +11,33 @@ const access = decideStudioAdminAccess(session, '/admin/inquiries');
 if (access.kind !== 'admin') return Astro.redirect(access.location);
 const data = session.data!;
 const statuses = ['new', 'contacted', 'booked', 'closed'] as const;
+const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 ---
 
 <StudioAdminLayout title="Inquiries" active="inquiries" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
-  <header class="studio-section-heading"><div><small>Inbox</small><h2>Client inquiries</h2></div><p>Open the message, follow up, then update its status.</p></header>
+  <header class="studio-section-heading"><div><small>Inbox</small><h2>Client inquiries</h2></div><p>{ishotyouu ? 'Instagram name, email, and the message from Inquire.' : 'Open the message, follow up, then update its status.'}</p></header>
   <section class="studio-stack">
-    {data.inquiries.length ? data.inquiries.map((inquiry) => (
-      <article class="studio-panel studio-inquiry">
-        <div class="studio-inquiry-heading">
-          <div><strong>{inquiry.name}</strong><small>{inquiry.desired_date} · {inquiry.email ?? inquiry.phone}</small></div>
-          <span class={`studio-status studio-status--${inquiry.status}`}>{inquiry.status}</span>
-        </div>
-        <p>{inquiry.message}</p>
-        <form class="studio-form studio-form--inline" data-studio-form data-resource="inquiries">
-          <input type="hidden" name="id" value={inquiry.id} />
-          <label><span>Status</span><select name="status" aria-label="Status">{statuses.map((status) => <option value={status} selected={inquiry.status === status}>{status}</option>)}</select></label>
-          <div><button type="submit">Save status</button></div>
-          <p class="studio-form-status" data-form-status aria-live="polite"></p>
-        </form>
-      </article>
-    )) : <p class="studio-empty">No inquiries yet.</p>}
+    {data.inquiries.length ? data.inquiries.map((inquiry) => {
+      const handle = inquiryInstagramHandle(inquiry.message);
+      const body = inquiryPublicMessage(inquiry.message);
+      return (
+        <article class="studio-panel studio-inquiry">
+          <div class="studio-inquiry-heading">
+            <div>
+              <strong>{handle ? `@${handle}` : inquiry.name}</strong>
+              <small>{ishotyouu ? [inquiry.name !== handle ? inquiry.name : null, inquiry.email ?? inquiry.phone].filter(Boolean).join(' · ') : `${inquiry.desired_date} · ${inquiry.email ?? inquiry.phone}`}</small>
+            </div>
+            <span class={`studio-status studio-status--${inquiry.status}`}>{inquiry.status}</span>
+          </div>
+          <p>{body}</p>
+          <form class="studio-form studio-form--inline" data-studio-form data-resource="inquiries">
+            <input type="hidden" name="id" value={inquiry.id} />
+            <label><span>Status</span><select name="status" aria-label="Status">{statuses.map((status) => <option value={status} selected={inquiry.status === status}>{status}</option>)}</select></label>
+            <div><button type="submit">Save status</button></div>
+            <p class="studio-form-status" data-form-status aria-live="polite"></p>
+          </form>
+        </article>
+      );
+    }) : <p class="studio-empty">No inquiries yet.</p>}
   </section>
 </StudioAdminLayout>

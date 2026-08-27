@@ -1,6 +1,7 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
 import StudioGalleryEditor from '../../components/StudioGalleryEditor.astro';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -13,6 +14,7 @@ const session = await loadStudioSession({
 });
 const access = decideStudioAdminAccess(session, '/admin/galleries');
 if (access.kind !== 'admin') return Astro.redirect(access.location);
+if (isIshotyouuSite(Astro.locals.siteContext)) return Astro.redirect('/admin/media');
 const data = session.data!;
 ---
 

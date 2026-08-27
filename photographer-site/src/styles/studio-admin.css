@@ -34,13 +34,14 @@ a { color: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .studio-icon { width: 1rem; height: 1rem; flex: 0 0 auto; }
 
-/* Clerk UI mobile overrides */
-.cl-rootBox, .cl-card, .cl-internal-b3fm6y { max-width: 100% !important; width: 100% !important; }
-.cl-card { padding: 1.25rem 1rem !important; }
-.cl-formFieldInput, .cl-formButtonPrimary { font-size: 16px !important; min-height: 2.75rem !important; }
-.cl-formFieldInput { padding: 0.65rem 0.75rem !important; }
-.cl-formButtonPrimary { padding: 0.7rem 1rem !important; }
-.cl-footerAction, .cl-footerActionLink { font-size: 0.88rem !important; }
+/* Clerk UI on access screens only. Do not stretch the topbar user button. */
+.studio-access-screen .cl-rootBox, .studio-access-screen .cl-card, .studio-access-screen .cl-internal-b3fm6y { max-width: 100% !important; width: 100% !important; }
+.studio-access-screen .cl-card { padding: 1.25rem 1rem !important; }
+.studio-access-screen .cl-formFieldInput, .studio-access-screen .cl-formButtonPrimary { font-size: 16px !important; min-height: 2.75rem !important; }
+.studio-access-screen .cl-formFieldInput { padding: 0.65rem 0.75rem !important; }
+.studio-access-screen .cl-formButtonPrimary { padding: 0.7rem 1rem !important; }
+.studio-access-screen .cl-footerAction, .studio-access-screen .cl-footerActionLink { font-size: 0.88rem !important; }
+.studio-topbar__tools .cl-rootBox, .studio-topbar__tools .cl-userButtonBox { width: auto !important; max-width: none !important; }
 
 .studio-shell { display: grid; min-height: 100dvh; grid-template-columns: 13.75rem minmax(0, 1fr); }
 .studio-sidebar { position: sticky; z-index: 20; top: 0; display: flex; min-width: 0; height: 100dvh; flex-direction: column; padding: 0.8rem; border-right: 1px solid #292c29; background: var(--sidebar); color: var(--sidebar-text); }
@@ -125,7 +126,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .studio-brand-controls input[type='color'] { min-height: 2.65rem; padding: 0.24rem; }
 
 .studio-stack { display: grid; gap: 0.42rem; margin-bottom: 1.8rem; }
-.studio-item { position: relative; display: grid; min-height: 4.35rem; grid-template-columns: 3.35rem minmax(0, 1fr) 8rem; align-items: center; padding: 0.42rem; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+.studio-item { position: relative; display: grid; min-height: 4.35rem; grid-template-columns: 3.35rem minmax(0, 1fr) auto; align-items: center; padding: 0.42rem; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
 .studio-item:hover { border-color: var(--line-strong); background: #fff; }
 .studio-item-thumb { width: 3.35rem; height: 3.35rem; border-radius: 5px; object-fit: cover; background: #e8e9e5; }
 .studio-item-thumb--empty { display: grid; place-items: center; color: #777; font-size: 0.55rem; }
@@ -134,9 +135,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .studio-item-copy strong, .studio-item-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .studio-item-copy strong { font-size: 0.76rem; font-weight: 650; }
 .studio-item-copy small { color: var(--muted); font-size: 0.65rem; }
-.studio-item-actions { display: grid; width: 100%; min-height: 2rem; grid-column: 1 / -1; grid-row: 1; grid-template-columns: 1fr auto 1fr; align-items: center; pointer-events: none; }
-.studio-reorder { display: inline-flex; grid-column: 2; align-items: center; justify-content: center; gap: 0.28rem; pointer-events: auto; }
-.studio-item-tools { display: flex; grid-column: 3; align-items: center; justify-content: flex-end; justify-self: end; gap: 0.28rem; pointer-events: auto; }
+.studio-item-actions { display: flex; width: auto; min-height: 2rem; align-items: center; gap: 0.4rem; }
+.studio-reorder { display: inline-flex; align-items: center; justify-content: center; gap: 0.28rem; }
+.studio-item-tools { display: flex; align-items: center; justify-content: flex-end; gap: 0.28rem; }
 .studio-item-actions button, .studio-editor summary { display: inline-flex; min-height: 1.9rem; align-items: center; padding: 0.42rem 0.56rem; border: 1px solid var(--line); border-radius: 5px; background: #fff; color: #4d514d; cursor: pointer; font-size: 0.59rem; font-weight: 680; letter-spacing: 0.025em; text-transform: uppercase; }
 .studio-item-actions button:hover, .studio-editor summary:hover { border-color: #afb3ad; color: #1d201d; }
 .studio-button-quiet { min-width: 1.9rem; padding-inline: 0 !important; }

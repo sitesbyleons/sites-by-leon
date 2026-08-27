@@ -42,3 +42,11 @@ export function validateInquiry(input: unknown) {
   const message = `${instagramLine}${payload.message}`.slice(0, 3000);
   return { ok: true as const, payload: { ...payload, message } };
 }
+
+export const inquiryInstagramHandle = (message: string) => {
+  const match = message.match(/^Instagram: @([A-Za-z0-9._]+)/);
+  return match?.[1] ?? null;
+};
+
+export const inquiryPublicMessage = (message: string) =>
+  message.replace(/^Instagram: @[A-Za-z0-9._]+\s*/, '').trim();

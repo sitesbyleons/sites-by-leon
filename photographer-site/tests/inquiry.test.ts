@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { canAcceptInquiry, validateInquiry } from '../src/lib/inquiry';
+import { canAcceptInquiry, inquiryInstagramHandle, inquiryPublicMessage, validateInquiry } from '../src/lib/inquiry';
 
 describe('portfolio inquiry validation', () => {
   it('accepts a normal inquiry with either email or phone', () => {
@@ -53,5 +53,10 @@ describe('inquiry tenant isolation', () => {
       expect(result.payload.message).toContain('Instagram: @180pf.shotit');
       expect(result.payload.desiredDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
+  });
+
+  it('reads the Instagram handle back out of a stored inquiry message', () => {
+    expect(inquiryInstagramHandle('Instagram: @qa.browser\n\nNeed coverage.')).toBe('qa.browser');
+    expect(inquiryPublicMessage('Instagram: @qa.browser\n\nNeed coverage.')).toBe('Need coverage.');
   });
 });
