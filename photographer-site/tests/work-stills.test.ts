@@ -5,8 +5,10 @@ import {
   isSidecarWorkImage,
   libraryStillsForInstagramUrl,
   normalizeInstagramUrl,
+  publicWorkFrames,
   stillToFrame,
 } from '../src/lib/work-stills';
+import { ISHOTYOUU_FALLBACK_WORK } from '../src/lib/content/ishotyouu-fallback';
 
 describe('ISHOTYOUU work stills', () => {
   it('accepts sidecar Work images and rejects other URLs', () => {
@@ -45,5 +47,18 @@ describe('ISHOTYOUU work stills', () => {
       alt: 'Selected still',
       instagramUrl: 'https://www.instagram.com/p/DbxBpe1lvmD/',
     });
+  });
+
+  it('shows the live Instagram wall when the editor has no saved stills yet', () => {
+    expect(publicWorkFrames([])).toEqual(ISHOTYOUU_FALLBACK_WORK);
+    expect(publicWorkFrames([{
+      image_url: '/work/19-DbxBpe1lvmD.jpg',
+      alt_text: 'Selected still',
+      instagram_url: 'https://www.instagram.com/p/DbxBpe1lvmD/',
+    }])).toEqual([{
+      src: '/work/19-DbxBpe1lvmD.jpg',
+      alt: 'Selected still',
+      instagramUrl: 'https://www.instagram.com/p/DbxBpe1lvmD/',
+    }]);
   });
 });

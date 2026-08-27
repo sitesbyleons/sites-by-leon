@@ -24,6 +24,7 @@ const { canonicalOrigin } = Astro.locals.siteContext;
     <div class="hero-veil"></div>
     <div class="hero-copy" data-enter>
       <h1 id="hero-title">{portfolio.home.headline || portfolio.studioName}</h1>
+      {portfolio.home.introduction && <p class="hero-lede">{portfolio.home.introduction}</p>}
       <p class="handle">
         <a href={ISHOTYOUU_INSTAGRAM_URL} rel="noreferrer">{ISHOTYOUU_INSTAGRAM_HANDLE}</a>
       </p>

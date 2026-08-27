@@ -1,6 +1,6 @@
 import type { DataClient } from '@leon/platform-core';
 
-import { ishotyouuLibraryStills, type IshotyouuFallbackFrame } from './content/ishotyouu-fallback';
+import { ISHOTYOUU_FALLBACK_WORK, ishotyouuLibraryStills, type IshotyouuFallbackFrame } from './content/ishotyouu-fallback';
 
 export type StudioWorkStill = {
   id: string;
@@ -45,6 +45,10 @@ export function stillToFrame(still: Pick<StudioWorkStill, 'image_url' | 'alt_tex
     alt: still.alt_text,
     instagramUrl: still.instagram_url,
   };
+}
+
+export function publicWorkFrames(saved: Pick<StudioWorkStill, 'image_url' | 'alt_text' | 'instagram_url'>[]) {
+  return saved.length ? saved.map(stillToFrame) : ISHOTYOUU_FALLBACK_WORK;
 }
 
 export async function listWorkStills(client: DataClient, workspaceId: string): Promise<StudioWorkStill[]> {

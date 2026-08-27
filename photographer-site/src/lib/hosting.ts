@@ -13,6 +13,19 @@ export type StudioHosting = {
   checkout_expires_at: string | null;
 };
 
+export function domainChoiceCopy(host: string) {
+  const parts = host.toLowerCase().split('.').filter(Boolean);
+  const tld = parts.length > 1 ? parts.slice(1).join('.') : '';
+  const name = parts[0] ?? host;
+  return {
+    host,
+    name,
+    tld,
+    badge: tld ? `.${tld}` : host,
+    hint: tld === 'com' ? 'The usual web address' : tld === 'org' ? 'The .org address' : 'Use this address',
+  };
+}
+
 export function parseDomainOptions(value: string | null | undefined) {
   const seen = new Set<string>();
   const options: string[] = [];

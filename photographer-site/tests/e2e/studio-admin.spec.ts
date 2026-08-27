@@ -14,6 +14,7 @@ const pages = [
   ['/admin/clients', 'Clients'],
   ['/admin/invoices', 'Invoices'],
   ['/admin/inquiries', 'Inquiries'],
+  ['/admin/hosting', 'Your website'],
   ['/admin/support', 'Support'],
 ] as const;
 
@@ -196,6 +197,17 @@ test('homepage editor offers controlled colors and font presets', async ({ page 
   await expect(page.getByLabel('Page color')).toHaveValue('#f4f6f8');
   await expect(page.getByLabel('Accent color')).toHaveValue('#ff3b30');
   await expect(page.getByLabel('Font style')).toHaveValue('athletic');
+});
+
+test('hosting domain choices are large selectable cards', async ({ page }) => {
+  await page.goto('/admin/hosting?preview=true');
+  await expect(page.getByRole('heading', { level: 1, name: 'Your website' })).toBeVisible();
+  await expect(page.locator('.studio-domain-card strong', { hasText: 'northlinesports.com' })).toBeVisible();
+  await expect(page.locator('.studio-domain-card strong', { hasText: 'northlinesports.org' })).toBeVisible();
+  await page.locator('.studio-domain-card', { hasText: 'northlinesports.org' }).click();
+  await expect(page.getByText("You'll use northlinesports.org. Leon will point that domain at this website.")).toBeVisible();
+  await page.getByRole('button', { name: 'Use this domain' }).click();
+  await expect(page.locator('[data-hosting-status]')).toContainText('Preview domain saved.');
 });
 
 test('legacy settings URL opens the single homepage and brand editor', async ({ page }) => {

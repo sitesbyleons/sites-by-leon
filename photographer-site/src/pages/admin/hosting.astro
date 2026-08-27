@@ -1,6 +1,6 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
-import { hostingBillCopy, parseDomainOptions } from '../../lib/hosting';
+import { domainChoiceCopy, hostingBillCopy, parseDomainOptions } from '../../lib/hosting';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -52,7 +52,7 @@ const invoiceState = Astro.url.searchParams.get('invoice');
     <article class="studio-card">
       <small>Domain</small>
       <strong>{chosen || 'Not chosen'}</strong>
-      <p>{options.length ? 'Pick from the list Leon sent below.' : 'Leon will send domain choices here.'}</p>
+      <p>{options.length ? 'Tap a card below, then save. Leon still has to point that domain at this website.' : 'Leon will send domain choices here.'}</p>
     </article>
   </section>
 
@@ -67,17 +67,28 @@ const invoiceState = Astro.url.searchParams.get('invoice');
   )}
 
   <section>
-    <header class="studio-section-heading"><div><small>Address</small><h2>Choose a domain</h2></div></header>
+    <header class="studio-section-heading"><div><small>Address</small><h2>Choose a domain</h2></div><p>Pick the address you want people to type. Saving here does not buy or move the domain.</p></header>
     <div class="studio-panel">
       {options.length ? (
-        <form class="studio-form" data-hosting-domain>
-          {options.map((option) => (
-            <label class="studio-choice">
-              <input type="radio" name="chosen_domain" value={option} required checked={option === chosen} />
-              <span>{option}</span>
-            </label>
-          ))}
-          <div><button type="submit">Save domain choice</button></div>
+        <form class="studio-form studio-form--single" data-hosting-domain>
+          <div class="studio-domain-grid" role="radiogroup" aria-label="Domain choices">
+            {options.map((option) => {
+              const choice = domainChoiceCopy(option);
+              const selected = option === chosen;
+              return (
+                <label class="studio-domain-card" data-domain-card>
+                  <input type="radio" name="chosen_domain" value={option} required checked={selected} />
+                  <span class="studio-domain-card__badge">{choice.badge}</span>
+                  <strong>{choice.host}</strong>
+                  <small>{selected ? 'Selected' : choice.hint}</small>
+                </label>
+              );
+            })}
+          </div>
+          <p class="studio-domain-preview" data-domain-preview>{chosen ? `You'll use ${chosen}. Leon will point that domain at this website.` : 'Choose .com or .org, then save.'}</p>
+          <div class="studio-form-actions">
+            <button type="submit">Use this domain</button>
+          </div>
           <p class="studio-form-status" data-hosting-status aria-live="polite"></p>
         </form>
       ) : (
@@ -88,6 +99,22 @@ const invoiceState = Astro.url.searchParams.get('invoice');
   <script>
     const form = document.querySelector<HTMLFormElement>('[data-hosting-domain]');
     const status = document.querySelector<HTMLElement>('[data-hosting-status]');
+    const preview = document.querySelector<HTMLElement>('[data-domain-preview]');
+    const cards = [...document.querySelectorAll<HTMLLabelElement>('[data-domain-card]')];
+    const selectedLabel = (host: string) => `You'll use ${host}. Leon will point that domain at this website.`;
+    const syncChoice = () => {
+      const selected = form ? new FormData(form).get('chosen_domain') : null;
+      for (const card of cards) {
+        const input = card.querySelector<HTMLInputElement>('input[type="radio"]');
+        const hint = card.querySelector('small');
+        const on = Boolean(input?.checked);
+        card.classList.toggle('is-selected', on);
+        if (hint && input) hint.textContent = on ? 'Selected' : (input.value.endsWith('.com') ? 'The usual web address' : input.value.endsWith('.org') ? 'The .org address' : 'Use this address');
+      }
+      if (preview && typeof selected === 'string' && selected) preview.textContent = selectedLabel(selected);
+    };
+    form?.addEventListener('change', syncChoice);
+    syncChoice();
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!status) return;

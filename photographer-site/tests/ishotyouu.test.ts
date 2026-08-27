@@ -42,7 +42,9 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/pages/i/inquire.astro')).not.toContain('name="email" type="email" autocomplete="email" maxlength="254" required');
     expect(read('src/pages/i/inquire.astro')).toContain('searchParams.get(\'package\')');
     expect(read('src/pages/i/index.astro')).toContain('class="hero"');
-    expect(read('src/pages/i/work/index.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
+    expect(read('src/pages/i/index.astro')).toContain('hero-lede');
+    expect(read('src/pages/i/index.astro')).toContain('portfolio.home.introduction');
+    expect(read('src/pages/i/work/index.astro')).toContain('publicWorkFrames');
     expect(read('src/pages/i/work/index.astro')).toContain('listWorkStills');
     expect(read('src/pages/i/work/index.astro')).toContain('instagramUrl');
     expect(read('src/pages/i/work/index.astro')).not.toContain('portfolio.galleries');
@@ -51,7 +53,8 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/layouts/StudioAdminLayout.astro')).toContain('ishotyouu ?');
     expect(read('src/pages/admin/work.astro')).toContain('Add to Work');
     expect(read('src/pages/admin/work.astro')).toContain('studio-panel--add-work');
-    expect(read('src/pages/admin/work.astro')).toContain('data-add-matching');
+    expect(read('src/pages/admin/work.astro')).toContain('data-load-live-work');
+    expect(read('src/pages/admin/work.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
     expect(read('src/pages/admin/work.astro')).toContain('WORK_STILLS_PAGE_SIZE');
     expect(read('src/pages/admin/work.astro')).toContain("redirect('/admin/galleries')");
     expect(read('src/pages/api/admin/[resource].ts')).toContain("resource === 'stills'");
@@ -63,6 +66,10 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Work'");
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'About'");
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Inquire'");
+    expect(read('src/layouts/IshotyouuLayout.astro')).toContain('Edit site');
+    expect(read('src/layouts/IshotyouuLayout.astro')).toContain('href="/admin"');
+    expect(read('src/layouts/StudioAdminLayout.astro')).toContain("label: 'Edit homepage'");
+    expect(read('src/layouts/StudioAdminLayout.astro')).toContain("label: 'Edit Work'");
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain('ISHOTYOUU_INSTAGRAM_URL');
     expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain("label: 'Journal'");
     expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain("label: 'Services'");
@@ -101,6 +108,8 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(schema).toContain('if ws_id is null then');
     expect(schema).toContain("if not exists (select 1 from studio_services where workspace_id = ws_id)");
     expect(schema).toContain("if not exists (select 1 from studio_work_stills where workspace_id = ws_id)");
+    expect(schema).toContain('copy the live homepage text');
+    expect(schema).toContain('create the workspace, change billing, or add members.');
     expect(schema).toContain('related_gallery_id');
     expect(schema).toContain('Keep ISHOTYOUU owners that Leon linked. Do not copy owners from other workspaces.');
     expect(schema).not.toContain('clerk_user_id not in (select clerk_user_id from app_admins)');

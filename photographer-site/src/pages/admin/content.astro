@@ -13,7 +13,7 @@ const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 ---
 
 <StudioAdminLayout title="Homepage" active="content" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} media={data.uploads}>
-  <header class="studio-section-heading"><div><small>Homepage</small><h2>{ishotyouu ? 'Name and about text' : 'Text and style'}</h2></div><p>{ishotyouu ? 'This text goes on Home and About. Change the Instagram wall on Work.' : 'Edit the homepage text, colors, and fonts.'}</p></header>
+  <header class="studio-section-heading"><div><small>Homepage</small><h2>{ishotyouu ? 'Name and about text' : 'Text and style'}</h2></div><p>{ishotyouu ? 'The site name is the wordmark. The title and description show on Home. The description also shows on About. Change the Instagram wall on Edit Work.' : 'Edit the homepage text, colors, and fonts.'}</p></header>
   <section class="studio-panel">
     <form class="studio-form" data-studio-form data-resource="settings">
       <label><span>Site name</span><input name="site_title" value={settings?.site_title ?? ''} minlength="2" maxlength="100" required /></label>
@@ -41,7 +41,7 @@ const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
         </select></label>
       </fieldset>
       )}
-      <div class="wide"><button type="submit">Save homepage</button></div>
+      <div class="wide studio-form-actions"><button type="submit">Save homepage</button>{ishotyouu && <a href="/" target="_blank" rel="noreferrer">View homepage</a>}</div>
       <p class="studio-form-status wide" data-form-status aria-live="polite"></p>
     </form>
   </section>

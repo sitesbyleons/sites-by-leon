@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { hostingBillCopy, parseDomainOptions } from '../src/lib/hosting';
+import { hostingBillCopy, parseDomainOptions, domainChoiceCopy } from '../src/lib/hosting';
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -33,7 +33,16 @@ describe('studio hosting onboarding', () => {
     const page = read('src/pages/admin/hosting.astro');
     expect(page).toContain('You owe');
     expect(page).toContain('Choose a domain');
+    expect(page).toContain('studio-domain-card');
+    expect(page).toContain('Use this domain');
     expect(page).toContain('/api/admin/hosting');
+    expect(domainChoiceCopy('ishotyouu.com')).toEqual({
+      host: 'ishotyouu.com',
+      name: 'ishotyouu',
+      tld: 'com',
+      badge: '.com',
+      hint: 'The usual web address',
+    });
     const api = read('src/pages/api/admin/hosting.ts');
     expect(api).toContain("update({ chosen_domain: chosen })");
     expect(api).not.toContain('monthly_cents');

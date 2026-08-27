@@ -1,7 +1,7 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
 import StudioMediaField from '../../components/StudioMediaField.astro';
-import { ishotyouuLibraryStills } from '../../lib/content/ishotyouu-fallback';
+import { ISHOTYOUU_FALLBACK_WORK, ishotyouuLibraryStills } from '../../lib/content/ishotyouu-fallback';
 import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 import { WORK_STILLS_PAGE_SIZE } from '../../lib/work-stills';
@@ -24,6 +24,7 @@ const requestedPage = Number(Astro.url.searchParams.get('page') ?? '1');
 const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, totalPages) : 1;
 const pagedStills = data.stills.slice((page - 1) * WORK_STILLS_PAGE_SIZE, page * WORK_STILLS_PAGE_SIZE);
 const libraryStills = ishotyouuLibraryStills();
+const liveWall = data.stills.length ? [] : ISHOTYOUU_FALLBACK_WORK;
 const pageHref = (target: number) => `/admin/work?page=${target}${preview}`;
 ---
 
@@ -50,11 +51,24 @@ const pageHref = (target: number) => `/admin/work?page=${target}${preview}`;
 
   <header class="studio-section-heading">
     <div><small>Instagram wall</small><h2>Work stills</h2></div>
-    <p>These frames are the public Work page. Each one opens its Instagram post.</p>
+    <p>{data.stills.length ? 'These frames are the public Work page. Each one opens its Instagram post.' : 'The public Work page is already showing this Instagram wall. Load it here to edit, reorder, or remove frames.'}</p>
   </header>
 
+  {liveWall.length ? (
+    <section class="studio-panel">
+      <div class="studio-live-work" aria-label="Stills currently on the public Work page">
+        {liveWall.map((frame) => (
+          <img src={frame.src} alt={frame.alt} />
+        ))}
+      </div>
+      <div class="studio-form-actions studio-live-work-actions">
+        <button type="button" class="studio-button" data-load-live-work>Load these into the editor</button>
+      </div>
+      <p class="studio-form-status" data-load-live-status aria-live="polite"></p>
+    </section>
+  ) : (
   <section class="studio-stack">
-    {pagedStills.length ? pagedStills.map((still) => (
+    {pagedStills.map((still) => (
       <article class="studio-item">
         <img class="studio-item-thumb" src={still.image_url} alt="" />
         <div class="studio-item-copy">
@@ -82,8 +96,9 @@ const pageHref = (target: number) => `/admin/work?page=${target}${preview}`;
           </div>
         </div>
       </article>
-    )) : <p class="studio-empty">No stills yet. Add one above, or the public Work page will show the original Instagram wall.</p>}
+    ))}
   </section>
+  )}
   {(totalPages > 1) && (
     <nav class="studio-pagination" aria-label="Work still pages">
       {page > 1 ? <a href={pageHref(page - 1)}>Previous</a> : <span />}
@@ -179,6 +194,39 @@ const pageHref = (target: number) => `/admin/work?page=${target}${preview}`;
         }
       }
       status.textContent = 'Matching stills added.';
+      window.setTimeout(() => window.location.reload(), 450);
+    });
+  </script>
+  <script is:inline define:vars={{ liveWall }}>
+    const loadButton = document.querySelector('[data-load-live-work]');
+    const loadStatus = document.querySelector('[data-load-live-status]');
+    loadButton?.addEventListener('click', async () => {
+      if (!loadStatus) return;
+      if (document.body.dataset.preview === 'true') {
+        loadStatus.textContent = 'Preview only. Sign in to load the live Work wall.';
+        return;
+      }
+      loadButton.disabled = true;
+      loadStatus.textContent = 'Loading the live Work wall...';
+      for (const frame of liveWall) {
+        const response = await fetch('/api/admin/stills', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            image_url: frame.src,
+            storage_path: '',
+            instagram_url: frame.instagramUrl,
+            alt_text: frame.alt,
+          }),
+        }).catch(() => null);
+        if (!response?.ok) {
+          const payload = await response?.json().catch(() => null);
+          loadStatus.textContent = payload?.message ?? 'The live Work wall could not be loaded.';
+          loadButton.disabled = false;
+          return;
+        }
+      }
+      loadStatus.textContent = 'Live Work wall loaded.';
       window.setTimeout(() => window.location.reload(), 450);
     });
   </script>

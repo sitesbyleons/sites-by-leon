@@ -1,17 +1,16 @@
 ---
 import IshotyouuLayout from '../../../layouts/IshotyouuLayout.astro';
-import { ISHOTYOUU_FALLBACK_WORK } from '../../../lib/content/ishotyouu-fallback';
 import { siteRepository } from '../../../lib/content/repository';
 import { createStudioDatabase } from '../../../lib/database';
 import { ISHOTYOUU_INSTAGRAM_HANDLE } from '../../../lib/ishotyouu';
-import { listWorkStills, stillToFrame } from '../../../lib/work-stills';
+import { listWorkStills, publicWorkFrames } from '../../../lib/work-stills';
 
 const workspaceId = Astro.locals.siteContext.workspaceId;
 const portfolio = await siteRepository.getPortfolio(workspaceId);
 const { canonicalOrigin } = Astro.locals.siteContext;
 const client = createStudioDatabase();
 const savedStills = client ? await listWorkStills(client, workspaceId) : [];
-const frames = savedStills.length ? savedStills.map(stillToFrame) : ISHOTYOUU_FALLBACK_WORK;
+const frames = publicWorkFrames(savedStills);
 ---
 
 <IshotyouuLayout

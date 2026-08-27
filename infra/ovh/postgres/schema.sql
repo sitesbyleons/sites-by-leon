@@ -859,3 +859,52 @@ begin
     end if;
   end if;
 end $$;
+
+-- Any environment: if ISHOTYOUU already exists, copy the live homepage text
+-- and public Work wall into the editor when those rows are missing. Do not
+-- create the workspace, change billing, or add members.
+do $$
+declare
+  ws_id uuid;
+begin
+  select id into ws_id from client_workspaces where slug = 'ishotyouu';
+  if ws_id is null then
+    return;
+  end if;
+
+  insert into studio_settings (
+    workspace_id, site_title, hero_title, hero_subtitle, contact_email, contact_phone,
+    paper_color, ink_color, accent_color, font_preset
+  )
+  values (
+    ws_id, 'ISHOTYOUU', 'ISHOTYOUU', 'ISHOTYOUU.', null, null,
+    '#090807', '#f1eadc', '#d4a45a', 'athletic'
+  )
+  on conflict (workspace_id) do nothing;
+
+  if not exists (select 1 from studio_work_stills where workspace_id = ws_id) then
+    insert into studio_work_stills (workspace_id, image_url, storage_path, instagram_url, alt_text, sort_order)
+    values
+      (ws_id, '/work/19-DbxBpe1lvmD.jpg', null, 'https://www.instagram.com/p/DbxBpe1lvmD/', 'Photograph from @180pf.shotit Instagram post DbxBpe1lvmD', 1),
+      (ws_id, '/work/09-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 2),
+      (ws_id, '/work/05-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 3),
+      (ws_id, '/work/08-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 4),
+      (ws_id, '/work/22-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 5),
+      (ws_id, '/work/12-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 6),
+      (ws_id, '/work/16-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 7),
+      (ws_id, '/work/07-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 8),
+      (ws_id, '/work/10-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 9),
+      (ws_id, '/work/13-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 10),
+      (ws_id, '/work/17-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 11),
+      (ws_id, '/work/20-DbxBpe1lvmD.jpg', null, 'https://www.instagram.com/p/DbxBpe1lvmD/', 'Photograph from @180pf.shotit Instagram post DbxBpe1lvmD', 12),
+      (ws_id, '/work/23-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 13),
+      (ws_id, '/work/26-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 14),
+      (ws_id, '/work/06-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 15),
+      (ws_id, '/work/14-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 16),
+      (ws_id, '/work/18-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 17),
+      (ws_id, '/work/24-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 18),
+      (ws_id, '/work/27-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 19),
+      (ws_id, '/work/02-DZsV0ftIIyO.jpg', null, 'https://www.instagram.com/p/DZsV0ftIIyO/', 'Photograph from @180pf.shotit Instagram post DZsV0ftIIyO', 20),
+      (ws_id, '/work/25-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 21);
+  end if;
+end $$;

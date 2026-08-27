@@ -33,10 +33,10 @@ const hosting = data.hosting
   <section class="studio-grid" aria-label="Studio summary">
     {ishotyouu ? (
       <>
-        <article class="studio-card"><small>Work stills</small><strong>{stillCount}</strong><p>Shown on Work. <a href={`/admin/work${isPreview ? '?preview=true' : ''}`}>Edit the Work page</a>.</p></article>
+        <article class="studio-card"><small>Homepage</small><strong>Home</strong><p>Title and description on the live site. <a href={`/admin/content${isPreview ? '?preview=true' : ''}`}>Edit homepage</a>.</p></article>
+        <article class="studio-card"><small>Work stills</small><strong>{stillCount}</strong><p>Same frames as the public Work page. <a href={`/admin/work${isPreview ? '?preview=true' : ''}`}>Edit Work</a>.</p></article>
         <article class="studio-card"><small>Inquiries</small><strong>{data.inquiries.filter((item) => item.status === 'new').length}</strong><p>{data.inquiries.length} total</p></article>
-        <article class="studio-card"><small>Clients</small><strong>{data.clients.length}</strong><p>{data.services.length} services</p></article>
-        <article class="studio-card"><small>Your website</small><strong>{hosting?.owe ?? '—'}</strong><p><a href={`/admin/hosting${isPreview ? '?preview=true' : ''}`}>Hosting, domain, and what you owe</a>.</p></article>
+        <article class="studio-card"><small>Your website</small><strong>{hosting?.owe ?? '—'}</strong><p><a href={`/admin/hosting${isPreview ? '?preview=true' : ''}`}>Choose a domain and see what you owe</a>.</p></article>
       </>
     ) : (
       <>
