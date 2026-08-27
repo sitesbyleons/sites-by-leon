@@ -118,4 +118,11 @@ describe('studio resource mutations', () => {
     expect(schema).toContain('alter table studio_posts add column if not exists related_gallery_id');
     expect(readWorkspace('platform-core/src/index.ts')).toContain("'related_gallery_id'");
   });
+
+  it('keeps reorder arrows centered on studio list rows', () => {
+    const css = read('src/styles/studio-admin.css');
+    expect(css).toContain('.studio-item-actions { display: grid; width: 100%');
+    expect(css).toContain('grid-template-columns: 1fr auto 1fr');
+    expect(css).toContain('.studio-reorder { display: inline-flex; grid-column: 2;');
+  });
 });
