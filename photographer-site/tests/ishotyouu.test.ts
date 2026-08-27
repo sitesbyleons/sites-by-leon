@@ -23,6 +23,8 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/pages/work/index.astro')).toContain('ISHOTYOUU_FALLBACK_WORK');
     expect(read('src/pages/journal/index.astro')).toContain('No posts yet.');
     expect(read('src/layouts/SiteLayout.astro')).toContain('IshotyouuLayout');
+    const layout = read('src/layouts/SiteLayout.astro');
+    expect(layout.indexOf('NorthlineLayout')).toBeLessThan(layout.indexOf("from './IshotyouuLayout.astro'"));
   });
 
   it('does not swap ISHOTYOUU onto the Northline template homepage', () => {

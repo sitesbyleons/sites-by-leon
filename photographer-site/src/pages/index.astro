@@ -1,10 +1,10 @@
 ---
-import ContactSheet from '../components/ContactSheet.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { ISHOTYOUU_FALLBACK_HERO } from '../lib/content/ishotyouu-fallback';
 import { selectHomeHeroImages } from '../lib/content/home';
 import { loadSiteTheme, siteRepository } from '../lib/content/repository';
 import { ISHOTYOUU_INSTAGRAM_HANDLE, ISHOTYOUU_INSTAGRAM_URL, isIshotyouuSite } from '../lib/ishotyouu';
+import ContactSheet from '../components/ContactSheet.astro';
 
 const ishotyouu = isIshotyouuSite(Astro.locals.siteContext);
 const [portfolio, theme] = await Promise.all([
