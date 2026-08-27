@@ -28,6 +28,16 @@ describe('portfolio inquiry validation', () => {
     if (result.ok) expect(result.payload.phone).toBe('765-555-0123');
   });
 
+  it('rejects a phone value that does not contain a real number', () => {
+    const result = validateInquiry({
+      instagram: '180pf.shotit',
+      phone: 'not-a-phone',
+      message: 'Need a quote for a session next month',
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors.phone).toBe('Enter a valid phone number.');
+  });
+
   it('rejects honeypots, missing contact details, and invalid dates', () => {
     expect(validateInquiry({ name: 'Jordan', desiredDate: 'bad', message: 'A useful message', company: 'bot' }).ok).toBe(false);
     expect(validateInquiry({ name: 'Jordan', desiredDate: 'bad', message: 'A useful message' }).ok).toBe(false);

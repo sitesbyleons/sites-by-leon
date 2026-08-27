@@ -100,6 +100,18 @@ describe('canSendAdminHostingInvoice', () => {
   });
 });
 
+describe('admin hosting invoice', () => {
+  it('lets Leon choose Essential or Studio when sending a Checkout link', () => {
+    const invoice = read('src/pages/api/admin/site-invoice.ts');
+    expect(invoice).toContain('body?.plan_key');
+    expect(invoice).toContain('update({ plan_key: plan.key })');
+    expect(invoice).not.toContain('payment_method_types');
+    const page = read('src/pages/admin/sites/[workspaceId].astro');
+    expect(page).toContain('name="plan_key"');
+    expect(page).toContain('Send hosting invoice');
+  });
+});
+
 describe('canManageBilling', () => {
   it('permits owners and admins but not ordinary members', () => {
     expect(canManageBilling('owner')).toBe(true);

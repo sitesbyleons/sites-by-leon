@@ -59,9 +59,10 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   }
   if (!workspace.data) return Response.json({ message: 'Site not found.' }, { status: 404 });
 
-  const plan = getCheckoutPlan(project.data?.plan_key ?? '');
+  const requestedPlan = typeof body?.plan_key === 'string' ? getCheckoutPlan(body.plan_key) : null;
+  const plan = requestedPlan ?? getCheckoutPlan(project.data?.plan_key ?? '');
   const priceId = plan ? process.env[plan.priceEnv] : null;
-  if (!plan || !priceId) return Response.json({ message: 'Assign a hosting plan before sending an invoice.' }, { status: 409 });
+  if (!plan || !priceId) return Response.json({ message: 'Choose Essential or Studio before sending an invoice.' }, { status: 409 });
   if (!canSendAdminHostingInvoice({
     workspaceStatus: workspace.data.status,
     subscriptionStatus: subscription.data?.status ?? null,
@@ -69,6 +70,14 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     billingEmail: emailed,
   })) {
     return Response.json({ message: 'This site cannot start another hosting invoice yet.' }, { status: 409 });
+  }
+
+  if (project.data?.plan_key !== plan.key) {
+    const savedPlan = await database
+      .from('website_projects')
+      .update({ plan_key: plan.key })
+      .eq('workspace_id', workspaceId);
+    if (savedPlan.error) return Response.json({ message: 'The hosting plan could not be saved.' }, { status: 503 });
   }
 
   const savedEmail = await database

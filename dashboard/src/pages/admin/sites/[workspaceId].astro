@@ -3,7 +3,7 @@ import { clerkClient } from '@clerk/astro/server';
 
 import AdminFrame from '../../../components/AdminFrame.astro';
 import { decideAdminAccess } from '../../../lib/access';
-import { getPlan } from '../../../lib/billing';
+import { getPlan, plans } from '../../../lib/billing';
 import { isPortfolioDemo, loadAdminSession } from '../../../lib/admin';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -100,10 +100,17 @@ const linkableUsers = session.users.filter((user) => !connectedUserIds.has(user.
   </section>
 
   <section class="site-detail-section" hidden={isArchived || isDemo}>
-    <header><div><span>Stripe</span><h2>Send hosting invoice</h2></div><p>Creates a Stripe Checkout link for the assigned monthly plan. Nothing is charged until the client pays.</p></header>
+    <header><div><span>Stripe</span><h2>Send hosting invoice</h2></div><p>Creates a Stripe Checkout link for the monthly plan. Nothing is charged until the client pays.</p></header>
     <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-invoice" data-preview={isPreview ? 'true' : 'false'} data-open-url>
       <input type="hidden" name="workspace_id" value={workspaceId} />
       <label><span>Send to</span><input name="email" type="email" maxlength="254" required value={contactEmail} placeholder="client@studio.com" /></label>
+      <label><span>Plan</span>
+        <select name="plan_key" required>
+          {plans.map((plan) => (
+            <option value={plan.key} selected={assignedPlan?.key === plan.key}>{plan.name} · ${plan.monthlyUsd}/month</option>
+          ))}
+        </select>
+      </label>
       <button type="submit">{assignedPlan ? `Send ${assignedPlan.name} invoice` : 'Send hosting invoice'}</button>
       <small data-result aria-live="polite"></small>
     </form>
