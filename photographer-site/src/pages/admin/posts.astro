@@ -2,6 +2,7 @@
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
 import StudioCropControls from '../../components/StudioCropControls.astro';
 import StudioMediaField from '../../components/StudioMediaField.astro';
+import StudioReorder from '../../components/StudioReorder.astro';
 import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
@@ -21,10 +22,7 @@ const data = session.data!;
         {post.cover_image_url ? <img class="studio-item-thumb" src={post.cover_image_url} alt="" /> : <span class="studio-item-thumb studio-item-thumb--empty">No image</span>}
         <div class="studio-item-copy"><strong>{post.title}</strong><small>{post.status}</small></div>
         <div class="studio-item-actions">
-          <div class="studio-reorder" role="group" aria-label={`Reorder ${post.title}`}>
-            <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="posts" data-id={post.id} aria-label="Move post up">↑</button>
-            <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="posts" data-id={post.id} aria-label="Move post down">↓</button>
-          </div>
+          <StudioReorder resource="posts" id={post.id} label={post.title} />
           <div class="studio-item-tools">
             <details class="studio-editor"><summary>Edit</summary><form class="studio-form studio-editor-form" data-studio-form data-resource="posts" data-upload-kind="post">
               <input type="hidden" name="id" value={post.id} />

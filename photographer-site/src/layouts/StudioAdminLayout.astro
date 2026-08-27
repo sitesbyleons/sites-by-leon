@@ -73,7 +73,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="color-scheme" content="light" />
     <title>{title} | {studioName}</title>
   </head>
   <body data-preview={isPreview ? 'true' : 'false'} data-workspace-id={workspaceId}>
@@ -161,7 +161,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
               data-media-alt={file.alt_text ?? ''}
             >
               <img src={file.public_url} alt="" loading="lazy" />
-              <span><strong>{file.original_filename}</strong><small>{formatBytes(file.size_bytes)}{file.used_in.length ? ` · Used in ${file.used_in.join(', ')}` : ''}</small></span>
+              <span><strong>{file.original_filename}</strong><small>{file.media_kind === 'library' ? 'Instagram still' : formatBytes(file.size_bytes)}{file.used_in.length ? ` · Used in ${file.used_in.join(', ')}` : ''}</small></span>
             </button>
           ))}
           {!media.length && <p class="studio-media-empty" data-media-empty>Add your first image to start the file library.</p>}

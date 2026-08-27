@@ -34,6 +34,7 @@ describe('studio hosting onboarding', () => {
     expect(page).toContain('You owe');
     expect(page).toContain('Choose a domain');
     expect(page).toContain('studio-domain-card');
+    expect(page).not.toContain('studio-domain-card__badge');
     expect(page).toContain('Use this domain');
     expect(page).toContain('/api/admin/hosting');
     expect(domainChoiceCopy('ishotyouu.com')).toEqual({

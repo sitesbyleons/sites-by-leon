@@ -1,6 +1,7 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
 import StudioMediaField from '../../components/StudioMediaField.astro';
+import StudioReorder from '../../components/StudioReorder.astro';
 import { ISHOTYOUU_FALLBACK_WORK, ishotyouuLibraryStills } from '../../lib/content/ishotyouu-fallback';
 import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
@@ -76,10 +77,7 @@ const pageHref = (target: number) => `/admin/work?page=${target}${preview}`;
           <small>{still.instagram_url.replace('https://www.instagram.com', '')}</small>
         </div>
         <div class="studio-item-actions">
-          <div class="studio-reorder" role="group" aria-label={`Reorder ${still.alt_text}`}>
-            <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="stills" data-id={still.id} aria-label="Move still up">↑</button>
-            <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="stills" data-id={still.id} aria-label="Move still down">↓</button>
-          </div>
+          <StudioReorder resource="stills" id={still.id} label={still.alt_text} />
           <div class="studio-item-tools">
             <details class="studio-editor">
               <summary>Edit</summary>

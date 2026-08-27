@@ -85,6 +85,11 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/styles/ishotyouu.css')).not.toContain(':root{');
     expect(read('src/styles/studio-admin.css')).toContain('.studio-access-screen .cl-rootBox');
     expect(read('src/styles/studio-admin.css')).not.toContain('.cl-rootBox, .cl-card, .cl-internal-b3fm6y { max-width: 100% !important; width: 100% !important; }');
+    expect(read('src/components/StudioIcon.astro')).toContain("name === 'invoices'");
+    expect(read('src/pages/admin/services.astro')).toContain('studio-section-heading--center');
+    expect(read('src/pages/admin/services.astro').indexOf('Add a service')).toBeLessThan(
+      read('src/pages/admin/services.astro').indexOf('Your services'),
+    );
   });
 
   it('does not swap ISHOTYOUU onto the Northline template homepage', () => {

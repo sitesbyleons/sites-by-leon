@@ -1,6 +1,7 @@
 ---
 import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
 import StudioGalleryEditor from '../../components/StudioGalleryEditor.astro';
+import StudioReorder from '../../components/StudioReorder.astro';
 import { isIshotyouuSite } from '../../lib/ishotyouu';
 import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
 
@@ -35,10 +36,7 @@ const data = session.data!;
             <small>{gallery.category} · {images.length} {images.length === 1 ? 'photo' : 'photos'} · {gallery.status}</small>
           </div>
           <div class="studio-item-actions">
-            <div class="studio-reorder" role="group" aria-label={`Reorder ${gallery.title}`}>
-              <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource="galleries" data-id={gallery.id} aria-label="Move gallery up">↑</button>
-              <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource="galleries" data-id={gallery.id} aria-label="Move gallery down">↓</button>
-            </div>
+            <StudioReorder resource="galleries" id={gallery.id} label={gallery.title} />
             <div class="studio-item-tools">
               <StudioGalleryEditor gallery={gallery} images={images} />
               <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="galleries" data-id={gallery.id}>Delete</button>

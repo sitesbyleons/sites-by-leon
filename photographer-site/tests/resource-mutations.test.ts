@@ -119,10 +119,30 @@ describe('studio resource mutations', () => {
     expect(readWorkspace('platform-core/src/index.ts')).toContain("'related_gallery_id'");
   });
 
-  it('keeps reorder arrows centered on studio list rows', () => {
+  it('keeps reorder chevrons stacked beside edit controls instead of overlaying the row', () => {
     const css = read('src/styles/studio-admin.css');
-    expect(css).toContain('.studio-item-actions { display: grid; width: 100%');
-    expect(css).toContain('grid-template-columns: 1fr auto 1fr');
-    expect(css).toContain('.studio-reorder { display: inline-flex; grid-column: 2;');
+    const icon = read('src/components/StudioIcon.astro');
+    const reorder = read('src/components/StudioReorder.astro');
+    expect(css).toContain('.studio-item-actions { display: flex; width: auto');
+    expect(css).toContain('.studio-reorder { display: inline-flex; flex-direction: column;');
+    expect(css).not.toContain('.studio-item-actions { display: grid; width: 100%');
+    expect(css).not.toContain('.studio-reorder { display: inline-flex; grid-column: 2;');
+    expect(icon).toContain("name === 'up'");
+    expect(icon).toContain("name === 'down'");
+    expect(icon).toContain("name === 'invoices'");
+    expect(reorder).toContain('StudioIcon name="up"');
+    expect(reorder).toContain('StudioIcon name="down"');
+  });
+
+  it('shows the image picker as a light dialog with unstretched photos', () => {
+    const css = read('src/styles/studio-admin.css');
+    const layout = read('src/layouts/StudioAdminLayout.astro');
+    expect(layout).toContain('Choose an image');
+    expect(layout).toContain('content="light"');
+    expect(css).toContain('.studio-media-dialog { width: min(56rem, calc(100vw - 2rem));');
+    expect(css).toContain('background: var(--surface-raised); color: var(--ink);');
+    expect(css).toContain('.studio-media-card img { width: 100%; aspect-ratio: 4 / 5; height: auto; object-fit: contain;');
+    expect(css).toContain('.studio-file-card > img { width: 100%; aspect-ratio: 4 / 5; height: auto; object-fit: contain;');
+    expect(css).not.toContain('.studio-media-card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover;');
   });
 });

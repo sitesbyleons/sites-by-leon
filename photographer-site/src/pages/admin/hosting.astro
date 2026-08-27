@@ -78,7 +78,6 @@ const invoiceState = Astro.url.searchParams.get('invoice');
               return (
                 <label class="studio-domain-card" data-domain-card>
                   <input type="radio" name="chosen_domain" value={option} required checked={selected} />
-                  <span class="studio-domain-card__badge">{choice.badge}</span>
                   <strong>{choice.host}</strong>
                   <small>{selected ? 'Selected' : choice.hint}</small>
                 </label>
