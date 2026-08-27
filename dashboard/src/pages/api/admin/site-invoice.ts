@@ -5,9 +5,11 @@ import { checkAppAdmin } from '../../../lib/admin';
 import {
   canSendAdminHostingInvoice,
   catalogPlanForMonthlyCents,
+  checkoutAttemptIsOpen,
   getCheckoutPlan,
   hostingInvoiceAmountCents,
   parseMonthlyCents,
+  publicBillingErrorMessage,
 } from '../../../lib/billing';
 import { createPlatformDatabase } from '../../../lib/database';
 import { isTrustedOrigin, resolveTrustedOrigin } from '../../../lib/request-security';
@@ -106,6 +108,16 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     .update({ contact_email: emailed })
     .eq('workspace_id', workspaceId);
   if (savedEmail.error) return Response.json({ message: 'The billing email could not be saved.' }, { status: 503 });
+  if (!savedEmail.data.length) {
+    const created = await database.from('studio_settings').insert({
+      workspace_id: workspaceId,
+      site_title: workspace.data.name,
+      hero_title: workspace.data.name,
+      hero_subtitle: 'Photography portfolio and booking information.',
+      contact_email: emailed,
+    });
+    if (created.error) return Response.json({ message: 'The billing email could not be saved.' }, { status: 503 });
+  }
 
   const attemptKey = crypto.randomUUID();
   const checkoutExpiresAt = new Date(Date.now() + 35 * 60 * 1000);
@@ -119,14 +131,16 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   if (claimed.error) return Response.json({ message: 'Checkout could not be reserved.' }, { status: 503 });
   if (!claimed.data.length) {
     const existing = await database.from('checkout_attempts')
-      .select('attempt_key,plan_key,monthly_cents,checkout_url')
+      .select('attempt_key,plan_key,monthly_cents,checkout_url,expires_at')
       .eq('workspace_id', workspace.data.id)
-      .maybeSingle<{ attempt_key: string; plan_key: string; monthly_cents: number | null; checkout_url: string | null }>();
+      .maybeSingle<{ attempt_key: string; plan_key: string; monthly_cents: number | null; checkout_url: string | null; expires_at: string | null }>();
     if (existing.error || !existing.data) return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
     if (existing.data.plan_key !== reservationPlan.key || existing.data.monthly_cents !== monthlyCents) {
       return Response.json({ message: 'Another hosting checkout is already open. Finish it or wait for it to expire.' }, { status: 409 });
     }
-    if (existing.data.checkout_url) return Response.json({ ok: true, url: existing.data.checkout_url, message: 'Invoice link is ready.' });
+    if (checkoutAttemptIsOpen(existing.data)) {
+      return Response.json({ ok: true, url: existing.data.checkout_url, message: 'Invoice link is ready.' });
+    }
     return Response.json({ message: 'Checkout is already starting. Try again shortly.' }, { status: 409 });
   }
 
@@ -202,7 +216,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       }, { status: saved.error ? 503 : 409 });
     }
     return Response.json({ ok: true, url: checkout.url, message: 'Invoice link created.' });
-  } catch {
-    return Response.json({ message: 'The invoice could not start. Nothing was charged.' }, { status: 502 });
+  } catch (error) {
+    return Response.json({ message: publicBillingErrorMessage(error, 'The invoice could not start. Nothing was charged.') }, { status: 502 });
   }
 };

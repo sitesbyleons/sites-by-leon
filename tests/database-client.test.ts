@@ -157,7 +157,7 @@ describe('Leon PostgreSQL data client', () => {
     expect(recorder.calls[0].text).toContain('insert into "checkout_attempts"');
     expect(recorder.calls[0].text).toContain('"monthly_cents"');
     expect(recorder.calls[0].text).toContain('on conflict ("workspace_id") do update set');
-    expect(recorder.calls[0].text).toContain('where "checkout_attempts"."expires_at" <= now()');
+    expect(recorder.calls[0].text).toContain('where "checkout_attempts"."expires_at" <= now() + interval \'60 seconds\'');
     expect(recorder.calls[0].text).toContain('"checkout_attempts"."checkout_url" is null');
     expect(recorder.calls[0].text).toContain("interval '2 minutes'");
   });

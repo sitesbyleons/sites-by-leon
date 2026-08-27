@@ -138,7 +138,7 @@ const billingHeadline = isDemo
 
   <section class="site-detail-section" hidden={isArchived || isDemo}>
     <header><div><span>Stripe</span><h2>Send hosting invoice</h2></div><p>Creates a Stripe Checkout link for the monthly amount. Nothing is charged until the client pays. They can also pay from their admin page.</p></header>
-    <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-invoice" data-preview={isPreview ? 'true' : 'false'} data-open-url>
+    <form class="site-detail-form" data-api-form data-endpoint="/api/admin/site-invoice" data-preview={isPreview ? 'true' : 'false'} data-open-url="true">
       <input type="hidden" name="workspace_id" value={workspaceId} />
       <label><span>Send to</span><input name="email" type="email" maxlength="254" required value={contactEmail} placeholder="client@studio.com" /></label>
       <label><span>Monthly amount (USD)</span><input name="monthly_usd" type="number" inputmode="decimal" min="1" max="10000" step="0.01" required value={monthlyUsdValue} placeholder="20" /></label>
@@ -146,7 +146,7 @@ const billingHeadline = isDemo
         <select name="plan_key">
           <option value="">Custom amount</option>
           {plans.map((plan) => (
-            <option value={plan.key} selected={assignedPlan?.key === plan.key}>{plan.name} · ${plan.monthlyUsd}/month</option>
+            <option value={plan.key} selected={catalogForAmount?.key === plan.key}>{plan.name} · ${plan.monthlyUsd}/month</option>
           ))}
         </select>
       </label>
@@ -249,7 +249,7 @@ const billingHeadline = isDemo
         result.textContent = 'Updating…';
         button.disabled = true;
         if (form.dataset.preview === 'true') {
-          result.textContent = form.dataset.openUrl ? 'Preview invoice link ready.' : 'Preview updated.';
+          result.textContent = form.hasAttribute('data-open-url') ? 'Preview invoice link ready.' : 'Preview updated.';
           button.disabled = false;
           return;
         }
@@ -262,8 +262,13 @@ const billingHeadline = isDemo
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.message ?? 'This change was not saved.');
           result.textContent = payload.message ?? 'Saved.';
-          if (form.dataset.openUrl && typeof payload.url === 'string') {
-            result.textContent = 'Invoice link created.';
+          if (form.hasAttribute('data-open-url') && typeof payload.url === 'string') {
+            const link = document.createElement('a');
+            link.href = payload.url;
+            link.target = '_blank';
+            link.rel = 'noreferrer';
+            link.textContent = 'Open invoice link';
+            result.replaceChildren(document.createTextNode(`${payload.message ?? 'Invoice link created.'} `), link);
             window.open(payload.url, '_blank', 'noreferrer');
             button.disabled = false;
             return;

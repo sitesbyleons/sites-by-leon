@@ -103,6 +103,12 @@ test('splits admin records into sortable pages', async ({ page }) => {
 
   await page.goto('/admin/subscriptions?preview=true');
   await expect(page.getByRole('table', { name: 'Client subscriptions' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'ISHOTYOUU' })).toBeVisible();
+  await expect(page.getByText('Custom · $20/mo')).toBeVisible();
+  await expect(page.locator('.ticket-status--invoice_open')).toHaveText(/invoice open/i);
+  await expect(page.getByRole('link', { name: 'Fieldwork Commercial' })).toBeVisible();
+  await expect(page.getByText('Studio · $35/mo')).toHaveCount(2);
+  await expect(page.getByRole('link', { name: 'Northline Portraits' })).toBeVisible();
 
   await page.goto('/admin/sites?preview=true&sort=progress_high');
   await expect(page.getByRole('heading', { name: 'Website builds' })).toBeVisible();
@@ -122,6 +128,9 @@ test('splits admin records into sortable pages', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Send hosting invoice' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Hosting rate and domains' })).toBeVisible();
   await expect(page.getByLabel('Monthly amount (USD)').first()).toHaveValue('20');
+  await expect(page.locator('select[name="plan_key"]')).toHaveValue('');
+  await page.getByRole('button', { name: /Send \$20(?:\.00)?\/month invoice/ }).click();
+  await expect(page.getByText('Preview invoice link ready.')).toBeVisible();
   await page.goto('/admin/sites?preview=true');
   await page.getByRole('link', { name: 'Add client site' }).click();
   await expect(page.getByRole('heading', { name: 'Add client site' })).toBeVisible();

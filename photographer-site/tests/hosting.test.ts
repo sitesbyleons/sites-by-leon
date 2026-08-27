@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { hostingBillCopy, parseDomainOptions, domainChoiceCopy } from '../src/lib/hosting';
+import { hostingBillCopy, parseDomainOptions, domainChoiceCopy, checkoutLinkIsOpen } from '../src/lib/hosting';
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -47,5 +47,17 @@ describe('studio hosting onboarding', () => {
     const api = read('src/pages/api/admin/hosting.ts');
     expect(api).toContain("update({ chosen_domain: chosen })");
     expect(api).not.toContain('monthly_cents');
+  });
+
+  it('does not send a photographer to a checkout link that is already expiring', () => {
+    const now = Date.parse('2026-08-27T18:00:00.000Z');
+    expect(checkoutLinkIsOpen({
+      checkout_url: 'https://checkout.stripe.com/c/pay/test',
+      checkout_expires_at: '2026-08-27T18:00:30.000Z',
+    }, now)).toBe(false);
+    expect(checkoutLinkIsOpen({
+      checkout_url: 'https://checkout.stripe.com/c/pay/test',
+      checkout_expires_at: '2026-08-27T18:02:00.000Z',
+    }, now)).toBe(true);
   });
 });

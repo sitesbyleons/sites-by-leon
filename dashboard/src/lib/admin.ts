@@ -38,6 +38,14 @@ export type AdminSubscription = {
   current_period_end: string | null;
 };
 
+export type AdminCheckoutAttempt = {
+  workspace_id: string;
+  checkout_url: string | null;
+  expires_at: string | null;
+  monthly_cents: number | null;
+  plan_key: string;
+};
+
 export type AdminRequest = {
   id: string;
   workspace_id: string;
@@ -104,6 +112,7 @@ export type AdminData = {
   workspaces: AdminWorkspace[];
   projects: AdminProject[];
   subscriptions: AdminSubscription[];
+  checkoutAttempts: AdminCheckoutAttempt[];
   requests: AdminRequest[];
   members: AdminMember[];
   connections: AdminConnection[];
@@ -154,6 +163,15 @@ export function getPreviewAdminData(): AdminData {
     ],
     subscriptions: [
       { id: 'sub_local', workspace_id: 'ws_northline', stripe_subscription_id: 'sub_preview', plan_key: 'studio', status: 'active', current_period_end: '2026-08-10T00:00:00.000Z' },
+    ],
+    checkoutAttempts: [
+      {
+        workspace_id: 'ws_ishotyouu',
+        checkout_url: 'https://checkout.stripe.com/c/pay/preview_ishotyouu',
+        expires_at: '2099-01-01T00:00:00.000Z',
+        monthly_cents: 2000,
+        plan_key: 'essential',
+      },
     ],
     requests: [
       { id: 'req_1', workspace_id: 'ws_northline', subject: 'Replace the featured gallery', details: 'Use the new championship gallery as the first featured collection.', status: 'new', created_at: '2026-07-10T16:00:00.000Z' },
@@ -284,10 +302,10 @@ export async function checkAppAdmin(database: DataClient | null, clerkUserId: st
 }
 
 export async function loadAdminData(database: DataClient | null): Promise<AdminData> {
-  const empty = { workspaces: [], projects: [], subscriptions: [], requests: [], members: [], connections: [], domainAliases: [], provisioningRuns: [], contacts: [] };
+  const empty = { workspaces: [], projects: [], subscriptions: [], checkoutAttempts: [], requests: [], members: [], connections: [], domainAliases: [], provisioningRuns: [], contacts: [] };
   if (!database) return { ...empty, error: 'The secure database connection is not configured.' };
 
-  const [workspaces, projects, subscriptions, requests, members, connections, domainAliases, provisioningRuns, contacts] = await Promise.all([
+  const [workspaces, projects, subscriptions, checkoutAttempts, requests, members, connections, domainAliases, provisioningRuns, contacts] = await Promise.all([
     database.from('client_workspaces').select('id,name,slug,status,updated_at').order('updated_at', { ascending: false }),
     database
       .from('website_projects')
@@ -296,6 +314,10 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
     database
       .from('subscriptions')
       .select('id,workspace_id,stripe_subscription_id,plan_key,status,current_period_end')
+      .order('updated_at', { ascending: false }),
+    database
+      .from('checkout_attempts')
+      .select('workspace_id,checkout_url,expires_at,monthly_cents,plan_key')
       .order('updated_at', { ascending: false }),
     database
       .from('content_requests')
@@ -310,12 +332,13 @@ export async function loadAdminData(database: DataClient | null): Promise<AdminD
     database.from('studio_settings').select('workspace_id,contact_email'),
   ]);
 
-  const hasError = workspaces.error || projects.error || subscriptions.error || requests.error || members.error || connections.error || domainAliases.error || provisioningRuns.error || contacts.error;
+  const hasError = workspaces.error || projects.error || subscriptions.error || checkoutAttempts.error || requests.error || members.error || connections.error || domainAliases.error || provisioningRuns.error || contacts.error;
 
   return {
     workspaces: (workspaces.data ?? []) as AdminWorkspace[],
     projects: (projects.data ?? []) as AdminProject[],
     subscriptions: (subscriptions.data ?? []) as AdminSubscription[],
+    checkoutAttempts: (checkoutAttempts.data ?? []) as AdminCheckoutAttempt[],
     requests: (requests.data ?? []) as AdminRequest[],
     members: (members.data ?? []) as AdminMember[],
     connections: (connections.data ?? []) as AdminConnection[],

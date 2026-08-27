@@ -46,10 +46,10 @@ export function hostingDollars(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 }
 
-export function checkoutLinkIsOpen(hosting: Pick<StudioHosting, 'checkout_url' | 'checkout_expires_at'>) {
+export function checkoutLinkIsOpen(hosting: Pick<StudioHosting, 'checkout_url' | 'checkout_expires_at'>, now = Date.now()) {
   if (!hosting.checkout_url || !hosting.checkout_expires_at) return false;
   const expires = Date.parse(hosting.checkout_expires_at);
-  return Number.isFinite(expires) && expires > Date.now();
+  return Number.isFinite(expires) && expires > now + 60_000;
 }
 
 export function hostingBillCopy(hosting: StudioHosting) {

@@ -66,8 +66,10 @@ describe('ISHOTYOUU public CMS wiring', () => {
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Work'");
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'About'");
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain("label: 'Inquire'");
-    expect(read('src/layouts/IshotyouuLayout.astro')).toContain('Edit site');
-    expect(read('src/layouts/IshotyouuLayout.astro')).toContain('href="/admin"');
+    expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain('Edit site');
+    expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain('nav-edit');
+    expect(read('src/layouts/IshotyouuLayout.astro')).not.toContain('href="/admin"');
+    expect(read('src/styles/ishotyouu.css')).not.toContain('.nav-edit');
     expect(read('src/layouts/StudioAdminLayout.astro')).toContain("label: 'Edit homepage'");
     expect(read('src/layouts/StudioAdminLayout.astro')).toContain("label: 'Edit Work'");
     expect(read('src/layouts/IshotyouuLayout.astro')).toContain('ISHOTYOUU_INSTAGRAM_URL');

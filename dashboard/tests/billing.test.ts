@@ -2,7 +2,7 @@ import fs from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { canManageBilling, canManageSubscription, canSendAdminHostingInvoice, canStartCheckout, getCheckoutPlan, getPlan, parseDomainOptions, parseMonthlyCents, plans } from '../src/lib/billing';
+import { canManageBilling, canManageSubscription, canSendAdminHostingInvoice, canStartCheckout, checkoutAttemptIsOpen, getCheckoutPlan, getPlan, hostingAmountLabel, listClientHostingRows, parseDomainOptions, parseMonthlyCents, plans, publicBillingErrorMessage } from '../src/lib/billing';
 
 const read = (path: string) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -110,6 +110,93 @@ describe('canSendAdminHostingInvoice', () => {
   });
 });
 
+describe('hosting amount labels', () => {
+  it('labels a custom $20 amount without calling it Essential', () => {
+    expect(hostingAmountLabel(2000, 'essential')).toBe('Custom · $20/mo');
+    expect(hostingAmountLabel(3500, 'studio')).toBe('Studio · $35/mo');
+    expect(hostingAmountLabel(null, 'essential')).toBe('Essential · $25/mo');
+  });
+
+  it('treats a checkout URL as closed when less than a minute remains', () => {
+    const now = Date.parse('2026-08-27T18:00:00.000Z');
+    expect(checkoutAttemptIsOpen({
+      checkout_url: 'https://checkout.stripe.com/c/pay/test',
+      expires_at: '2026-08-27T18:00:30.000Z',
+    }, now)).toBe(false);
+    expect(checkoutAttemptIsOpen({
+      checkout_url: 'https://checkout.stripe.com/c/pay/test',
+      expires_at: '2026-08-27T18:02:00.000Z',
+    }, now)).toBe(true);
+  });
+
+  it('keeps Stripe errors visible without leaking secret values', () => {
+    expect(publicBillingErrorMessage(new Error('Terms of service URL is not set in the Dashboard.'), 'fallback')).toBe(
+      'Terms of service URL is not set in the Dashboard.',
+    );
+    expect(publicBillingErrorMessage(new Error('bad sk_live_abc'), 'Checkout could not start. Nothing was charged.')).toBe(
+      'Checkout could not start. Nothing was charged.',
+    );
+  });
+
+  it('lists unpaid custom hosting next to paid catalog subscriptions', () => {
+    const rows = listClientHostingRows({
+      workspaces: [
+        { id: 'ws_ishotyouu', name: 'ISHOTYOUU' },
+        { id: 'ws_fieldwork', name: 'Fieldwork Commercial' },
+        { id: 'ws_northline', name: 'Northline Portraits' },
+      ],
+      projects: [
+        { workspace_id: 'ws_ishotyouu', plan_key: 'essential', monthly_cents: 2000 },
+        { workspace_id: 'ws_fieldwork', plan_key: 'studio', monthly_cents: 3500 },
+        { workspace_id: 'ws_northline', plan_key: 'studio', monthly_cents: 3500 },
+      ],
+      subscriptions: [
+        { workspace_id: 'ws_northline', plan_key: 'studio', status: 'active', current_period_end: '2026-09-10T00:00:00.000Z' },
+      ],
+      checkoutAttempts: [
+        {
+          workspace_id: 'ws_ishotyouu',
+          checkout_url: 'https://checkout.stripe.com/c/pay/preview_ishotyouu',
+          expires_at: '2026-08-27T19:00:00.000Z',
+          monthly_cents: 2000,
+          plan_key: 'essential',
+        },
+      ],
+      includeWorkspaceIds: ['ws_ishotyouu', 'ws_fieldwork', 'ws_northline'],
+      now: Date.parse('2026-08-27T18:00:00.000Z'),
+    });
+
+    expect(rows).toEqual([
+      {
+        workspaceId: 'ws_ishotyouu',
+        clientName: 'ISHOTYOUU',
+        amountLabel: 'Custom · $20/mo',
+        statusKey: 'invoice_open',
+        statusLabel: 'invoice open',
+        nextAt: '2026-08-27T19:00:00.000Z',
+      },
+      {
+        workspaceId: 'ws_fieldwork',
+        clientName: 'Fieldwork Commercial',
+        amountLabel: 'Studio · $35/mo',
+        statusKey: 'not_billed',
+        statusLabel: 'not billed',
+        nextAt: null,
+      },
+      {
+        workspaceId: 'ws_northline',
+        clientName: 'Northline Portraits',
+        amountLabel: 'Studio · $35/mo',
+        statusKey: 'active',
+        statusLabel: 'active',
+        nextAt: '2026-09-10T00:00:00.000Z',
+      },
+    ]);
+    expect(read('src/pages/admin/subscriptions.astro')).toContain('listClientHostingRows');
+    expect(read('src/lib/admin.ts')).toContain("from('checkout_attempts')");
+  });
+});
+
 describe('admin hosting invoice', () => {
   it('lets Leon send a custom monthly amount without changing public Essential or Studio prices', () => {
     const invoice = read('src/pages/api/admin/site-invoice.ts');
@@ -124,6 +211,15 @@ describe('admin hosting invoice', () => {
     expect(page).toContain('Send hosting invoice');
     expect(page).toContain('Hosting rate and domains');
     expect(page).toContain('/api/admin/site-onboarding');
+    expect(page).toContain('catalogForAmount?.key === plan.key');
+    expect(page).toContain('data-open-url="true"');
+    expect(page).toContain("form.hasAttribute('data-open-url')");
+    expect(page).toContain("createElement('a')");
+    expect(page).toContain('Open invoice link');
+    expect(invoice).toContain('checkoutAttemptIsOpen');
+    expect(invoice).toContain('publicBillingErrorMessage');
+    expect(invoice).toContain('expires_at');
+    expect(invoice).not.toContain("if (existing.data.checkout_url) return Response.json({ ok: true, url: existing.data.checkout_url");
   });
 });
 
@@ -163,6 +259,8 @@ describe('checkout reservation recovery', () => {
     const checkout = read('src/pages/api/billing/checkout.ts');
     expect(checkout).not.toContain('checkoutExpiresAt = new Date(existing.data.expires_at)');
     expect(checkout).toContain('Checkout is already starting. Try again shortly.');
+    expect(checkout).toContain('checkoutAttemptIsOpen');
+    expect(checkout).toContain('publicBillingErrorMessage');
     expect(checkout).toContain(".eq('attempt_key', attemptKey)");
     expect(checkout).toContain('!saved.data.length');
     expect(checkout).toContain('stripe.checkout.sessions.expire(session.id)');
