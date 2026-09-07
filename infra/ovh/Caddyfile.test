@@ -64,7 +64,7 @@
 	}
 
 	@ishotyouu_media_files {
-		host ishotyouu-test.leonsites.org
+		host ishotyouu-test.leonsites.org www.ishotyouu.net
 		path /work/*.jpg /work/*.jpeg /work/*.webp /work/*.png /favicon.svg
 	}
 	handle @ishotyouu_media_files {
@@ -72,7 +72,7 @@
 	}
 
 	@ishotyouu_assets {
-		host ishotyouu-test.leonsites.org
+		host ishotyouu-test.leonsites.org www.ishotyouu.net
 		path /_astro/*
 	}
 	handle @ishotyouu_assets {
