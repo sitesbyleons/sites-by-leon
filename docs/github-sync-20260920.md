@@ -23,9 +23,14 @@ reports are included in this update.
 
 - Dashboard unit tests: 93 passed.
 - Photographer-site unit tests: 167 passed.
-- Root tests: 204 passed, 22 skipped, 22 failed. The failing shell-helper tests
-  require Bash, which is not available on the Windows test PATH. These results
-  are not a clean CI pass; Linux CI remains required before merging.
+- Initial Windows root tests: 204 passed, 22 skipped, 22 failed (21 shell-helper
+  failures without Bash and one obsolete launch-page assertion). Linux CI
+  confirmed the shell helpers pass. The launch assertion now matches the
+  published redesign.
+- Updated homepage browser suite: 19 passed locally, covering navigation,
+  plans, loaded images, responsive layouts, motion preferences, legal content,
+  metadata, CSP violations, and serious/critical accessibility checks.
+- Full Linux CI remains required before merging.
 
 Local design-tool context, private operational notes, and the one-off membership
 repair script containing production record identifiers remain outside this commit.
