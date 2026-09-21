@@ -669,21 +669,29 @@ test('coverage services stay concise and inquiry-only', async ({ page }) => {
 });
 
 test('contact requires either email or phone before an inquiry can be sent', async ({ page }) => {
+  let submitted: Record<string, unknown> | undefined;
+  await page.route('**/api/inquiry', async route => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) });
+  });
   await navigate(page, '/contact?package=package-game');
   await expect(page.getByRole('heading', { name: 'Contact Northline' })).toBeVisible();
   await page.getByLabel('Name').fill('Jordan Miles');
-  await page.getByLabel('Desired date').fill('2026-09-12');
+  const desiredDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await page.getByLabel('Desired date').fill(desiredDate);
   await page.getByLabel('Message').fill('Football coverage for our home game.');
   await page.getByRole('button', { name: 'Send inquiry' }).click();
   await expect(page.locator('[data-contact-method-error]')).toContainText(
     'Enter an email address or phone number',
   );
+  expect(submitted).toBeUndefined();
 
   await page.getByLabel('Phone').fill('765-555-0123');
   await page.getByRole('button', { name: 'Send inquiry' }).click();
   await expect(page.locator('[data-inquiry-status]')).toContainText(
-    /not connected|sending/i,
+    /Inquiry sent\./i,
   );
+  expect(submitted).toMatchObject({ name: 'Jordan Miles', phone: '765-555-0123', desiredDate });
   await expectNoSeriousOrCriticalAccessibilityViolations(page);
 });
 
