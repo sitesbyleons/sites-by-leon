@@ -51,7 +51,7 @@ describe('fully self-hosted production stack', () => {
     expect(middleware).toContain("unavailableResponse('Site temporarily unavailable. Please try again soon.', 503)");
   });
 
-  it('serves a standalone coming-soon document only at the production marketing root', () => {
+  it('keeps the legacy launch document standalone and the production-only routing switch intact', () => {
     const caddy = read('infra/ovh/Caddyfile');
     const fullMarketing = read('src/pages/index.astro');
     const comingSoonUrl = new URL('../src/pages/coming-soon.astro', import.meta.url);
@@ -66,7 +66,10 @@ describe('fully self-hosted production stack', () => {
     expect(caddy).toContain('@test host {$TEST_DOMAIN}');
     expect(fullMarketing).not.toContain('ComingSoon');
     expect(fullMarketing).not.toContain('hostSwitch');
-    expect(comingSoon).toContain('<ComingSoon />');
+    expect(comingSoon).toContain('<StudioLayout');
+    expect(comingSoon).toContain('You found the old launch link.');
+    expect(comingSoon).toContain('href="/"');
+    expect(comingSoon).toContain('Go to the homepage');
     expect(comingSoon).not.toMatch(/Hero|ConceptShowcase|Pricing|Services|Contact/);
   });
 
