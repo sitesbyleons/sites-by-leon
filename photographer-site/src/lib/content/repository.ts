@@ -112,6 +112,7 @@ type PostRow = {
   cover_crop_y: number;
   cover_crop_zoom: number;
   published_at: string | null;
+  related_gallery_id: string | null;
 };
 type ServiceRow = { id: string; name: string; description: string; price_type: 'fixed' | 'from' | 'custom'; price_cents: number | null };
 
@@ -177,7 +178,7 @@ async function loadManagedPortfolio(workspaceId: string): Promise<Portfolio> {
       client.from('studio_settings').select<Pick<SettingsRow, 'site_title' | 'hero_title' | 'hero_subtitle' | 'contact_email'>>('site_title,hero_title,hero_subtitle,contact_email').eq('workspace_id', id).maybeSingle(),
       client.from('studio_galleries').select<GalleryRow>('id,slug,title,category,description,cover_image_url,layout_mode,grid_columns,image_aspect_ratio,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,updated_at').eq('workspace_id', id).eq('status', 'published').order('sort_order'),
       client.from('studio_gallery_images').select<GalleryImageRow>('id,gallery_id,image_url,alt_text,aspect_ratio,crop_x,crop_y,crop_zoom').eq('workspace_id', id).order('sort_order'),
-      client.from('studio_posts').select<PostRow>('id,slug,title,excerpt,body,cover_image_url,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,published_at').eq('workspace_id', id).eq('status', 'published').order('sort_order'),
+      client.from('studio_posts').select<PostRow>('id,slug,title,excerpt,body,cover_image_url,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,published_at,related_gallery_id').eq('workspace_id', id).eq('status', 'published').order('sort_order'),
       client.from('studio_services').select<ServiceRow>('id,name,description,price_type,price_cents').eq('workspace_id', id).eq('is_active', true).order('sort_order'),
     ]);
     const queryError = [settings, galleries, galleryImages, posts, services].find((result) => result.error)?.error;
@@ -229,7 +230,7 @@ async function loadManagedPortfolio(workspaceId: string): Promise<Portfolio> {
         cropY: post.cover_crop_y ?? 50,
         cropZoom: Number(post.cover_crop_zoom ?? 1),
       }) : null,
-      relatedGallerySlug: null,
+      relatedGallerySlug: mappedGalleries.find((gallery) => gallery.id === post.related_gallery_id)?.slug ?? null,
       publishedAt: post.published_at ?? new Date().toISOString(),
     }));
     const mappedServices = (services.data ?? []).map((service) => {

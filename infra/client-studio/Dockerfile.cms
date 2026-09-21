@@ -1,0 +1,6 @@
+FROM leon-design-prod:demos-motion-20260920
+COPY patch.mjs /tmp/client-studio/patch.mjs
+USER root
+RUN node /tmp/client-studio/patch.mjs cms
+COPY --chown=node:node ishotyouu-workspace-v1.css ishot-workspace-barlow-v1.woff2 /workspace/photographer-site/dist/client/admin-assets/
+USER node

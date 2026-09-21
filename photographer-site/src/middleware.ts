@@ -4,6 +4,14 @@ import { defineMiddleware, sequence } from 'astro:middleware';
 import { ManagedContentUnavailableError } from './lib/content/repository';
 import { createStudioDatabase } from './lib/database';
 import {
+  isIshotyouuHiddenPublicPath,
+  isIshotyouuInternalPath,
+  isIshotyouuPublicPath,
+  isIshotyouuSite,
+  isIshotyouuWorkDetailPath,
+  ishotyouuInternalPath,
+} from './lib/ishotyouu';
+import {
   resolveSiteContext,
   SiteContextCache,
   siteRedirectTarget,
@@ -65,6 +73,28 @@ const tenantResolution = defineMiddleware(async (context, next) => {
   return next();
 });
 
+const ishotyouuRoutes = defineMiddleware(async (context, next) => {
+  if (context.locals.ishotyouuInternal) return next();
+  const { pathname, search } = context.url;
+  if (!isIshotyouuSite(context.locals.siteContext)) {
+    if (isIshotyouuInternalPath(pathname)) {
+      return unavailableResponse('Site not found.', 404);
+    }
+    return next();
+  }
+  if (isIshotyouuWorkDetailPath(pathname)) {
+    return context.redirect('/work', 302);
+  }
+  if (isIshotyouuHiddenPublicPath(pathname)) {
+    return context.redirect('/', 302);
+  }
+  if (isIshotyouuPublicPath(pathname)) {
+    context.locals.ishotyouuInternal = true;
+    return context.rewrite(`${ishotyouuInternalPath(pathname)}${search}`);
+  }
+  return next();
+});
+
 const publicControl = defineMiddleware(async (context, next) => {
   try {
     const { pathname } = context.url;
@@ -96,4 +126,4 @@ const authentication = defineMiddleware((context, next) => {
   return withClerk(context, next);
 });
 
-export const onRequest = sequence(tenantResolution, publicControl, authentication);
+export const onRequest = sequence(tenantResolution, ishotyouuRoutes, publicControl, authentication);

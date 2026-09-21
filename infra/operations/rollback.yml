@@ -1,0 +1,8 @@
+services:
+  dashboard:
+    image: leon-design-prod:client-workspace-20260920
+  photographer:
+    image: leon-design-prod:statistics-20260920
+    env_file:
+      - /opt/leon-platform/secrets/northline.env
+      - /opt/leon-platform/secrets/statistics.env

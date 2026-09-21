@@ -1,0 +1,15 @@
+FROM leon-design-prod:statistics-20260920 AS build
+USER root
+COPY platform-core/src/ /workspace/platform-core/src/
+COPY photographer-site/src/ /workspace/photographer-site/src/
+COPY photographer-site/public/ /workspace/photographer-site/public/
+COPY photographer-site/astro.config.mjs photographer-site/tsconfig.json /workspace/photographer-site/
+COPY infra/statistics/preserve-public-auth.mjs /tmp/preserve-public-auth.mjs
+ARG PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV PUBLIC_CLERK_PUBLISHABLE_KEY=$PUBLIC_CLERK_PUBLISHABLE_KEY
+WORKDIR /workspace/photographer-site
+RUN node node_modules/astro/bin/astro.mjs build && node /tmp/preserve-public-auth.mjs
+FROM leon-design-prod:statistics-20260920
+COPY --from=build --chown=node:node /workspace/photographer-site/dist/ /workspace/photographer-site/dist/
+COPY --from=build --chown=node:node /workspace/platform-core/src/ /workspace/platform-core/src/
+USER node

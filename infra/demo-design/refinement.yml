@@ -1,0 +1,3 @@
+services:
+  photographer:
+    image: leon-design-prod:demos-refined-20260920

@@ -1,0 +1,86 @@
+import { chromium } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { mkdir } from 'node:fs/promises';
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const context=await browser.newContext();
+const page=await context.newPage();
+const errors=[];
+page.on('pageerror',error=>errors.push(error.message));
+await mkdir('work/qa-admin-v3',{recursive:true});
+for(const width of [1920,1440,768,390,320]){
+ await page.setViewportSize({width,height:1000});
+ await page.goto('http://127.0.0.1:4332/admin/users?preview=true',{waitUntil:'networkidle'});
+ await page.waitForSelector('[data-workspace-enhanced]');
+ if(width<=920){
+  const openNav=page.getByRole('button',{name:'Open navigation',exact:true});
+  await openNav.click();
+  await page.waitForFunction(()=>document.querySelector('.studio-admin__main').inert);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>!document.querySelector('.studio-admin__main').inert);
+  if(!await openNav.evaluate(el=>el===document.activeElement))throw Error('Navigation focus restoration failed');
+ }
+ await page.evaluate(()=>document.fonts.ready);
+ const rows=page.locator('.business-table__row');
+ const total=await rows.count();
+ const unlinked=await page.locator('.user-connect-link').count();
+ await page.getByRole('button',{name:'Needs a site'}).click();
+ if(await page.locator('.business-table__row:visible').count()!==unlinked)throw Error('Unlinked filter failed');
+ await page.getByRole('button',{name:/^Connected/}).click();
+ if(await page.locator('.business-table__row:visible').count()!==total-unlinked)throw Error('Connected filter failed');
+ await page.getByRole('button',{name:/^All users/}).click();
+ if(await page.locator('.business-table__row:visible').count()!==total)throw Error('All filter failed');
+ const directory=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
+ await page.screenshot({path:'work/qa-admin-v3/users-'+width+'.png',fullPage:true});
+ await page.getByRole('button',{name:'+ Add client',exact:true}).click();
+ if(await page.locator('[name="studio_name"]').evaluate(el=>el!==document.activeElement))throw Error('Dialog focus failed');
+ await page.locator('[name="studio_name"]').fill('Preview Studio');
+ await page.locator('[name="billing_email"]').fill('preview@example.com');
+ const modal=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+ await page.screenshot({path:'work/qa-admin-v3/add-client-'+width+'.png',fullPage:true});
+ await page.getByRole('button',{name:'Add client',exact:true}).click();
+ await page.getByText('Preview complete. Production creates the client site together.').waitFor();
+ await page.keyboard.press('Escape');
+ if(await page.locator('dialog').evaluate(el=>el.open))throw Error('Escape failed');
+ if(!await page.getByRole('button',{name:'+ Add client',exact:true}).evaluate(el=>el===document.activeElement))throw Error('Focus restoration failed');
+ const violations=[...directory.violations,...modal.violations].map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,message:n.failureSummary}))}));
+ console.log(JSON.stringify({width,total,unlinked,overflow,violations}));
+ if(overflow||violations.length)process.exitCode=1;
+}
+await page.locator('input[name="q"]').fill('Northline');
+await page.getByRole('button',{name:'Search',exact:true}).click();
+await page.waitForURL('**q=Northline**');
+if(!page.url().includes('preview=true'))throw Error('GET search dropped preview');
+await page.getByRole('button',{name:'+ Add client',exact:true}).click();
+await page.getByRole('button',{name:'Close add client'}).click();
+if(await page.locator('dialog').evaluate(el=>el.open))throw Error('Close button failed');
+// Exercise the unchanged request contract against a local mock, never a real account.
+await page.goto('http://127.0.0.1:4332/admin/users?preview=true',{waitUntil:'networkidle'});
+let requestBody;
+await page.route('**/api/admin/provision',async route=>{
+ requestBody=route.request().postDataJSON();
+ await route.fulfill({status:422,contentType:'application/json',body:JSON.stringify({message:'Choose another name.',errors:{studio_name:'This name is unavailable.'}})});
+});
+await page.locator('[data-add-client]').evaluate(form=>{form.dataset.preview='false'});
+await page.getByRole('button',{name:'+ Add client',exact:true}).click();
+await page.locator('[name="studio_name"]').fill('Preview Studio');
+await page.locator('[name="billing_email"]').fill('preview@example.com');
+await page.getByRole('button',{name:'Add client',exact:true}).click();
+await page.getByText('This name is unavailable.').waitFor();
+if(requestBody.studio_name!=='Preview Studio'||requestBody.slug!=='preview-studio'||!requestBody.idempotency_key||requestBody.plan_key!=='essential')throw Error('Request contract changed');
+if(!await page.getByRole('button',{name:'Add client',exact:true}).isEnabled())throw Error('Retry unavailable');
+await page.unroute('**/api/admin/provision');
+await page.route('**/api/admin/provision',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({studioName:'Preview Studio',workspaceId:'mock_workspace'})}));
+await page.getByRole('button',{name:'Add client',exact:true}).click();
+await page.getByText('Preview Studio is ready.').waitFor();
+if(await page.getByRole('link',{name:'Open site settings'}).getAttribute('href')!=='/admin/sites/mock_workspace')throw Error('Result link failed');
+if(!await page.getByRole('button',{name:'Client added'}).isDisabled())throw Error('Duplicate submission not prevented');
+console.log('Mocked creation error/retry/success, request fields and duplicate prevention passed; no external writes.');
+// The original form must remain accessible if progressive enhancement cannot run.
+const nojs=await browser.newContext({javaScriptEnabled:false});
+const fallback=await nojs.newPage();
+await fallback.goto('http://127.0.0.1:4332/admin/users?preview=true');
+if(!await fallback.locator('[name="studio_name"]').isVisible())throw Error('No-JS form hidden');
+console.log(JSON.stringify({searchAndDialog:'passed',noJsFallback:'passed',errors}));
+if(errors.length)process.exitCode=1;
+await browser.close();

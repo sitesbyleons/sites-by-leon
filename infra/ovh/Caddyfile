@@ -36,6 +36,12 @@
 		respond 200
 	}
 
+	# HTTPS terminates at Cloudflare; preserve paths and queries on the apex redirect.
+	@ishotyouu_apex host ishotyouu.net
+	handle @ishotyouu_apex {
+		redir https://www.ishotyouu.net{uri} 308
+	}
+
 	@dashboard {
 		host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}
 		path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/* /admin-assets/*
@@ -81,6 +87,32 @@
 		handle {
 			respond "Not found" 404
 		}
+	}
+
+	@ishotyouu_media_files {
+		host ishotyouu.leonsites.org www.ishotyouu.net
+		path /work/*.jpg /work/*.jpeg /work/*.webp /work/*.png /favicon.svg
+	}
+	handle @ishotyouu_media_files {
+		reverse_proxy ishotyouu-stills:80
+	}
+
+	@ishotyouu_assets {
+		host ishotyouu.leonsites.org www.ishotyouu.net
+		path /_astro/*
+	}
+	handle @ishotyouu_assets {
+		reverse_proxy photographer:4321 {
+			@error status 404
+			handle_response @error {
+				reverse_proxy ishotyouu-stills:80
+			}
+		}
+	}
+
+	@ishotyouu host ishotyouu.leonsites.org
+	handle @ishotyouu {
+		reverse_proxy photographer:4321
 	}
 
 	# Cloudflare publishes the allowed customer hostnames. The shared photographer

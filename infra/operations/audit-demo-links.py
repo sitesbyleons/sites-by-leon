@@ -1,0 +1,3 @@
+import subprocess
+sql="""select json_agg(x) from (select s.workspace_id,s.site_key,s.site_kind,w.slug,w.status,(w.stripe_customer_id is not null) has_billing_customer,(select count(*) from workspace_members m where m.workspace_id=s.workspace_id) members,(select count(*) from subscriptions b where b.workspace_id=s.workspace_id) subscriptions,(select count(*) from site_provisioning_runs p where p.workspace_id=s.workspace_id) provisioning_runs from site_connections s join client_workspaces w on w.id=s.workspace_id order by s.site_key) x;"""
+subprocess.run(['docker','exec','leon-platform-database-1','sh','-c','exec psql --no-psqlrc --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --tuples-only --no-align --command "$1"','sh',sql],check=True)

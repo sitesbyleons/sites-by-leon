@@ -1,4 +1,6 @@
 .worktrees/
+/work/
+/.superdesign/tmp/
 node_modules/
 dist/
 .astro/

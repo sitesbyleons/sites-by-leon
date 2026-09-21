@@ -27,17 +27,18 @@ const siteDomainSuffix = 'leonsites.org';
 const siteDomainJoiner = isTestHost ? '-test.' : '.';
 ---
 
-<AdminFrame active="sites" title="Add client site" eyebrow="Provisioning" description="Create the customer, owner access, starter site, and storage limit together." isPreview={isPreview} error={session.error}>
+<AdminFrame active="sites" title="Add client site" eyebrow="Provisioning" description="Create the customer, billing email, owner access, starter site, and storage limit together." isPreview={isPreview} error={session.error}>
   <div class="provision-back"><a href={`/admin/sites${isPreview ? '?preview=true' : ''}`}>← Back to sites</a></div>
 
   <form class="provision-form" data-provision-site data-preview={isPreview ? 'true' : 'false'} data-domain-suffix={siteDomainSuffix} data-domain-joiner={siteDomainJoiner}>
     <input type="hidden" name="idempotency_key" value={idempotencyKey} />
 
     <section class="provision-section" aria-labelledby="customer-heading">
-      <header><span>01</span><div><h2 id="customer-heading">Customer</h2><p>Choose the account that will own this site.</p></div></header>
+      <header><span>01</span><div><h2 id="customer-heading">Customer</h2><p>Add their name and billing email. Link a Clerk login now, or do that later from the site page.</p></div></header>
       <div class="provision-fields provision-fields--two">
-        <label><span>Owner account</span><select name="owner_user_id" required><option value="">Choose a user</option>{session.users.map((user) => <option value={user.id} selected={user.id === selectedOwnerId} disabled={connectedUserIds.has(user.id)}>{user.name} · {user.email}{connectedUserIds.has(user.id) ? ' · connected' : ''}</option>)}</select><small data-field-error="owner_user_id"></small></label>
         <label><span>Studio name</span><input name="studio_name" required minlength="2" maxlength="80" autocomplete="organization" placeholder="Vow & Light" /><small data-field-error="studio_name"></small></label>
+        <label><span>Billing email</span><input name="billing_email" type="email" maxlength="254" autocomplete="email" placeholder="hello@studio.com" /><small data-field-error="billing_email"></small></label>
+        <label class="wide"><span>Owner account <em>optional</em></span><select name="owner_user_id"><option value="">Link later</option>{session.users.map((user) => <option value={user.id} selected={user.id === selectedOwnerId} disabled={connectedUserIds.has(user.id)}>{user.name} · {user.email}{connectedUserIds.has(user.id) ? ' · connected' : ''}</option>)}</select><small data-field-error="owner_user_id"></small></label>
       </div>
     </section>
 

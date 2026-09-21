@@ -31,6 +31,7 @@ describe('site provisioning validation', () => {
       ok: true,
       value: {
         ownerUserId: 'user_customer_123',
+        billingEmail: null,
         studioName: 'Vow & Light',
         slug: 'vow-and-light',
         primaryDomain: 'vow.leonsites.org',
@@ -90,6 +91,38 @@ describe('site provisioning validation', () => {
       value: {
         primaryDomain: 'vow-and-light-test.leonsites.org',
         adminDomain: 'vow-and-light-test.leonsites.org',
+      },
+    });
+  });
+
+  it('accepts a billing email without a Clerk owner so Leon can invoice first', () => {
+    const result = validateSiteProvisioningInput({
+      ...valid,
+      owner_user_id: '',
+      billing_email: 'hello@studio.example',
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        ownerUserId: null,
+        billingEmail: 'hello@studio.example',
+      },
+    });
+  });
+
+  it('rejects a client with neither a Clerk user nor a billing email', () => {
+    const result = validateSiteProvisioningInput({
+      ...valid,
+      owner_user_id: '',
+      billing_email: '',
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      errors: {
+        billing_email: expect.any(String),
+        owner_user_id: expect.any(String),
       },
     });
   });

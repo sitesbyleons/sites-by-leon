@@ -37,8 +37,9 @@ describe('studio resource mutations', () => {
 
     expect(core).toContain('studio_galleries: 100');
     expect(core).toContain('studio_gallery_images: 5_000');
+    expect(core).toContain('studio_work_stills: 200');
     expect(core).toContain('capacity.available');
-    expect(route).toContain("quotaLimitedCreate: 'galleries' | 'images' | null");
+    expect(route).toContain("quotaLimitedCreate: 'galleries' | 'images' | 'stills' | null");
     expect(route).toContain("status: 409");
   });
 
@@ -70,6 +71,7 @@ describe('studio resource mutations', () => {
     expect(route).toContain("table: 'studio_galleries', pathColumn: 'cover_storage_path'");
     expect(route).toContain("table: 'studio_gallery_images', pathColumn: 'storage_path'");
     expect(route).toContain("table: 'studio_posts', pathColumn: 'cover_storage_path'");
+    expect(route).toContain("table: 'studio_work_stills', pathColumn: 'storage_path'");
     expect(route).toContain('findUploadBackedResource');
     expect(route).toMatch(/duplicate key|unique constraint/i);
   });
@@ -80,6 +82,7 @@ describe('studio resource mutations', () => {
     expect(schema).toMatch(/create unique index[^;]+studio_galleries[^;]+\(workspace_id, cover_storage_path\)[^;]+where cover_storage_path is not null/i);
     expect(schema).toMatch(/create unique index[^;]+studio_gallery_images[^;]+\(workspace_id, storage_path\)[^;]+where storage_path is not null/i);
     expect(schema).toMatch(/create unique index[^;]+studio_posts[^;]+\(workspace_id, cover_storage_path\)[^;]+where cover_storage_path is not null/i);
+    expect(schema).toMatch(/create unique index[^;]+studio_work_stills[^;]+\(workspace_id, storage_path\)[^;]+where storage_path is not null/i);
   });
 
   it('persists validated gallery layout and image crop controls', () => {
@@ -103,5 +106,43 @@ describe('studio resource mutations', () => {
     expect(route).toContain("select('cover_storage_path,status,published_at')");
     expect(route).toContain('resolvePublishedAt(previous.data.published_at, status, now)');
     expect(route).not.toContain("published_at: status === 'published' ? new Date().toISOString() : null");
+  });
+
+  it('lets a post link to a related gallery from the same studio', () => {
+    const route = read('src/pages/api/admin/[resource].ts');
+    const posts = read('src/pages/admin/posts.astro');
+    const schema = readWorkspace('infra/ovh/postgres/schema.sql');
+    expect(route).toContain('related_gallery_id');
+    expect(route).toContain("Choose a gallery from this studio.");
+    expect(posts).toContain('name="related_gallery_id"');
+    expect(schema).toContain('alter table studio_posts add column if not exists related_gallery_id');
+    expect(readWorkspace('platform-core/src/index.ts')).toContain("'related_gallery_id'");
+  });
+
+  it('keeps reorder chevrons stacked beside edit controls instead of overlaying the row', () => {
+    const css = read('src/styles/studio-admin.css');
+    const icon = read('src/components/StudioIcon.astro');
+    const reorder = read('src/components/StudioReorder.astro');
+    expect(css).toContain('.studio-item-actions { display: flex; width: auto');
+    expect(css).toContain('.studio-reorder { display: inline-flex; flex-direction: column;');
+    expect(css).not.toContain('.studio-item-actions { display: grid; width: 100%');
+    expect(css).not.toContain('.studio-reorder { display: inline-flex; grid-column: 2;');
+    expect(icon).toContain("name === 'up'");
+    expect(icon).toContain("name === 'down'");
+    expect(icon).toContain("name === 'invoices'");
+    expect(reorder).toContain('StudioIcon name="up"');
+    expect(reorder).toContain('StudioIcon name="down"');
+  });
+
+  it('shows the image picker as a light dialog with unstretched photos', () => {
+    const css = read('src/styles/studio-admin.css');
+    const layout = read('src/layouts/StudioAdminLayout.astro');
+    expect(layout).toContain('Choose an image');
+    expect(layout).toContain('content="light"');
+    expect(css).toContain('.studio-media-dialog { width: min(56rem, calc(100vw - 2rem));');
+    expect(css).toContain('background: var(--surface-raised); color: var(--ink);');
+    expect(css).toContain('.studio-media-card img { width: 100%; aspect-ratio: 4 / 5; height: auto; object-fit: contain;');
+    expect(css).toContain('.studio-file-card > img { width: 100%; aspect-ratio: 4 / 5; height: auto; object-fit: contain;');
+    expect(css).not.toContain('.studio-media-card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover;');
   });
 });

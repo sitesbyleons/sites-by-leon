@@ -8,6 +8,7 @@ import { canManageSubscription, canStartCheckout, plans } from '../../lib/billin
 import { createPlatformDatabase } from '../../lib/database';
 import { normalizeDashboardState } from '../../lib/dashboard-state';
 import { loadDashboardData } from '../../lib/load-dashboard';
+import welcomeGuide from '../../components/ClientWelcome.html?raw';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -79,10 +80,11 @@ const periodEnd = dashboardData.subscription?.current_period_end
 ---
 
 <DashboardLayout title="Dashboard" shell>
-  <div class="client-shell">
+  <link rel="stylesheet" href="/admin-assets/client-workspace-v1.css" />
+  <div class="client-shell client-home">
     <header class="client-header">
       <a class="portal-brand portal-brand--small" href="/dashboard" aria-label="Sites By Leon dashboard">
-        <span>Sites</span><span>By</span><span>Leon</span>
+        <img src="/admin-assets/leon-mark-v1.png" alt="" width="34" height="34" /><span>sites by leon</span>
       </a>
       <nav aria-label="Client dashboard">
         <a href="/dashboard">Website</a>
@@ -114,6 +116,7 @@ const periodEnd = dashboardData.subscription?.current_period_end
             <a class="simple-button" href="mailto:sites.by.leon@gmail.com">Contact Leon</a>
             {!isPreview && <ClerkSignOutButton class="simple-button simple-button--quiet">Sign out</ClerkSignOutButton>}
           </div>
+          <Fragment set:html={welcomeGuide} />
         </section>
       ) : (
         <>

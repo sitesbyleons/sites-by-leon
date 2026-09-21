@@ -106,7 +106,7 @@ The normal deployment keeps custom-domain automation off. To activate it safely:
 5. Set both secret files to mode `600`. Deployment runs `scripts/preflight-domain-worker.sh` before it creates or changes Docker resources and refuses missing, duplicate, placeholder, malformed, insecure, short, or mismatched worker credentials.
 6. Deploy, confirm the domain worker is healthy, then connect one test hostname from `/admin/sites` before onboarding a client domain.
 
-For Namecheap, add the client's `www` CNAME to `customers.leonsites.org`, then add an unmasked permanent redirect from `@` to the `https://www...` address. Do not remove or replace MX/TXT email records.
+For Namecheap, add the client's `www` CNAME to `customers.leonsites.org`. Namecheap URL forwarding does not provide a working HTTPS entry point for the bare domain. For a secure apex redirect, provision a separate Cloudflare custom hostname/certificate for the apex, add the exact apex hostname to the Cloudflare Tunnel ingress pointing to `http://gateway:80`, and configure an exact-host canonical redirect at the gateway. Complete TXT ownership and certificate prevalidation BEFORE changing the apex DNS, waiting for both statuses to be active. Then use a Namecheap `@` ALIAS to `customers.leonsites.org`. Flattened ALIAS records do not expose a CNAME chain. Verify TLS and path/query preservation before declaring completion. Do not remove or replace MX/TXT email records.
 
 ## Import existing records
 

@@ -1,6 +1,8 @@
 import { userCanManageWorkspace, type DataClient } from '@leon/platform-core';
 
+import { ishotyouuLibraryStills } from './content/ishotyouu-fallback';
 import { createStudioDatabase } from './database';
+import type { StudioWorkStill } from './work-stills';
 
 export type StudioWorkspace = { id: string; name: string; slug: string; status: string };
 export type StudioSettings = {
@@ -62,6 +64,7 @@ export type StudioPost = {
   cover_crop_zoom: number;
   status: string;
   published_at: string | null;
+  related_gallery_id: string | null;
   sort_order: number;
 };
 export type StudioService = {
@@ -121,8 +124,12 @@ export type StudioUpload = {
   media_kind: string;
   size_bytes: number;
   created_at: string;
-  used_in: Array<'galleries' | 'images' | 'posts'>;
+  used_in: Array<'galleries' | 'images' | 'posts' | 'stills'>;
+  alt_text?: string;
+  instagram_url?: string;
 };
+
+export type { StudioWorkStill };
 export type StudioSupportTicket = {
   id: string;
   subject: string;
@@ -132,12 +139,24 @@ export type StudioSupportTicket = {
   updated_at: string;
 };
 
+export type StudioHostingBill = {
+  monthly_cents: number | null;
+  domain_options: string;
+  chosen_domain: string | null;
+  plan_key: string | null;
+  subscription_status: string | null;
+  current_period_end: string | null;
+  checkout_url: string | null;
+  checkout_expires_at: string | null;
+};
+
 export type StudioAdminData = {
   workspace: StudioWorkspace | null;
   settings: StudioSettings | null;
   galleries: StudioGallery[];
   images: StudioImage[];
   posts: StudioPost[];
+  stills: StudioWorkStill[];
   services: StudioService[];
   clients: StudioClient[];
   invoices: StudioInvoice[];
@@ -145,6 +164,7 @@ export type StudioAdminData = {
   uploads: StudioUpload[];
   supportTickets: StudioSupportTicket[];
   connect: ConnectStatus | null;
+  hosting: StudioHostingBill | null;
   error: string | null;
 };
 
@@ -175,8 +195,9 @@ export function previewStudioData(): StudioAdminData {
       { id: 'image_3', workspace_id: previewWorkspace.id, gallery_id: 'gallery_football', image_url: '/images/sports/football-field.webp', alt_text: 'Football field under stadium lights', storage_path: null, aspect_ratio: 'inherit', crop_x: 50, crop_y: 56, crop_zoom: 1.05, sort_order: 3 },
     ],
     posts: [
-      { id: 'post_1', workspace_id: previewWorkspace.id, title: 'Working the Sideline', slug: 'working-the-sideline', excerpt: 'A night of football coverage.', body: 'Game notes and selected photographs.', cover_image_url: '/images/sports/football-field.webp', cover_storage_path: null, cover_aspect_ratio: 'wide', cover_crop_x: 50, cover_crop_y: 46, cover_crop_zoom: 1.1, status: 'published', published_at: '2026-07-08T12:00:00.000Z', sort_order: 1 },
+      { id: 'post_1', workspace_id: previewWorkspace.id, title: 'Working the Sideline', slug: 'working-the-sideline', excerpt: 'A night of football coverage.', body: 'Game notes and selected photographs.', cover_image_url: '/images/sports/football-field.webp', cover_storage_path: null, cover_aspect_ratio: 'wide', cover_crop_x: 50, cover_crop_y: 46, cover_crop_zoom: 1.1, status: 'published', published_at: '2026-07-08T12:00:00.000Z', related_gallery_id: 'gallery_football', sort_order: 1 },
     ],
+    stills: [],
     services,
     clients: [
       { id: 'client_1', workspace_id: previewWorkspace.id, service_id: 'service_game', name: 'Avery Thompson', email: 'avery@example.com', phone: null, notes: 'Home football game.', created_at: '2026-07-10T12:00:00.000Z' },
@@ -196,6 +217,16 @@ export function previewStudioData(): StudioAdminData {
       { id: 'ticket_1', subject: 'Update homepage schedule', details: 'Please change the next available game date on the homepage.', status: 'in_progress', created_at: '2026-07-10T12:00:00.000Z', updated_at: '2026-07-11T12:00:00.000Z' },
     ],
     connect: { onboarding_status: 'pending', charges_enabled: false, payouts_enabled: false, details_submitted: false },
+    hosting: {
+      monthly_cents: 2500,
+      domain_options: 'northlinesports.com\nnorthlinesports.org',
+      chosen_domain: null,
+      plan_key: 'essential',
+      subscription_status: null,
+      current_period_end: null,
+      checkout_url: null,
+      checkout_expires_at: null,
+    },
     error: null,
   };
 }
@@ -205,8 +236,8 @@ export async function loadStudioAdminData(
   workspaceId: string,
 ): Promise<StudioAdminData> {
   const empty: StudioAdminData = {
-    workspace: null, settings: null, galleries: [], images: [], posts: [], services: [],
-    clients: [], invoices: [], inquiries: [], uploads: [], supportTickets: [], connect: null, error: null,
+    workspace: null, settings: null, galleries: [], images: [], posts: [], stills: [], services: [],
+    clients: [], invoices: [], inquiries: [], uploads: [], supportTickets: [], connect: null, hosting: null, error: null,
   };
   if (!client) return { ...empty, error: 'The secure studio database is not configured.' };
 
@@ -220,11 +251,12 @@ export async function loadStudioAdminData(
   }
   const workspace = workspaceResult.data;
   const id = workspace.id;
-  const [settings, galleries, images, posts, services, clients, invoices, inquiries, uploads, supportTickets, connect] = await Promise.all([
+  const [settings, galleries, images, posts, stills, services, clients, invoices, inquiries, uploads, supportTickets, connect, project, subscription, checkout] = await Promise.all([
     client.from('studio_settings').select('workspace_id,site_title,hero_title,hero_subtitle,contact_email,contact_phone,paper_color,ink_color,accent_color,font_preset').eq('workspace_id', id).maybeSingle<StudioSettings>(),
     client.from('studio_galleries').select('id,workspace_id,title,slug,category,description,cover_image_url,cover_storage_path,layout_mode,grid_columns,image_aspect_ratio,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_gallery_images').select('id,workspace_id,gallery_id,image_url,alt_text,storage_path,aspect_ratio,crop_x,crop_y,crop_zoom,sort_order').eq('workspace_id', id).order('sort_order'),
-    client.from('studio_posts').select('id,workspace_id,title,slug,excerpt,body,cover_image_url,cover_storage_path,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,published_at,sort_order').eq('workspace_id', id).order('sort_order'),
+    client.from('studio_posts').select('id,workspace_id,title,slug,excerpt,body,cover_image_url,cover_storage_path,cover_aspect_ratio,cover_crop_x,cover_crop_y,cover_crop_zoom,status,published_at,related_gallery_id,sort_order').eq('workspace_id', id).order('sort_order'),
+    client.from('studio_work_stills').select('id,workspace_id,image_url,storage_path,instagram_url,alt_text,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_services').select('id,workspace_id,name,description,price_type,price_cents,is_active,sort_order').eq('workspace_id', id).order('sort_order'),
     client.from('studio_clients').select('id,workspace_id,service_id,name,email,phone,notes,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('studio_invoices').select('id,workspace_id,client_id,status,description,amount_due_cents,deposit_cents,amount_paid_cents,due_date,hosted_invoice_url,created_at').eq('workspace_id', id).order('created_at', { ascending: false }),
@@ -232,16 +264,33 @@ export async function loadStudioAdminData(
     client.from('workspace_uploads').select('storage_path,size_bytes,original_filename,media_kind,created_at').eq('workspace_id', id).eq('is_retained', true).order('created_at', { ascending: false }),
     client.from('content_requests').select('id,subject,details,status,created_at,updated_at').eq('workspace_id', id).order('created_at', { ascending: false }),
     client.from('connected_payment_accounts').select('onboarding_status,charges_enabled,payouts_enabled,details_submitted').eq('workspace_id', id).maybeSingle<ConnectStatus>(),
+    client.from('website_projects').select('monthly_cents,domain_options,chosen_domain,plan_key').eq('workspace_id', id).maybeSingle<{ monthly_cents: number | null; domain_options: string | null; chosen_domain: string | null; plan_key: string | null }>(),
+    client.from('subscriptions').select('status,plan_key,current_period_end').eq('workspace_id', id).maybeSingle<{ status: string; plan_key: string; current_period_end: string | null }>(),
+    client.from('checkout_attempts').select('checkout_url,expires_at').eq('workspace_id', id).maybeSingle<{ checkout_url: string | null; expires_at: string }>(),
   ]);
 
-  const failed = [settings, galleries, images, posts, services, clients, invoices, inquiries, uploads, supportTickets, connect]
+  const failed = [settings, galleries, images, posts, stills, services, clients, invoices, inquiries, uploads, supportTickets, connect]
     .some((result) => Boolean(result.error));
+  const hosting = project.error || subscription.error || checkout.error
+    ? null
+    : {
+      monthly_cents: typeof project.data?.monthly_cents === 'number' ? project.data.monthly_cents : null,
+      domain_options: project.data?.domain_options ?? '',
+      chosen_domain: project.data?.chosen_domain ?? null,
+      plan_key: project.data?.plan_key ?? subscription.data?.plan_key ?? null,
+      subscription_status: subscription.data?.status ?? null,
+      current_period_end: subscription.data?.current_period_end ?? null,
+      checkout_url: checkout.data?.checkout_url ?? null,
+      checkout_expires_at: checkout.data?.expires_at ?? null,
+    };
   const galleryRows = (galleries.data ?? []) as StudioGallery[];
   const imageRows = (images.data ?? []) as StudioImage[];
   const postRows = (posts.data ?? []) as StudioPost[];
+  const stillRows = (stills.data ?? []) as StudioWorkStill[];
   const galleryPaths = new Set(galleryRows.map((item) => item.cover_storage_path).filter(Boolean));
   const imagePaths = new Set(imageRows.map((item) => item.storage_path).filter(Boolean));
   const postPaths = new Set(postRows.map((item) => item.cover_storage_path).filter(Boolean));
+  const stillPaths = new Set(stillRows.map((item) => item.storage_path).filter(Boolean));
   const mediaOrigin = (process.env.PUBLIC_MEDIA_URL ?? 'https://api.leonsites.org').replace(/\/$/, '');
   const mediaRows = (uploads.data ?? []).map((upload) => {
     const storagePath = String(upload.storage_path ?? '');
@@ -250,6 +299,7 @@ export async function loadStudioAdminData(
     if (galleryPaths.has(storagePath)) usedIn.push('galleries');
     if (imagePaths.has(storagePath)) usedIn.push('images');
     if (postPaths.has(storagePath)) usedIn.push('posts');
+    if (stillPaths.has(storagePath)) usedIn.push('stills');
     return {
       storage_path: storagePath,
       public_url: `${mediaOrigin}/media/${storagePath.split('/').map(encodeURIComponent).join('/')}`,
@@ -260,19 +310,41 @@ export async function loadStudioAdminData(
       used_in: usedIn,
     };
   });
+  const libraryStills = workspace.slug === 'ishotyouu'
+    ? ishotyouuLibraryStills().map((frame) => {
+      const usedIn: StudioUpload['used_in'] = [];
+      if (galleryRows.some((item) => item.cover_image_url === frame.src)) usedIn.push('galleries');
+      if (imageRows.some((item) => item.image_url === frame.src)) usedIn.push('images');
+      if (postRows.some((item) => item.cover_image_url === frame.src)) usedIn.push('posts');
+      if (stillRows.some((item) => item.image_url === frame.src)) usedIn.push('stills');
+      return {
+        storage_path: '',
+        public_url: frame.src,
+        original_filename: frame.src.split('/').at(-1) ?? 'still.jpg',
+        media_kind: 'library',
+        size_bytes: 0,
+        created_at: '',
+        used_in: usedIn,
+        alt_text: frame.alt,
+        instagram_url: frame.instagramUrl,
+      };
+    })
+    : [];
   return {
     workspace,
     settings: settings.data,
     galleries: galleryRows,
     images: imageRows,
     posts: postRows,
+    stills: stillRows,
     services: (services.data ?? []) as StudioService[],
     clients: (clients.data ?? []) as StudioClient[],
     invoices: (invoices.data ?? []) as StudioInvoice[],
     inquiries: (inquiries.data ?? []) as StudioInquiry[],
-    uploads: mediaRows,
+    uploads: [...libraryStills, ...mediaRows],
     supportTickets: (supportTickets.data ?? []) as StudioSupportTicket[],
     connect: connect.data,
+    hosting,
     error: failed ? 'Some studio records could not be loaded.' : null,
   };
 }

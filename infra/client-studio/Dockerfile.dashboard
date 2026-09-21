@@ -1,0 +1,6 @@
+FROM leon-design-prod:admin-width-20260920
+COPY patch.mjs ClientWelcome.html /tmp/client-studio/
+USER root
+RUN node /tmp/client-studio/patch.mjs dashboard
+COPY --chown=node:node client-workspace-v1.css /workspace/dashboard/dist/client/admin-assets/client-workspace-v1.css
+USER node

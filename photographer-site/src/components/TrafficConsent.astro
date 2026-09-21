@@ -1,0 +1,14 @@
+---
+import { statisticsEnabled, publicPage } from '../lib/statistics';
+const enabled=statisticsEnabled(Astro.locals.siteContext) && publicPage(Astro.url.pathname)!==null;
+---
+{enabled && <>
+  <aside id="traffic-consent" aria-label="Optional visitor statistics" hidden>
+    <strong>Help this site improve?</strong>
+    <p>Allow optional statistics about pages viewed, broad country and device type. No names, stored IP addresses or advertising profiles. <a href="/statistics-privacy">Privacy details</a>.</p>
+    <div><button type="button" data-traffic-choice="accepted">Allow statistics</button><button type="button" data-traffic-choice="declined">Decline</button></div>
+  </aside>
+  <button type="button" id="traffic-preferences">Privacy choices</button>
+  <link rel="stylesheet" href="/statistics/consent-v1.css" />
+  <script is:inline src="/statistics/collector-v1.js" defer></script>
+</>}

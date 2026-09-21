@@ -155,8 +155,9 @@ describe('Leon PostgreSQL data client', () => {
     });
 
     expect(recorder.calls[0].text).toContain('insert into "checkout_attempts"');
+    expect(recorder.calls[0].text).toContain('"monthly_cents"');
     expect(recorder.calls[0].text).toContain('on conflict ("workspace_id") do update set');
-    expect(recorder.calls[0].text).toContain('where "checkout_attempts"."expires_at" <= now()');
+    expect(recorder.calls[0].text).toContain('where "checkout_attempts"."expires_at" <= now() + interval \'60 seconds\'');
     expect(recorder.calls[0].text).toContain('"checkout_attempts"."checkout_url" is null');
     expect(recorder.calls[0].text).toContain("interval '2 minutes'");
   });
@@ -297,6 +298,7 @@ describe('Leon PostgreSQL data client', () => {
     expect(recorder.calls[0].text).toContain('exists (select 1 from "studio_galleries"');
     expect(recorder.calls[0].text).toContain('exists (select 1 from "studio_gallery_images"');
     expect(recorder.calls[0].text).toContain('exists (select 1 from "studio_posts"');
+    expect(recorder.calls[0].text).toContain('exists (select 1 from "studio_work_stills"');
     expect(recorder.calls[0].text).toContain('"cover_storage_path" = $2');
     expect(recorder.calls[0].text).toContain('"storage_path" = $2');
     expect(recorder.calls[0].values).toEqual(['ws-1', 'ws-1/covers/a.webp']);
@@ -342,6 +344,7 @@ describe('Leon PostgreSQL data client', () => {
     expect(recorder.calls[0].text).toContain('not exists (select 1 from "studio_galleries"');
     expect(recorder.calls[0].text).toContain('not exists (select 1 from "studio_gallery_images"');
     expect(recorder.calls[0].text).toContain('not exists (select 1 from "studio_posts"');
+    expect(recorder.calls[0].text).toContain('not exists (select 1 from "studio_work_stills"');
   });
 
   it('returns an error when maybeSingle receives multiple rows', async () => {

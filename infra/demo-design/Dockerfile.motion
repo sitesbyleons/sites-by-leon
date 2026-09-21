@@ -1,0 +1,4 @@
+FROM leon-design-prod:demos-refined-20260920
+RUN echo '1472d980acc95409107a4865c2ebb90d969f980f4828f616cf992f7a1fdbf226  /workspace/photographer-site/dist/server/chunks/demo-design-v1.mjs' | sha256sum -c -
+COPY --chown=node:node demo-design.mjs /workspace/photographer-site/dist/server/chunks/demo-design-v1.mjs
+COPY --chown=node:node demo-v4.css demo-v4.js /workspace/photographer-site/dist/client/demo-assets/

@@ -56,6 +56,21 @@ alter table website_projects alter column template_key set not null;
 alter table website_projects drop constraint if exists website_projects_template_key_check;
 alter table website_projects add constraint website_projects_template_key_check
   check (template_key in ('blank', 'sports', 'editorial', 'commercial'));
+alter table website_projects add column if not exists monthly_cents integer;
+alter table website_projects drop constraint if exists website_projects_monthly_cents_check;
+alter table website_projects add constraint website_projects_monthly_cents_check
+  check (monthly_cents is null or (monthly_cents >= 100 and monthly_cents <= 1000000));
+alter table website_projects add column if not exists domain_options text not null default '';
+alter table website_projects drop constraint if exists website_projects_domain_options_length;
+alter table website_projects add constraint website_projects_domain_options_length
+  check (char_length(domain_options) <= 4000);
+alter table website_projects add column if not exists chosen_domain text;
+alter table website_projects drop constraint if exists website_projects_chosen_domain_check;
+alter table website_projects add constraint website_projects_chosen_domain_check
+  check (
+    chosen_domain is null
+    or chosen_domain ~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
+  );
 
 create table if not exists site_provisioning_runs (
   id uuid primary key default gen_random_uuid(),
@@ -115,6 +130,10 @@ create table if not exists checkout_attempts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table checkout_attempts add column if not exists monthly_cents integer;
+alter table checkout_attempts drop constraint if exists checkout_attempts_monthly_cents_check;
+alter table checkout_attempts add constraint checkout_attempts_monthly_cents_check
+  check (monthly_cents is null or (monthly_cents >= 100 and monthly_cents <= 1000000));
 
 create table if not exists workspace_storage_usage (
   workspace_id uuid primary key references client_workspaces(id) on delete cascade,
@@ -267,6 +286,7 @@ create table if not exists studio_posts (
   cover_crop_zoom numeric(4, 2) not null default 1 check (cover_crop_zoom between 1 and 3),
   status text not null default 'draft' check (status in ('draft', 'published')),
   published_at timestamptz,
+  related_gallery_id uuid references studio_galleries(id) on delete set null,
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -312,6 +332,7 @@ alter table studio_posts add column if not exists cover_aspect_ratio text not nu
 alter table studio_posts add column if not exists cover_crop_x smallint not null default 50;
 alter table studio_posts add column if not exists cover_crop_y smallint not null default 50;
 alter table studio_posts add column if not exists cover_crop_zoom numeric(4, 2) not null default 1;
+alter table studio_posts add column if not exists related_gallery_id uuid references studio_galleries(id) on delete set null;
 alter table studio_posts drop constraint if exists studio_posts_cover_aspect_ratio_check;
 alter table studio_posts add constraint studio_posts_cover_aspect_ratio_check check (cover_aspect_ratio in ('square', 'portrait', 'landscape', 'wide'));
 alter table studio_posts drop constraint if exists studio_posts_cover_crop_x_check;
@@ -320,6 +341,18 @@ alter table studio_posts drop constraint if exists studio_posts_cover_crop_y_che
 alter table studio_posts add constraint studio_posts_cover_crop_y_check check (cover_crop_y between 0 and 100);
 alter table studio_posts drop constraint if exists studio_posts_cover_crop_zoom_check;
 alter table studio_posts add constraint studio_posts_cover_crop_zoom_check check (cover_crop_zoom between 1 and 3);
+
+create table if not exists studio_work_stills (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid not null references client_workspaces(id) on delete cascade,
+  image_url text not null check (char_length(image_url) between 8 and 2048),
+  storage_path text,
+  instagram_url text not null check (char_length(instagram_url) between 20 and 500),
+  alt_text text not null check (char_length(alt_text) between 2 and 300),
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
 create table if not exists studio_services (
   id uuid primary key default gen_random_uuid(),
@@ -431,7 +464,10 @@ alter table site_connections alter column admin_domain set not null;
 alter table site_connections add column if not exists site_kind text not null default 'client';
 update site_connections
 set site_kind = 'demo'
-where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org', 'ishotyouu.leonsites.org');
+where primary_domain in ('demo.leonsites.org', 'vow-and-light.leonsites.org');
+update site_connections
+set site_kind = 'client'
+where primary_domain in ('ishotyouu.leonsites.org', 'ishotyouu-test.leonsites.org');
 alter table site_connections drop constraint if exists site_connections_site_kind_check;
 alter table site_connections add constraint site_connections_site_kind_check
   check (site_kind in ('client', 'demo'));
@@ -601,6 +637,11 @@ where
     select 1 from studio_posts
     where studio_posts.workspace_id = upload.workspace_id
       and studio_posts.cover_storage_path = upload.storage_path
+  )
+  or exists (
+    select 1 from studio_work_stills
+    where studio_work_stills.workspace_id = upload.workspace_id
+      and studio_work_stills.storage_path = upload.storage_path
   );
 
 create index if not exists connected_payment_account_history_workspace_idx on connected_payment_account_history (workspace_id, retired_at desc);
@@ -622,6 +663,8 @@ create index if not exists studio_gallery_images_workspace_idx on studio_gallery
 create unique index if not exists studio_gallery_images_workspace_storage_path_unique_idx on studio_gallery_images (workspace_id, storage_path) where storage_path is not null;
 create index if not exists studio_posts_workspace_sort_idx on studio_posts (workspace_id, sort_order, created_at);
 create unique index if not exists studio_posts_workspace_cover_path_unique_idx on studio_posts (workspace_id, cover_storage_path) where cover_storage_path is not null;
+create index if not exists studio_work_stills_workspace_sort_idx on studio_work_stills (workspace_id, sort_order, created_at);
+create unique index if not exists studio_work_stills_workspace_storage_path_unique_idx on studio_work_stills (workspace_id, storage_path) where storage_path is not null;
 create index if not exists studio_services_workspace_sort_idx on studio_services (workspace_id, sort_order, created_at);
 create index if not exists studio_clients_workspace_idx on studio_clients (workspace_id);
 create index if not exists studio_clients_service_idx on studio_clients (service_id);
@@ -652,6 +695,8 @@ drop trigger if exists studio_gallery_images_updated on studio_gallery_images;
 create trigger studio_gallery_images_updated before update on studio_gallery_images for each row execute function set_updated_at();
 drop trigger if exists studio_posts_updated on studio_posts;
 create trigger studio_posts_updated before update on studio_posts for each row execute function set_updated_at();
+drop trigger if exists studio_work_stills_updated on studio_work_stills;
+create trigger studio_work_stills_updated before update on studio_work_stills for each row execute function set_updated_at();
 drop trigger if exists studio_services_updated on studio_services;
 create trigger studio_services_updated before update on studio_services for each row execute function set_updated_at();
 drop trigger if exists studio_clients_updated on studio_clients;
@@ -700,7 +745,7 @@ revoke all privileges on all sequences in schema public from leon_photographer_r
 alter default privileges in schema public revoke all on tables from leon_photographer_runtime;
 alter default privileges in schema public revoke all on sequences from leon_photographer_runtime;
 grant usage on schema public to leon_photographer_runtime;
-grant select on table app_admins, client_workspaces, workspace_members, site_connections, site_domain_aliases to leon_photographer_runtime;
+grant select on table app_admins, client_workspaces, workspace_members, site_connections, site_domain_aliases, website_projects, subscriptions, checkout_attempts to leon_photographer_runtime;
 grant select, insert, update, delete on table
   workspace_storage_usage,
   workspace_uploads,
@@ -711,6 +756,7 @@ grant select, insert, update, delete on table
   studio_galleries,
   studio_gallery_images,
   studio_posts,
+  studio_work_stills,
   studio_services,
   studio_clients,
   studio_invoices,
@@ -718,5 +764,147 @@ grant select, insert, update, delete on table
   inquiry_rate_limits,
   stripe_events
 to leon_photographer_runtime;
-revoke all privileges on table subscriptions, checkout_attempts, website_projects, site_provisioning_runs, domain_jobs from leon_photographer_runtime;
-revoke insert, update, delete, truncate, references, trigger on table app_admins from leon_photographer_runtime;
+revoke all privileges on table site_provisioning_runs, domain_jobs from leon_photographer_runtime;
+revoke insert, update, delete, truncate, references, trigger on table app_admins, website_projects, subscriptions, checkout_attempts from leon_photographer_runtime;
+grant update (chosen_domain) on table website_projects to leon_photographer_runtime;
+
+-- Test-only ISHOTYOUU site (idempotent). Reuse the existing workspace UUID if
+-- slug ishotyouu is already present; do not insert a colliding hardcoded id.
+do $$
+declare
+  ws_id uuid;
+begin
+  if exists (select 1 from site_connections where primary_domain like '%-test.leonsites.org' limit 1) then
+    select id into ws_id from client_workspaces where slug = 'ishotyouu';
+    if ws_id is null then
+      insert into client_workspaces (id, name, slug, status, clerk_org_id, stripe_customer_id)
+      values ('00000000-0000-0000-0000-000000000099'::uuid, 'ISHOTYOUU', 'ishotyouu', 'lead', null, null)
+      returning id into ws_id;
+    end if;
+
+    if not exists (select 1 from website_projects where workspace_id = ws_id) then
+      insert into website_projects (id, workspace_id, name, status, plan_key, template_key, progress, live_url, monthly_cents, domain_options)
+      values ('00000000-0000-0000-0000-000000000199'::uuid, ws_id, 'ISHOTYOUU Website', 'live', null, 'blank', 100, 'https://ishotyouu-test.leonsites.org', 2000, 'ishotyouu.com' || chr(10) || 'ishotyouu.org')
+      on conflict (id) do nothing;
+    end if;
+
+    update website_projects
+    set monthly_cents = 2000,
+        domain_options = case
+          when btrim(coalesce(domain_options, '')) = '' then 'ishotyouu.com' || chr(10) || 'ishotyouu.org'
+          else domain_options
+        end
+    where workspace_id = ws_id;
+
+    insert into site_connections (workspace_id, site_key, site_kind, primary_domain, admin_domain, deployment_target, status, billing_mode, desired_status, billing_state)
+    values (ws_id, 'ishotyouu-demo', 'client', 'ishotyouu-test.leonsites.org', 'ishotyouu-test.leonsites.org', 'ovh:leon-platform-photographer', 'active', 'manual', 'active', 'manual')
+    on conflict (workspace_id) do update set
+      site_key = excluded.site_key,
+      site_kind = 'client',
+      primary_domain = excluded.primary_domain,
+      admin_domain = excluded.admin_domain,
+      deployment_target = excluded.deployment_target,
+      status = excluded.status;
+
+    insert into studio_settings (
+      workspace_id, site_title, hero_title, hero_subtitle, contact_email, contact_phone,
+      paper_color, ink_color, accent_color, font_preset
+    )
+    values (
+      ws_id, 'ISHOTYOUU', 'ISHOTYOUU', 'ISHOTYOUU.', null, null,
+      '#090807', '#f1eadc', '#d4a45a', 'athletic'
+    )
+    on conflict (workspace_id) do nothing;
+
+    insert into workspace_members (workspace_id, clerk_user_id, role)
+    select ws_id, clerk_user_id, 'owner'
+    from app_admins
+    on conflict (workspace_id, clerk_user_id) do nothing;
+
+    -- Keep ISHOTYOUU owners that Leon linked. Do not copy owners from other workspaces.
+
+    -- ISHOTYOUU public Work is Instagram stills, not CMS galleries or posts.
+    if not exists (select 1 from studio_work_stills where workspace_id = ws_id) then
+      insert into studio_work_stills (workspace_id, image_url, storage_path, instagram_url, alt_text, sort_order)
+      values
+        (ws_id, '/work/19-DbxBpe1lvmD.jpg', null, 'https://www.instagram.com/p/DbxBpe1lvmD/', 'Photograph from @180pf.shotit Instagram post DbxBpe1lvmD', 1),
+        (ws_id, '/work/09-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 2),
+        (ws_id, '/work/05-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 3),
+        (ws_id, '/work/08-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 4),
+        (ws_id, '/work/22-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 5),
+        (ws_id, '/work/12-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 6),
+        (ws_id, '/work/16-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 7),
+        (ws_id, '/work/07-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 8),
+        (ws_id, '/work/10-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 9),
+        (ws_id, '/work/13-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 10),
+        (ws_id, '/work/17-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 11),
+        (ws_id, '/work/20-DbxBpe1lvmD.jpg', null, 'https://www.instagram.com/p/DbxBpe1lvmD/', 'Photograph from @180pf.shotit Instagram post DbxBpe1lvmD', 12),
+        (ws_id, '/work/23-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 13),
+        (ws_id, '/work/26-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 14),
+        (ws_id, '/work/06-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 15),
+        (ws_id, '/work/14-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 16),
+        (ws_id, '/work/18-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 17),
+        (ws_id, '/work/24-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 18),
+        (ws_id, '/work/27-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 19),
+        (ws_id, '/work/02-DZsV0ftIIyO.jpg', null, 'https://www.instagram.com/p/DZsV0ftIIyO/', 'Photograph from @180pf.shotit Instagram post DZsV0ftIIyO', 20),
+        (ws_id, '/work/25-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 21);
+    end if;
+
+    if not exists (select 1 from studio_services where workspace_id = ws_id) then
+      insert into studio_services (workspace_id, name, description, price_type, price_cents, is_active, sort_order)
+      values
+        (ws_id, 'Sessions', 'Portrait and personal stills.', 'custom', null, true, 1),
+        (ws_id, 'Events', 'Coverage for a night or a room.', 'custom', null, true, 2),
+        (ws_id, 'Commissions', 'Assigned work. Ask with the date and the place.', 'custom', null, true, 3);
+    end if;
+  end if;
+end $$;
+
+-- Any environment: if ISHOTYOUU already exists, copy the live homepage text
+-- and public Work wall into the editor when those rows are missing. Do not
+-- create the workspace, change billing, or add members.
+do $$
+declare
+  ws_id uuid;
+begin
+  select id into ws_id from client_workspaces where slug = 'ishotyouu';
+  if ws_id is null then
+    return;
+  end if;
+
+  insert into studio_settings (
+    workspace_id, site_title, hero_title, hero_subtitle, contact_email, contact_phone,
+    paper_color, ink_color, accent_color, font_preset
+  )
+  values (
+    ws_id, 'ISHOTYOUU', 'ISHOTYOUU', 'ISHOTYOUU.', null, null,
+    '#090807', '#f1eadc', '#d4a45a', 'athletic'
+  )
+  on conflict (workspace_id) do nothing;
+
+  if not exists (select 1 from studio_work_stills where workspace_id = ws_id) then
+    insert into studio_work_stills (workspace_id, image_url, storage_path, instagram_url, alt_text, sort_order)
+    values
+      (ws_id, '/work/19-DbxBpe1lvmD.jpg', null, 'https://www.instagram.com/p/DbxBpe1lvmD/', 'Photograph from @180pf.shotit Instagram post DbxBpe1lvmD', 1),
+      (ws_id, '/work/09-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 2),
+      (ws_id, '/work/05-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 3),
+      (ws_id, '/work/08-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 4),
+      (ws_id, '/work/22-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 5),
+      (ws_id, '/work/12-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 6),
+      (ws_id, '/work/16-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 7),
+      (ws_id, '/work/07-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 8),
+      (ws_id, '/work/10-DcVIRlvljXH.jpg', null, 'https://www.instagram.com/p/DcVIRlvljXH/', 'Photograph from @180pf.shotit Instagram post DcVIRlvljXH', 9),
+      (ws_id, '/work/13-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 10),
+      (ws_id, '/work/17-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 11),
+      (ws_id, '/work/20-DbxBpe1lvmD.jpg', null, 'https://www.instagram.com/p/DbxBpe1lvmD/', 'Photograph from @180pf.shotit Instagram post DbxBpe1lvmD', 12),
+      (ws_id, '/work/23-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 13),
+      (ws_id, '/work/26-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 14),
+      (ws_id, '/work/06-DcWUeeYIMSf.jpg', null, 'https://www.instagram.com/p/DcWUeeYIMSf/', 'Photograph from @180pf.shotit Instagram post DcWUeeYIMSf', 15),
+      (ws_id, '/work/14-DcDNKSNlhGL.jpg', null, 'https://www.instagram.com/p/DcDNKSNlhGL/', 'Photograph from @180pf.shotit Instagram post DcDNKSNlhGL', 16),
+      (ws_id, '/work/18-Db5XxgzFl73.jpg', null, 'https://www.instagram.com/p/Db5XxgzFl73/', 'Photograph from @180pf.shotit Instagram post Db5XxgzFl73', 17),
+      (ws_id, '/work/24-DbrZCy7EZfU.jpg', null, 'https://www.instagram.com/p/DbrZCy7EZfU/', 'Photograph from @180pf.shotit Instagram post DbrZCy7EZfU', 18),
+      (ws_id, '/work/27-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 19),
+      (ws_id, '/work/02-DZsV0ftIIyO.jpg', null, 'https://www.instagram.com/p/DZsV0ftIIyO/', 'Photograph from @180pf.shotit Instagram post DZsV0ftIIyO', 20),
+      (ws_id, '/work/25-DbY_1lAoMaf.jpg', null, 'https://www.instagram.com/p/DbY_1lAoMaf/', 'Photograph from @180pf.shotit Instagram post DbY_1lAoMaf', 21);
+  end if;
+end $$;

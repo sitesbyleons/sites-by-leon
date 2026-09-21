@@ -14,6 +14,7 @@ const pages = [
   ['/admin/clients', 'Clients'],
   ['/admin/invoices', 'Invoices'],
   ['/admin/inquiries', 'Inquiries'],
+  ['/admin/hosting', 'Your website'],
   ['/admin/support', 'Support'],
 ] as const;
 
@@ -61,7 +62,7 @@ test('studio admin remains usable at iPhone width', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
-test('reorder arrows stay centered in gallery, post, and service rows', async ({ page }) => {
+test('reorder chevrons sit with edit controls and do not cover the title', async ({ page }) => {
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     for (const path of ['/admin/galleries?preview=true', '/admin/posts?preview=true', '/admin/services?preview=true']) {
@@ -70,15 +71,20 @@ test('reorder arrows stay centered in gallery, post, and service rows', async ({
       const count = await rows.count();
       expect(count).toBeGreaterThan(0);
       for (let index = 0; index < count; index += 1) {
-        const centers = await rows.nth(index).evaluate((row) => {
-          const card = row.getBoundingClientRect();
+        const layout = await rows.nth(index).evaluate((row) => {
+          const title = row.querySelector('.studio-item-copy')!.getBoundingClientRect();
           const reorder = row.querySelector('.studio-reorder')!.getBoundingClientRect();
+          const overlapX = Math.min(title.right, reorder.right) - Math.max(title.left, reorder.left);
+          const overlapY = Math.min(title.bottom, reorder.bottom) - Math.max(title.top, reorder.top);
           return {
-            card: card.left + card.width / 2,
-            reorder: reorder.left + reorder.width / 2,
+            stacked: reorder.height > reorder.width,
+            noOverlap: overlapX <= 1 || overlapY <= 1,
+            besideOrBelow: reorder.left >= title.right - 1 || reorder.top >= title.bottom - 1,
           };
         });
-        expect(Math.abs(centers.card - centers.reorder), `${viewport.width}px ${path} row ${index + 1}`).toBeLessThan(1);
+        expect(layout.stacked, `${viewport.width}px ${path} row ${index + 1} stacked`).toBe(true);
+        expect(layout.noOverlap, `${viewport.width}px ${path} row ${index + 1} overlap`).toBe(true);
+        expect(layout.besideOrBelow, `${viewport.width}px ${path} row ${index + 1} placement`).toBe(true);
       }
     }
   }
@@ -114,7 +120,7 @@ test('gallery editor previews grid, column, shape, and per-photo crop controls',
   await expect(imageForm.locator('[data-crop-preview]')).toHaveAttribute('data-ratio', 'portrait');
 });
 
-test('photo ordering stays centered without colliding with edit controls', async ({ page }) => {
+test('photo ordering stays stacked without colliding with edit controls', async ({ page }) => {
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/admin/galleries?preview=true');
@@ -122,18 +128,20 @@ test('photo ordering stays centered without colliding with edit controls', async
     await editor.locator(':scope > summary').click();
     const photo = editor.locator('[data-gallery-photo]').first();
     const positions = await photo.evaluate((card) => {
-      const cardBox = card.getBoundingClientRect();
       const reorderBox = card.querySelector('.studio-reorder')!.getBoundingClientRect();
       const editBox = card.querySelector('.studio-photo-editor > summary')!.getBoundingClientRect();
+      const overlapX = Math.min(reorderBox.right, editBox.right) - Math.max(reorderBox.left, editBox.left);
+      const overlapY = Math.min(reorderBox.bottom, editBox.bottom) - Math.max(reorderBox.top, editBox.top);
       return {
-        cardCenter: cardBox.left + cardBox.width / 2,
-        reorderCenter: reorderBox.left + reorderBox.width / 2,
+        stacked: reorderBox.height > reorderBox.width,
+        overlap: overlapX > 1 && overlapY > 1,
         reorderRight: reorderBox.right,
         editLeft: editBox.left,
       };
     });
-    expect(Math.abs(positions.cardCenter - positions.reorderCenter)).toBeLessThan(1);
-    expect(positions.reorderRight).toBeLessThanOrEqual(positions.editLeft);
+    expect(positions.stacked, `${viewport.width}px stacked`).toBe(true);
+    expect(positions.overlap, `${viewport.width}px overlap`).toBe(false);
+    expect(positions.reorderRight).toBeLessThanOrEqual(positions.editLeft + 1);
   }
 });
 
@@ -171,10 +179,17 @@ test('portfolio items use the shared file browser with focused edit, order, and 
   await galleryEditor.locator(':scope > summary').click();
   await expect(galleryEditor.getByRole('button', { name: 'Save details' })).toBeVisible();
   await galleryEditor.locator('[data-media-picker]').first().click();
-  await expect(page.locator('dialog[data-media-dialog]')).toBeVisible();
+  const picker = page.locator('dialog[data-media-dialog]');
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole('heading', { name: 'Choose an image' })).toBeVisible();
   await expect(page.locator('[data-media-card]')).toHaveCount(3);
+  await expect(picker.locator('[data-media-card] img').first()).toHaveCSS('object-fit', 'contain');
+  expect(await picker.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');
 
   await page.goto('/admin/services?preview=true');
+  await expect(page.getByRole('heading', { level: 2, name: 'Add a service' })).toBeVisible();
+  expect(await page.locator('.studio-workspace h2').first().textContent()).toBe('Add a service');
+  expect(await page.locator('.studio-section-heading--center').first().evaluate((el) => getComputedStyle(el).textAlign)).toBe('center');
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(3);
   await expect(page.getByLabel('Show on website')).toHaveCount(4);
 });
@@ -196,6 +211,24 @@ test('homepage editor offers controlled colors and font presets', async ({ page 
   await expect(page.getByLabel('Page color')).toHaveValue('#f4f6f8');
   await expect(page.getByLabel('Accent color')).toHaveValue('#ff3b30');
   await expect(page.getByLabel('Font style')).toHaveValue('athletic');
+});
+
+test('hosting domain choices are large selectable cards', async ({ page }) => {
+  await page.goto('/admin/hosting?preview=true');
+  await expect(page.getByRole('heading', { level: 1, name: 'Your website' })).toBeVisible();
+  await expect(page.locator('.studio-domain-card strong', { hasText: 'northlinesports.com' })).toBeVisible();
+  await expect(page.locator('.studio-domain-card strong', { hasText: 'northlinesports.org' })).toBeVisible();
+  await expect(page.locator('.studio-domain-card__badge')).toHaveCount(0);
+  await page.locator('.studio-domain-card', { hasText: 'northlinesports.org' }).click();
+  await expect(page.getByText("You'll use northlinesports.org. Leon will point that domain at this website.")).toBeVisible();
+  await page.getByRole('button', { name: 'Use this domain' }).click();
+  await expect(page.locator('[data-hosting-status]')).toContainText('Preview domain saved.');
+});
+
+test('invoices navigation includes an icon', async ({ page }) => {
+  await page.goto('/admin?preview=true');
+  const invoices = page.getByRole('navigation', { name: 'Studio admin' }).getByRole('link', { name: 'Invoices' });
+  await expect(invoices.locator('svg path')).not.toHaveCount(0);
 });
 
 test('legacy settings URL opens the single homepage and brand editor', async ({ page }) => {

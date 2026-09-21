@@ -1,0 +1,5 @@
+FROM leon-design-prod:gateway-20260920
+COPY marketing/index.html /srv/marketing/index.html
+COPY marketing/work/index.html /srv/marketing/work/index.html
+COPY marketing/images/demos/ /srv/marketing/images/demos/
+COPY marketing/_astro/ /srv/marketing/_astro/

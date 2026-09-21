@@ -1,0 +1,21 @@
+---
+import StudioIcon from './StudioIcon.astro';
+
+interface Props {
+  resource: string;
+  id: string;
+  label: string;
+  reopenGallery?: string;
+}
+
+const { resource, id, label, reopenGallery } = Astro.props;
+---
+
+<div class="studio-reorder" role="group" aria-label={`Reorder ${label}`}>
+  <button type="button" class="studio-button-quiet" data-studio-action="up" data-resource={resource} data-id={id} data-reopen-gallery={reopenGallery || undefined} aria-label={`Move ${label} up`}>
+    <StudioIcon name="up" />
+  </button>
+  <button type="button" class="studio-button-quiet" data-studio-action="down" data-resource={resource} data-id={id} data-reopen-gallery={reopenGallery || undefined} aria-label={`Move ${label} down`}>
+    <StudioIcon name="down" />
+  </button>
+</div>

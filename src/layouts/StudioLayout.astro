@@ -1,0 +1,22 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import StudioHeader from '../components/StudioHeader.astro';
+import StudioFooter from '../components/StudioFooter.astro';
+import '../styles/home-spatial.css';
+import '../styles/studio-pages.css';
+import '../styles/studio-refinement.css';
+interface Props { title: string; description: string; active?: string; tone?: 'red'|'paper'|'dark'|'legal'; }
+const { title, description, active='', tone='paper' } = Astro.props;
+---
+<BaseLayout title={title} description={description} themeColor={tone === 'red' ? '#f94f32' : tone === 'dark' ? '#171715' : tone === 'legal' ? '#fafaf8' : '#eeeee8'} colorScheme={tone === 'dark' ? 'dark' : 'light'}>
+  <div class:list={['leon-home','studio-shell',`studio-shell--${tone}`]}>
+    <StudioHeader active={active} />
+    <main id="main"><slot /></main>
+    <StudioFooter />
+  </div>
+</BaseLayout>
+<script>
+  document.querySelectorAll<HTMLDetailsElement>('.legal-index').forEach(index => {
+    index.open = window.matchMedia('(min-width: 761px)').matches;
+  });
+</script>

@@ -18,11 +18,11 @@ export default defineConfig({
       directives: [
         // Astro does not yet expose style-src-elem/style-src-attr as standalone
         // entries. Keep these fixed CSP3 directives in one validated entry.
-        "default-src 'self'; style-src-elem 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'",
+        "default-src 'self'; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-attr 'unsafe-inline'",
         "base-uri 'self'",
         "form-action 'self' mailto: https://accounts.google.com",
         "object-src 'none'",
-        "font-src 'self' data:",
+        "font-src 'self' data: https://fonts.gstatic.com",
         "img-src 'self' data: blob: https://api.leonsites.org https://*.clerk.com https://img.clerk.com https://lh3.googleusercontent.com",
         "connect-src 'self' https://api.leonsites.org https://*.clerk.accounts.dev https://*.clerk.com https://clerk.leonsites.org https://clerk-telemetry.com https://*.clerk-telemetry.com https://cloudflareinsights.com",
         "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://accounts.leonsites.org https://challenges.cloudflare.com",
@@ -40,7 +40,7 @@ export default defineConfig({
         strictDynamic: false,
       },
       styleDirective: {
-        resources: ["'self'", "'unsafe-inline'"],
+        resources: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       },
     },
   },

@@ -1,0 +1,5 @@
+services:
+  dashboard:
+    image: leon-design-prod:admin-width-20260920
+  photographer:
+    image: leon-design-prod:demos-motion-20260920

@@ -1,8 +1,8 @@
 ---
 import AdminFrame from '../../components/AdminFrame.astro';
 import { decideAdminAccess } from '../../lib/access';
-import { loadAdminSession } from '../../lib/admin';
-import { getPlan } from '../../lib/billing';
+import { isPortfolioDemo, loadAdminSession } from '../../lib/admin';
+import { listClientHostingRows } from '../../lib/billing';
 
 const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
 const auth = isPreview ? null : Astro.locals.auth();
@@ -11,15 +11,28 @@ const access = decideAdminAccess({ userId: isPreview ? 'preview_admin' : (auth?.
 if (access.kind !== 'admin') return Astro.redirect(access.location);
 
 const data = session.data!;
-const workspaceNames = new Map(data.workspaces.map((workspace) => [workspace.id, workspace.name]));
+const preview = isPreview ? '?preview=true' : '';
 const status = Astro.url.searchParams.get('status') ?? 'all';
 const sort = Astro.url.searchParams.get('sort') ?? 'client';
-const subscriptions = data.subscriptions
-  .filter((subscription) => status === 'all' || subscription.status === status)
+const includeWorkspaceIds = new Set<string>();
+for (const workspace of data.workspaces) {
+  const connection = data.connections.find((item) => item.workspace_id === workspace.id);
+  if (!isPortfolioDemo(connection, workspace)) includeWorkspaceIds.add(workspace.id);
+}
+for (const subscription of data.subscriptions) includeWorkspaceIds.add(subscription.workspace_id);
+
+const rows = listClientHostingRows({
+  workspaces: data.workspaces,
+  projects: data.projects,
+  subscriptions: data.subscriptions,
+  checkoutAttempts: data.checkoutAttempts,
+  includeWorkspaceIds,
+})
+  .filter((row) => status === 'all' || row.statusKey === status)
   .sort((a, b) => {
-    if (sort === 'renewal') return Date.parse(a.current_period_end ?? '9999-12-31') - Date.parse(b.current_period_end ?? '9999-12-31');
-    if (sort === 'status') return a.status.localeCompare(b.status);
-    return (workspaceNames.get(a.workspace_id) ?? '').localeCompare(workspaceNames.get(b.workspace_id) ?? '');
+    if (sort === 'renewal') return Date.parse(a.nextAt ?? '9999-12-31') - Date.parse(b.nextAt ?? '9999-12-31');
+    if (sort === 'status') return a.statusKey.localeCompare(b.statusKey);
+    return a.clientName.localeCompare(b.clientName);
   });
 const date = (value: string | null) => value ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value)) : '—';
 ---
@@ -27,26 +40,23 @@ const date = (value: string | null) => value ? new Intl.DateTimeFormat('en-US', 
 <AdminFrame active="subscriptions" title="Subscriptions" eyebrow="Stripe billing" description="See every hosting plan, payment state, and renewal date." isPreview={isPreview} error={session.error}>
   <form class="admin-tools" method="get" aria-label="Sort and filter subscriptions">
     {isPreview && <input type="hidden" name="preview" value="true" />}
-    <label><span>Status</span><select name="status"><option value="all" selected={status === 'all'}>All statuses</option><option value="active" selected={status === 'active'}>Active</option><option value="trialing" selected={status === 'trialing'}>Trialing</option><option value="past_due" selected={status === 'past_due'}>Past due</option><option value="canceled" selected={status === 'canceled'}>Canceled</option></select></label>
+    <label><span>Status</span><select name="status"><option value="all" selected={status === 'all'}>All statuses</option><option value="active" selected={status === 'active'}>Active</option><option value="trialing" selected={status === 'trialing'}>Trialing</option><option value="invoice_open" selected={status === 'invoice_open'}>Invoice open</option><option value="not_billed" selected={status === 'not_billed'}>Not billed</option><option value="past_due" selected={status === 'past_due'}>Past due</option><option value="canceled" selected={status === 'canceled'}>Canceled</option></select></label>
     <label><span>Sort</span><select name="sort"><option value="client" selected={sort === 'client'}>Client A–Z</option><option value="renewal" selected={sort === 'renewal'}>Renewing soon</option><option value="status" selected={sort === 'status'}>Status A–Z</option></select></label>
     <button type="submit">Apply</button>
   </form>
 
   <section class="admin-list-section admin-list-section--results">
-    <header><div><span>Monthly hosting</span><h2>Plans</h2></div><p>{subscriptions.length} shown</p></header>
+    <header><div><span>Monthly hosting</span><h2>Plans</h2></div><p>{rows.length} shown</p></header>
     <div class="business-table business-table--subscriptions" role="table" aria-label="Client subscriptions">
-      <div class="business-table__head" role="row"><span role="columnheader">Client</span><span role="columnheader">Plan</span><span role="columnheader">Status</span><span role="columnheader">Renews</span></div>
-      {subscriptions.length ? subscriptions.map((subscription) => {
-        const plan = getPlan(subscription.plan_key);
-        return (
+      <div class="business-table__head" role="row"><span role="columnheader">Client</span><span role="columnheader">Plan</span><span role="columnheader">Status</span><span role="columnheader">Next</span></div>
+      {rows.length ? rows.map((row) => (
           <article class="business-table__row" role="row">
-            <div role="cell"><strong>{workspaceNames.get(subscription.workspace_id) ?? 'Client'}</strong><small>Managed hosting</small></div>
-            <span role="cell">{plan ? `${plan.name} · $${plan.monthlyUsd}/mo` : subscription.plan_key}</span>
-            <span role="cell" class={`ticket-status ticket-status--${subscription.status}`}>{subscription.status.replace('_', ' ')}</span>
-            <span role="cell">{date(subscription.current_period_end)}</span>
+            <div role="cell"><strong><a href={`/admin/sites/${row.workspaceId}${preview}`}>{row.clientName}</a></strong><small>Managed hosting</small></div>
+            <span role="cell">{row.amountLabel}</span>
+            <span role="cell" class={`ticket-status ticket-status--${row.statusKey}`}>{row.statusLabel}</span>
+            <span role="cell">{date(row.nextAt)}</span>
           </article>
-        );
-      }) : <p class="simple-empty">No subscriptions match that status.</p>}
+        )) : <p class="simple-empty">No subscriptions match that status.</p>}
     </div>
   </section>
 </AdminFrame>

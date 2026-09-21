@@ -49,11 +49,12 @@ describe('managed public content wiring', () => {
   });
 
   it('links public pages to the shared favicon and tenant sitemap', () => {
-    const layout = read('src/layouts/SiteLayout.astro');
-
-    expect(layout).toContain('rel="icon"');
-    expect(layout).toContain('href="/favicon.svg"');
-    expect(layout).toContain('rel="sitemap"');
-    expect(layout).toContain('href="/sitemap.xml"');
+    for (const path of ['src/layouts/NorthlineLayout.astro', 'src/layouts/IshotyouuLayout.astro']) {
+      const layout = read(path);
+      expect(layout, path).toContain('rel="icon"');
+      expect(layout, path).toContain('href="/favicon.svg"');
+      expect(layout, path).toContain('rel="sitemap"');
+      expect(layout, path).toContain('href="/sitemap.xml"');
+    }
   });
 });

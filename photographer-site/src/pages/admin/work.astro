@@ -1,0 +1,231 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import StudioMediaField from '../../components/StudioMediaField.astro';
+import StudioReorder from '../../components/StudioReorder.astro';
+import { ISHOTYOUU_FALLBACK_WORK, ishotyouuLibraryStills } from '../../lib/content/ishotyouu-fallback';
+import { isIshotyouuSite } from '../../lib/ishotyouu';
+import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
+import { WORK_STILLS_PAGE_SIZE } from '../../lib/work-stills';
+
+const isPreview = import.meta.env.DEV && Astro.url.searchParams.get('preview') === 'true';
+const auth = isPreview ? null : Astro.locals.auth();
+const session = await loadStudioSession({
+  isPreview,
+  userId: isPreview ? 'preview' : (auth?.userId ?? null),
+  workspaceId: Astro.locals.siteContext.workspaceId,
+  getToken: async () => auth ? (await auth.getToken()) ?? null : null,
+});
+const access = decideStudioAdminAccess(session, '/admin/work');
+if (access.kind !== 'admin') return Astro.redirect(access.location);
+if (!isIshotyouuSite(Astro.locals.siteContext)) return Astro.redirect('/admin/galleries');
+const data = session.data!;
+const preview = isPreview ? '&preview=true' : '';
+const totalPages = Math.max(1, Math.ceil(data.stills.length / WORK_STILLS_PAGE_SIZE));
+const requestedPage = Number(Astro.url.searchParams.get('page') ?? '1');
+const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? Math.min(requestedPage, totalPages) : 1;
+const pagedStills = data.stills.slice((page - 1) * WORK_STILLS_PAGE_SIZE, page * WORK_STILLS_PAGE_SIZE);
+const libraryStills = ishotyouuLibraryStills();
+const liveWall = data.stills.length ? [] : ISHOTYOUU_FALLBACK_WORK;
+const pageHref = (target: number) => `/admin/work?page=${target}${preview}`;
+---
+
+<StudioAdminLayout title="Work" active="work" studioName={data.workspace?.name ?? 'Studio'} isPreview={isPreview} error={data.error} workspaceId={data.workspace?.id} media={data.uploads}>
+  <header class="studio-section-heading studio-section-heading--center">
+    <div><small>New still</small><h2>Add to Work</h2></div>
+    <p>Paste an Instagram URL to fill a matching still, or choose an image below.</p>
+  </header>
+  <section class="studio-panel studio-panel--add-work">
+    <form class="studio-form" data-studio-form data-resource="stills" data-upload-kind="still" data-add-work-form>
+      <label class="wide">
+        <span>Instagram post</span>
+        <input name="instagram_url" data-instagram-url placeholder="https://www.instagram.com/p/..." required />
+      </label>
+      <StudioMediaField kind="still" resource="stills" label="Still" />
+      <label class="wide"><span>Description</span><input name="alt_text" minlength="2" maxlength="300" required /></label>
+      <div class="wide studio-form-actions studio-form-actions--center">
+        <button type="submit">Add still</button>
+        <button type="button" data-add-matching hidden>Add all matching stills</button>
+      </div>
+      <p class="studio-form-status wide" data-form-status data-instagram-match-status></p>
+    </form>
+  </section>
+
+  <header class="studio-section-heading">
+    <div><small>Instagram wall</small><h2>Work stills</h2></div>
+    <p>{data.stills.length ? 'These frames are the public Work page. Each one opens its Instagram post.' : 'The public Work page is already showing this Instagram wall. Load it here to edit, reorder, or remove frames.'}</p>
+  </header>
+
+  {liveWall.length ? (
+    <section class="studio-panel">
+      <div class="studio-live-work" aria-label="Stills currently on the public Work page">
+        {liveWall.map((frame) => (
+          <img src={frame.src} alt={frame.alt} />
+        ))}
+      </div>
+      <div class="studio-form-actions studio-live-work-actions">
+        <button type="button" class="studio-button" data-load-live-work>Load these into the editor</button>
+      </div>
+      <p class="studio-form-status" data-load-live-status aria-live="polite"></p>
+    </section>
+  ) : (
+  <section class="studio-stack">
+    {pagedStills.map((still) => (
+      <article class="studio-item">
+        <img class="studio-item-thumb" src={still.image_url} alt="" />
+        <div class="studio-item-copy">
+          <strong>{still.alt_text}</strong>
+          <small>{still.instagram_url.replace('https://www.instagram.com', '')}</small>
+        </div>
+        <div class="studio-item-actions">
+          <StudioReorder resource="stills" id={still.id} label={still.alt_text} />
+          <div class="studio-item-tools">
+            <details class="studio-editor">
+              <summary>Edit</summary>
+              <form class="studio-form studio-editor-form" data-studio-form data-resource="stills" data-upload-kind="still">
+                <input type="hidden" name="id" value={still.id} />
+                <StudioMediaField kind="still" resource="stills" label="Still" url={still.image_url} path={still.storage_path} currentId={still.id} />
+                <label class="wide"><span>Instagram post</span><input name="instagram_url" value={still.instagram_url} placeholder="https://www.instagram.com/p/..." required /></label>
+                <label class="wide"><span>Description</span><input name="alt_text" value={still.alt_text} minlength="2" maxlength="300" required /></label>
+                <div class="wide"><button type="submit">Save still</button></div>
+                <p class="studio-form-status wide" data-form-status></p>
+              </form>
+            </details>
+            <button type="button" class="studio-button-danger" data-studio-action="delete" data-resource="stills" data-id={still.id}>Delete</button>
+          </div>
+        </div>
+      </article>
+    ))}
+  </section>
+  )}
+  {(totalPages > 1) && (
+    <nav class="studio-pagination" aria-label="Work still pages">
+      {page > 1 ? <a href={pageHref(page - 1)}>Previous</a> : <span />}
+      <span>Page {page} of {totalPages}</span>
+      {page < totalPages ? <a href={pageHref(page + 1)}>Next</a> : <span />}
+    </nav>
+  )}
+
+  <script is:inline define:vars={{ libraryStills, existingImageUrls: data.stills.map((still) => still.image_url) }}>
+    const form = document.querySelector('[data-add-work-form]');
+    const instagramField = form?.querySelector('[data-instagram-url]');
+    const matchButton = form?.querySelector('[data-add-matching]');
+    const status = form?.querySelector('[data-instagram-match-status]');
+    const used = new Set(existingImageUrls);
+
+    const shortcode = (value) => {
+      const match = String(value ?? '').trim().match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/i);
+      return match?.[1] ?? '';
+    };
+    const unusedMatches = (value) => libraryStills.filter((frame) => shortcode(frame.instagramUrl) === shortcode(value) && !used.has(frame.src));
+    const applyFrame = (frame) => {
+      if (!form) return;
+      const urlField = form.elements.namedItem('image_url');
+      const pathField = form.elements.namedItem('storage_path');
+      const altField = form.elements.namedItem('alt_text');
+      const instagram = form.elements.namedItem('instagram_url');
+      if (urlField) urlField.value = frame.src;
+      if (pathField) pathField.value = '';
+      if (altField && !altField.value.trim()) altField.value = frame.alt;
+      if (instagram) instagram.value = frame.instagramUrl;
+      const preview = form.querySelector('[data-media-preview]');
+      if (preview) {
+        preview.replaceChildren();
+        const image = document.createElement('img');
+        image.src = frame.src;
+        image.alt = '';
+        preview.append(image);
+      }
+      const choice = form.querySelector('[data-media-picker] strong');
+      if (choice) choice.textContent = 'Change image';
+      const fieldStatus = form.querySelector('[data-media-field-status]');
+      if (fieldStatus) fieldStatus.textContent = frame.src.split('/').at(-1) ?? 'Still selected';
+    };
+    const syncMatches = () => {
+      if (!form || !instagramField || !matchButton || !status) return;
+      const matches = unusedMatches(instagramField.value);
+      matchButton.hidden = matches.length < 2;
+      if (!shortcode(instagramField.value)) {
+        if (!status.textContent || status.textContent.startsWith('Matched') || status.textContent.startsWith('That Instagram')) status.textContent = '';
+        return;
+      }
+      if (!matches.length) {
+        status.textContent = libraryStills.some((frame) => shortcode(frame.instagramUrl) === shortcode(instagramField.value))
+          ? 'That Instagram post is already on Work.'
+          : 'No matching Instagram still was found. Choose an image below.';
+        return;
+      }
+      applyFrame(matches[0]);
+      status.textContent = matches.length === 1
+        ? 'Matched an Instagram still.'
+        : `Matched ${matches.length} stills from that post.`;
+    };
+
+    instagramField?.addEventListener('input', syncMatches);
+    instagramField?.addEventListener('paste', () => window.setTimeout(syncMatches, 0));
+    matchButton?.addEventListener('click', async () => {
+      if (!form || !instagramField || !status) return;
+      const matches = unusedMatches(instagramField.value);
+      if (!matches.length) return;
+      status.textContent = 'Adding matching stills...';
+      matchButton.disabled = true;
+      if (document.body.dataset.preview === 'true') {
+        status.textContent = 'Preview only. Sign in to add matching stills.';
+        matchButton.disabled = false;
+        return;
+      }
+      for (const frame of matches) {
+        const response = await fetch('/api/admin/stills', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            image_url: frame.src,
+            storage_path: '',
+            instagram_url: frame.instagramUrl,
+            alt_text: frame.alt,
+          }),
+        }).catch(() => null);
+        if (!response?.ok) {
+          const payload = await response?.json().catch(() => null);
+          status.textContent = payload?.message ?? 'Matching stills could not be added.';
+          matchButton.disabled = false;
+          return;
+        }
+      }
+      status.textContent = 'Matching stills added.';
+      window.setTimeout(() => window.location.reload(), 450);
+    });
+  </script>
+  <script is:inline define:vars={{ liveWall }}>
+    const loadButton = document.querySelector('[data-load-live-work]');
+    const loadStatus = document.querySelector('[data-load-live-status]');
+    loadButton?.addEventListener('click', async () => {
+      if (!loadStatus) return;
+      if (document.body.dataset.preview === 'true') {
+        loadStatus.textContent = 'Preview only. Sign in to load the live Work wall.';
+        return;
+      }
+      loadButton.disabled = true;
+      loadStatus.textContent = 'Loading the live Work wall...';
+      for (const frame of liveWall) {
+        const response = await fetch('/api/admin/stills', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            image_url: frame.src,
+            storage_path: '',
+            instagram_url: frame.instagramUrl,
+            alt_text: frame.alt,
+          }),
+        }).catch(() => null);
+        if (!response?.ok) {
+          const payload = await response?.json().catch(() => null);
+          loadStatus.textContent = payload?.message ?? 'The live Work wall could not be loaded.';
+          loadButton.disabled = false;
+          return;
+        }
+      }
+      loadStatus.textContent = 'Live Work wall loaded.';
+      window.setTimeout(() => window.location.reload(), 450);
+    });
+  </script>
+</StudioAdminLayout>

@@ -1,0 +1,14 @@
+[Unit]
+Description=Export safe read-only server metrics for the platform admin
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/libexec/leon-platform/collect-operations.py
+TimeoutStartSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/leon-platform/operations
+UMask=0022

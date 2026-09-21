@@ -680,7 +680,9 @@ h2 em {
 .hero h1 {
   max-width: 100%;
   margin: 0 0 2rem;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   font-size: clamp(4.8rem, 7.3vw, 8.8rem);
   font-stretch: 68%;
   font-weight: 670;
@@ -691,6 +693,9 @@ h2 em {
 .hero h1 span,
 .hero h1 em {
   display: block;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .hero__subject {
@@ -2276,7 +2281,9 @@ h2 em {
 
   .hero h1 {
     max-width: none;
-    font-size: clamp(2.85rem, 12vw, 4.2rem);
+    overflow-wrap: normal;
+    word-break: normal;
+    font-size: clamp(2.55rem, 10.4vw, 4.2rem);
     line-height: 0.92;
   }
 

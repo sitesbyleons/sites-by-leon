@@ -1,0 +1,3 @@
+services:
+  dashboard:
+    image: leon-design-prod:signin-20260920

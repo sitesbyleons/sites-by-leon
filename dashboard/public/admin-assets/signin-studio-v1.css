@@ -1,0 +1,33 @@
+@font-face{font-family:'Leon Signin';src:url('/admin-assets/signin-barlow-v1.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+.auth-page.auth-signin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:0;padding:0;min-height:100svh;background:#fff;color:#242320}
+.signin-scene{align-self:stretch;justify-self:stretch;display:flex;flex-direction:column;justify-content:space-between;background:#ef553d;padding:clamp(32px,4vw,72px);overflow:hidden;min-height:100svh}
+.signin-scene__copy>p:first-child{font-size:17px;font-weight:750;letter-spacing:-.035em;margin:0 0 40px}
+.signin-scene h2{font-family:'Leon Signin',sans-serif;font-size:clamp(80px,8.4vw,142px);font-weight:600;line-height:.94;letter-spacing:-.025em;margin:0 0 25px}
+.signin-scene__copy>p:last-child{font-size:15px;line-height:1.7;margin:0}
+.signin-scene figure{margin:40px 0 0;position:relative;max-width:560px}
+.signin-scene figure img{display:block;width:100%;height:clamp(180px,29vh,320px);object-fit:cover;object-position:center 45%;border:6px solid #fff;transform:rotate(-3deg);box-shadow:0 16px 26px #4c211528}
+.signin-scene figcaption{font-size:12px;margin-top:24px;line-height:1.5}
+.auth-signin .auth-card{width:min(100%,540px);padding:56px clamp(28px,4vw,62px);border:0;border-radius:0;box-shadow:none;background:#fff;margin:auto}
+.auth-signin .portal-brand{display:flex;align-items:center;gap:10px;font:750 23px/1.2 'Manrope Variable',sans-serif;letter-spacing:-.05em;text-transform:none;text-decoration:none;color:#242320}
+.auth-signin .portal-brand img{width:36px;height:36px;object-fit:contain}
+.auth-signin .portal-brand span{font:inherit;letter-spacing:inherit;color:inherit}
+.auth-signin .auth-card__heading{margin:42px 0 28px}
+.auth-signin .auth-card__heading h1{font-family:'Leon Signin',sans-serif;font-size:64px;font-weight:600;line-height:1;letter-spacing:-.025em}
+.auth-signin .auth-card__heading p{font-size:14px;line-height:1.7;color:#5c5e60;margin-top:13px}
+.auth-signin [data-clerk-ui]{min-width:0}
+.auth-signin .cl-cardBox,.auth-signin .cl-card,.auth-signin .cl-footer{background:#fff!important;box-shadow:none!important;max-width:100%;border-radius:0!important}
+.auth-signin .cl-header{display:flex!important;margin-bottom:24px}
+.auth-signin .cl-headerTitle{font-size:18px;letter-spacing:-.02em;font-weight:700}
+.auth-signin .cl-headerSubtitle{font-size:14px;color:#5c5e60;line-height:1.5}
+.auth-signin .cl-formFieldLabel{font-size:14px;font-weight:650;color:#242320}
+.auth-signin .cl-formFieldInput,.auth-signin .cl-socialButtonsBlockButton{min-height:48px;border:1px solid #a5a6a6;border-radius:5px;font-size:16px;background:#fff;box-shadow:none}
+.auth-signin .cl-socialButtonsBlockButton{font-size:14px}
+.auth-signin .cl-formButtonPrimary{min-height:49px;border:1px solid #242320;border-radius:5px;background:#242320;box-shadow:none;font:700 14px 'Manrope Variable',sans-serif;text-transform:none;letter-spacing:0}
+.auth-signin .cl-formButtonPrimary:hover{background:#41413a}
+.auth-signin .cl-footerActionLink,.auth-signin .cl-formFieldAction{color:#8b321f;text-decoration:underline;text-underline-offset:3px}
+.auth-signin .cl-dividerText{font-size:13px;color:#5c5e60}
+.auth-signin .auth-card__back{display:inline-flex;align-items:center;min-height:44px;font-size:13px;color:#5c5e60;margin-top:24px;text-underline-offset:4px}
+.auth-signin :focus-visible{outline:3px solid #9f3a27;outline-offset:3px}
+@media(min-width:1700px){.auth-page.auth-signin{grid-template-columns:1.05fr 1fr}.signin-scene{padding-inline:7vw}.auth-signin .auth-card{width:560px}}
+@media(max-width:900px){.auth-page.auth-signin{grid-template-columns:1fr;min-height:100svh;align-items:start;border-top:7px solid #ef553d}.signin-scene{display:none}.auth-signin .auth-card{width:min(100%,490px);padding:38px 28px 32px;margin:0 auto;align-self:start}.auth-signin .auth-card__heading{margin:34px 0 26px}.auth-signin .auth-card__heading h1{font-size:54px}.auth-signin .portal-brand{font-size:21px}.auth-signin .cl-header{margin-bottom:22px}}
+@media(max-width:360px){.auth-signin .auth-card{padding-inline:20px}.auth-signin .auth-card__heading h1{font-size:48px}}

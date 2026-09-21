@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+const file='/workspace/photographer-site/dist/server/chunks/SiteLayout_DK3_lL0n.mjs';
+const before=fs.readFileSync(file,'utf8');
+const sha=s=>crypto.createHash('sha256').update(s).digest('hex');
+if(sha(before)!=='60b4675e61b813769e42037f5d5a96b65a74d065da8098806795d318698b2355')throw Error('Unexpected SiteLayout: stop and inspect current source.');
+const importLine='import { demoDesignFor, renderDemoDocument } from "./demo-design-v1.mjs";\n';
+const marker='const [portfolio, theme] = await Promise.all([siteRepository.getPortfolio(workspaceId), loadSiteTheme(workspaceId)]);';
+const injection='\n\tconst demoKind = demoDesignFor(Astro.locals.siteContext.hostname, Astro.url.pathname);\n\tif (demoKind) return renderTemplate([renderDemoDocument({kind: demoKind, portfolio, pathname: Astro.url.pathname, canonicalOrigin})]);';
+if(before.split(marker).length!==2)throw Error('Unexpected layout boundary');
+const after=importLine+before.replace(marker,marker+injection);
+if(after.replace(importLine,'').replace(injection,'')!==before)throw Error('Patch not reversible');
+fs.writeFileSync(file,after);
+console.log(JSON.stringify({file,before:sha(before),after:sha(after),scope:'Exact demo hosts and public presentation routes only'}));

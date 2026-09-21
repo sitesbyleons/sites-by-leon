@@ -1,0 +1,5 @@
+services:
+  dashboard:
+    image: leon-design-prod:operations-20260920
+    volumes:
+      - /var/lib/leon-platform/operations:/run/leon-operations:ro

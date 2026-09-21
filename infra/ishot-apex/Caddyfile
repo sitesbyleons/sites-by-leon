@@ -1,0 +1,123 @@
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+	@stripe_webhook path /api/webhooks/stripe /api/webhooks/stripe/
+	request_body @stripe_webhook {
+		max_size 256KB
+	}
+	@other_requests not path /api/webhooks/stripe /api/webhooks/stripe/
+	request_body @other_requests {
+		max_size 16MB
+	}
+
+	header {
+		-Server
+		+Content-Security-Policy "base-uri 'self'; form-action 'self' mailto: https://accounts.google.com; frame-ancestors 'none'; object-src 'none'"
+		Cross-Origin-Opener-Policy same-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		X-Permitted-Cross-Domain-Policies none
+	}
+
+	@same_site_resources not path /media/*
+	header @same_site_resources Cross-Origin-Resource-Policy same-site
+
+	@private path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/*
+	header @private Cache-Control "private, no-store"
+
+	handle /healthz {
+		respond 200
+	}
+
+	# Canonical redirect for the customer's HTTPS apex; preserve path and query.
+	@ishotyouu_apex host ishotyouu.net
+	handle @ishotyouu_apex {
+		redir https://www.ishotyouu.net{uri} 308
+	}
+
+	@dashboard {
+		host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}
+		path /admin /admin/* /dashboard /dashboard/* /sign-in /sign-in/* /sign-up /sign-up/* /api/* /admin-assets/*
+	}
+	handle @dashboard {
+		reverse_proxy dashboard:4321
+	}
+
+	@coming_soon {
+		host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}
+		path / /index.html
+		expression {env.PUBLIC_SITE_MODE} == "coming-soon"
+	}
+	handle @coming_soon {
+		root * /srv/marketing
+		rewrite * /coming-soon/index.html
+		file_server
+	}
+
+	@test host {$TEST_DOMAIN}
+	handle @test {
+		reverse_proxy gateway-test:80
+	}
+
+	@test_customer header_regexp test_customer Host ^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?-test\.leonsites\.org(?::[0-9]+)?$
+	handle @test_customer {
+		reverse_proxy gateway-test:80
+	}
+
+	@marketing host {$MARKETING_DOMAIN} {$MARKETING_WWW_DOMAIN}
+	handle @marketing {
+		root * /srv/marketing
+		try_files {path} {path}/index.html /404.html
+		file_server
+	}
+
+	@media host {$MEDIA_DOMAIN}
+	handle @media {
+		handle_path /media/* {
+			rewrite * /api/media{path}
+			reverse_proxy photographer:4321
+		}
+		handle {
+			respond "Not found" 404
+		}
+	}
+
+	@ishotyouu_media_files {
+		host ishotyouu.leonsites.org
+		path /work/*.jpg /work/*.jpeg /work/*.webp /work/*.png /favicon.svg
+	}
+	handle @ishotyouu_media_files {
+		reverse_proxy ishotyouu-stills:80
+	}
+
+	@ishotyouu_assets {
+		host ishotyouu.leonsites.org
+		path /_astro/*
+	}
+	handle @ishotyouu_assets {
+		reverse_proxy photographer:4321 {
+			@error status 404
+			handle_response @error {
+				reverse_proxy ishotyouu-stills:80
+			}
+		}
+	}
+
+	@ishotyouu host ishotyouu.leonsites.org
+	handle @ishotyouu {
+		reverse_proxy photographer:4321
+	}
+
+	# Cloudflare publishes the allowed customer hostnames. The shared photographer
+	# runtime performs a second exact-host database lookup and rejects unknown hosts.
+	handle {
+		reverse_proxy photographer:4321
+	}
+}
