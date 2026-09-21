@@ -1,20 +1,26 @@
 ---
-const target = '/#pricing';
+import StudioLayout from '../layouts/StudioLayout.astro';
+import { plans } from '../content/site';
 ---
-
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="refresh" content={`0;url=${target}`} />
-    <link rel="canonical" href={target} />
-    <title>Pricing — Sites by Leon</title>
-    <script is:inline define:vars={{ target }}>
-      location.replace(target);
-    </script>
-  </head>
-  <body>
-    <p><a href={target}>Continue to pricing</a></p>
-  </body>
-</html>
+<StudioLayout title="Pricing — Sites by Leon" description="Essential at $25/month and Studio at $35/month. Compare photography website plans, hosting, and tools." active="/pricing">
+  <header class="studio-page-head pricing-page-head">
+    <p>Photography website plans</p><h1>SMALL PLAN.<br />BIG PICTURE.</h1>
+    <div class="studio-head-bottom"><p>A place for your portfolio.<br />The tools to handle what comes next.</p><a href="/contact" class="studio-text-link">Need a hand choosing? ↗</a></div>
+  </header>
+  <section class="studio-plans" aria-label="Monthly plans">
+    {plans.map(plan => <article class:list={['studio-plan',{'studio-plan--plus':plan.featured}]}>
+      <header><h2>{plan.name}</h2><p>{plan.featured ? 'More tools. More control.' : 'Your first proper home online.'}</p></header>
+      <p class="studio-price"><span>$</span>{plan.monthlyPrice}<small>/month</small></p>
+      <p class="studio-plan-description">{plan.description}</p>
+      <ul>{plan.features.map(feature => <li>{feature}</li>)}</ul>
+      <a class="studio-button" href={`/contact?plan=${plan.name.toLowerCase()}`}>Ask about {plan.name}<span aria-hidden="true">↗</span></a>
+    </article>)}
+  </section>
+  <section class="studio-faq" aria-labelledby="pricing-questions"><h2 id="pricing-questions">Before you jump in.</h2><div>
+    <details><summary>What happens first?<span aria-hidden="true">+</span></summary><p>Send Leon your photography and what you need the site to do. Pages, content, timing, and included updates are confirmed before billing begins.</p></details>
+    <details><summary>Can clients pay me through my site?<span aria-hidden="true">+</span></summary><p>Both plans include invoicing and secure client payments. These tools require a separate connected Stripe account and successful setup.</p></details>
+    <details><summary>Who handles updates?<span aria-hidden="true">+</span></summary><p>Leon handles routine updates and support. Requests beyond your agreed project scope may need a separate price or schedule.</p></details>
+    <details><summary>How do subscriptions work?<span aria-hidden="true">+</span></summary><p>Plans renew monthly until canceled. Billing status and cancellation options are available in the customer billing portal. See the <a href="/terms">service terms</a> for details.</p></details>
+  </div></section>
+  <aside class="studio-next"><p>Have something in mind?</p><a href="/contact">LET’S TALK.<span aria-hidden="true">↗</span></a></aside>
+</StudioLayout>

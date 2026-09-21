@@ -1,0 +1,5 @@
+services:
+  photographer:
+    image: leon-design-prod:cms-20260920
+  gateway:
+    image: leon-design-prod:gateway-20260920

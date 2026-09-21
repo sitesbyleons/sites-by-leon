@@ -1,0 +1,12 @@
+[Unit]
+Description=Expire optional site analytics after 90 days
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /opt/leon-platform/statistics/statistics-retention.sh
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true

@@ -1,0 +1,3 @@
+services:
+  gateway:
+    image: leon-design-prod:ishot-apex-20260920

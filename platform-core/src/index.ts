@@ -1,4 +1,5 @@
 import postgres from 'postgres';
+import { statisticsRepository } from './statistics';
 
 import {
   provisionClientSite as runClientSiteProvisioning,
@@ -306,6 +307,7 @@ export type RateLimitedInquiryInput = {
 
 export function createDataClient(executeQuery: QueryExecutor) {
   return {
+    statistics: statisticsRepository(executeQuery),
     from(table: string) {
       assertTable(table);
       return new DataQuery(table, executeQuery);

@@ -2,6 +2,7 @@
 import ClerkUI from '../../components/ClerkUI.astro';
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { normalizeReturnPath } from '../../lib/request-security';
+import scene from '../../components/SignInScene.html?raw';
 
 const redirectUrl = normalizeReturnPath(Astro.url.searchParams.get('redirect_url'));
 const signUpUrl = `/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`;
@@ -27,17 +28,19 @@ const appearance = {
 ---
 
 <DashboardLayout title="Sign in">
-  <main class="auth-page auth-page--simple">
+  <link rel="stylesheet" href="/admin-assets/signin-studio-v1.css" />
+  <main class="auth-page auth-page--simple auth-signin">
+    <Fragment set:html={scene} />
     <div class="auth-card">
       <a class="portal-brand portal-brand--small" href="/" aria-label="Sites By Leon dashboard home">
-        <span>Sites</span><span>By</span><span>Leon</span>
+        <img src="/admin-assets/leon-mark-v1.png" alt="" width="36" height="36" /><span>sites by leon</span>
       </a>
       <div class="auth-card__heading">
-        <h1>Sign in</h1>
-        <p>Access your website, support tickets, and billing.</p>
+        <h1>Your workspace.</h1>
+        <p>Manage your site. Pick up where you left off.</p>
       </div>
       <ClerkUI kind="sign-in" options={{ path: '/sign-in', routing: 'path', signUpUrl, forceRedirectUrl: redirectUrl, appearance }} />
-      <a class="auth-card__back" href={import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://leonsites.org'}>← Back to leonsites.org</a>
+      <a class="auth-card__back" href={import.meta.env.PUBLIC_MARKETING_SITE_URL ?? 'https://leonsites.org'}>Back to leonsites.org</a>
     </div>
   </main>
 </DashboardLayout>

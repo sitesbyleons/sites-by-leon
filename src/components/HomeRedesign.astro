@@ -1,0 +1,45 @@
+---
+import { plans, contactEmail, instagramUrl } from '../content/site';
+import SpatialHero from './SpatialHero.astro';
+import StudioHeader from './StudioHeader.astro';
+import StudioFooter from './StudioFooter.astro';
+import '../styles/studio-pages.css';
+import '../styles/home-spatial.css';
+import '../styles/studio-refinement.css';
+import '../styles/home-polish.css';
+---
+<div class="leon-home home-polished">
+  <StudioHeader />
+  <main id="main">
+    <SpatialHero />
+    <section class="lh-work" id="work" aria-labelledby="work-title">
+      <div class="work-head"><h2 id="work-title">Find your kind of site.</h2><p>Explore two working demos, from the first photo to the inquiry.</p></div>
+      <div class="lh-projects">
+        <article class="lh-project">
+          <a class="lh-project-preview project-portrait" href="https://demo.leonsites.org" target="_blank" rel="noreferrer" aria-label="Open the Northline sports photography demo">
+            <img src="/images/demos/basketball-action.webp" alt="Basketball players moving across the court in the Northline Sports demo" width="1600" height="1200" loading="lazy" />
+            <span class="project-name">Northline</span><span class="project-open">Explore sports demo</span>
+          </a>
+          <div class="project-caption"><h3>Northline Sports</h3><p>Sports photography concept</p></div>
+        </article>
+        <article class="lh-project">
+          <a class="lh-project-preview project-wedding" href="https://vow-and-light.leonsites.org" target="_blank" rel="noreferrer" aria-label="Open the Vow and Light wedding photography demo">
+            <img src="/images/cinematic/wedding-dance.webp" alt="Newlyweds beneath a veil in the Vow and Light concept" width="1536" height="1024" loading="lazy" />
+            <span class="project-name">Vow &amp; Light</span><span class="project-open">Explore wedding demo</span>
+          </a>
+          <div class="project-caption"><h3>Vow &amp; Light</h3><p>Wedding concept</p></div>
+        </article>
+      </div>
+    </section>
+    <section class="lh-pricing" id="pricing" aria-labelledby="pricing-title">
+      <div class="pricing-intro"><h2 id="pricing-title">Your site.<br />I handle the rest.</h2><p>Design, hosting, updates.<br />You deal directly with Leon.</p><a href="/pricing">Compare the plans</a></div>
+      <div class="plan-list">{plans.map(plan => <article class="plan-row"><div class="plan-overview"><h3>{plan.name}</h3><p class="plan-price">${plan.monthlyPrice}<span>/mo</span></p><a href={`/contact?plan=${plan.name.toLowerCase()}`} aria-label={`Ask Leon about ${plan.name}`}>Let’s talk <span aria-hidden="true">↗</span></a></div><details><summary>What’s included <span aria-hidden="true">+</span></summary><ul>{plan.features.map(feature => <li>{feature}</li>)}</ul></details></article>)}</div>
+    </section>
+    <section class="lh-contact" id="contact" aria-labelledby="contact-title">
+      <div class="contact-top"><p>Tell me what you photograph.<br />We’ll take it from there.</p><a href={instagramUrl} target="_blank" rel="noreferrer">Instagram</a></div>
+      <a class="contact-big" href="/contact"><h2 id="contact-title">Let’s build<br />your site.</h2><svg aria-hidden="true" viewBox="0 0 64 64" fill="none"><path d="M12 52 52 12M12 12h40v40" stroke="currentColor" stroke-width="3" /></svg></a>
+      <a class="contact-email" href={`mailto:${contactEmail}`}>{contactEmail}</a>
+    </section>
+  </main>
+  <StudioFooter />
+</div>

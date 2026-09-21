@@ -1,0 +1,3 @@
+@import url('/admin-assets/admin-workspace-v4.css');
+/* Use the entire content column beside the sidebar, retaining existing gutters. */
+.studio-admin .admin-workspace { width:100%; max-width:none; min-width:0; }

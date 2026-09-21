@@ -76,7 +76,9 @@ test('shows Leon the studio-wide admin overview', async ({ page }) => {
 
 test('splits admin records into sortable pages', async ({ page }) => {
   await page.goto('/admin/users?preview=true&sort=name');
-  await expect(page.getByRole('heading', { name: 'Add a Leon Sites client' })).toBeVisible();
+  await page.getByRole('button', { name: '+ Add client', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Add a client' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close add client' }).click();
   await expect(page.getByRole('table', { name: 'User accounts' })).toBeVisible();
   await expect(page.getByText('Maya Carter', { exact: true })).toBeVisible();
 

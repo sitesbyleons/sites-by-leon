@@ -1,0 +1,20 @@
+---
+import StudioLayout from '../layouts/StudioLayout.astro';
+---
+<StudioLayout title="Work — Sites by Leon" description="Explore the Northline Sports and Vow & Light photography website concepts." active="/work" tone="dark">
+  <header class="studio-page-head work-page-head"><p>Photography comes first.</p><h1>NOT EVERY<br />EYE IS ALIKE.</h1><div class="studio-head-bottom"><p>Two concept sites. Two different directions.<br />Open a demo and see what fits your work.</p><a href="/contact" class="studio-text-link">Let’s find your direction ↗</a></div></header>
+  <section class="work-feature" aria-labelledby="northline-title">
+    <div class="work-feature-heading"><h2 id="northline-title">Northline<br />Sports</h2><div><p>Sports photography / Concept Project</p><a class="studio-button" href="https://demo.leonsites.org" target="_blank" rel="noreferrer">Explore Northline<span aria-hidden="true">↗</span></a></div></div>
+    <a class="work-feature-photo" href="https://demo.leonsites.org" target="_blank" rel="noreferrer" aria-label="Open the Northline Sports demo"><img src="/images/demos/basketball-action.webp" alt="Basketball players moving across the court" width="1600" height="1200" fetchpriority="high" /><span aria-hidden="true">NORTHLINE.</span></a>
+    <div class="work-support"><img src="/images/demos/football-field.webp" alt="Football player carrying the ball during a game" width="1600" height="1200" loading="lazy" /><div><p>Game day.<br />Every emotion.<br />The whole story.</p><span>Sports galleries and coverage inquiries.</span></div></div>
+  </section>
+  <section class="work-feature work-feature--wedding" aria-labelledby="vow-title">
+    <div class="work-feature-heading"><h2 id="vow-title">Vow &amp; Light</h2><div><p>Wedding photography / Concept Project</p><a class="studio-button" href="https://vow-and-light.leonsites.org" target="_blank" rel="noreferrer">Explore Vow &amp; Light<span aria-hidden="true">↗</span></a></div></div>
+    <a class="work-feature-photo" href="https://vow-and-light.leonsites.org" target="_blank" rel="noreferrer" aria-label="Open the Vow and Light demo"><img src="/images/cinematic/wedding-dance.webp" alt="A black-and-white wedding portrait beneath a veil" width="1536" height="1024" loading="lazy" /><span aria-hidden="true">Vow &amp; Light</span></a>
+    <div class="work-support"><img src="/images/cinematic/wedding-courthouse.webp" alt="Newlyweds holding hands" width="1536" height="1024" loading="lazy" /><div><p>A slower pace.<br />A little more feeling.</p><span>Wedding galleries and inquiry details.</span></div></div>
+  </section>
+  <aside class="studio-next"><p>Now for your work.</p><a href="/contact">YOUR TURN.<span aria-hidden="true">↗</span></a></aside>
+</StudioLayout>
+<script>
+  import '../scripts/work-motion';
+</script>

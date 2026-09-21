@@ -3,6 +3,8 @@ import ClerkSignOutButton from '../../components/ClerkSignOutButton.astro';
 import ClerkUI from '../../components/ClerkUI.astro';
 import { loadStudioSession } from '../../lib/studio';
 import '../../styles/studio-admin.css';
+import '../../styles/studio-refresh.css';
+import '../../styles/workspace-refinement.css';
 
 const auth = Astro.locals.auth();
 const session = await loadStudioSession({

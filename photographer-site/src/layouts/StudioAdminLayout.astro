@@ -4,10 +4,12 @@ import StudioIcon from '../components/StudioIcon.astro';
 import { isIshotyouuSite } from '../lib/ishotyouu';
 import type { StudioUpload } from '../lib/studio';
 import '../styles/studio-admin.css';
+import '../styles/studio-refresh.css';
+import '../styles/workspace-refinement.css';
 
 interface Props {
   title: string;
-  active: 'overview' | 'content' | 'media' | 'work' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries' | 'hosting' | 'support';
+  active: 'overview' | 'statistics' | 'content' | 'media' | 'work' | 'galleries' | 'posts' | 'services' | 'clients' | 'invoices' | 'inquiries' | 'hosting' | 'support';
   studioName: string;
   isPreview: boolean;
   error?: string | null;
@@ -24,6 +26,7 @@ const groups = ishotyouu
       label: 'Studio',
       links: [
         { key: 'overview', label: 'Overview', href: `/admin${suffix}` },
+        { key: 'statistics', label: 'Statistics', href: `/admin/statistics${suffix}` },
         { key: 'content', label: 'Edit homepage', href: `/admin/content${suffix}` },
         { key: 'media', label: 'Files', href: `/admin/media${suffix}` },
         { key: 'work', label: 'Edit Work', href: `/admin/work${suffix}` },
@@ -45,6 +48,7 @@ const groups = ishotyouu
       label: 'Studio',
       links: [
         { key: 'overview', label: 'Overview', href: `/admin${suffix}` },
+        { key: 'statistics', label: 'Statistics', href: `/admin/statistics${suffix}` },
         { key: 'content', label: 'Homepage', href: `/admin/content${suffix}` },
         { key: 'media', label: 'Files', href: `/admin/media${suffix}` },
         { key: 'galleries', label: 'Galleries', href: `/admin/galleries${suffix}` },
@@ -77,6 +81,7 @@ const formatBytes = (bytes: number) => bytes >= 1_048_576
     <title>{title} | {studioName}</title>
   </head>
   <body data-preview={isPreview ? 'true' : 'false'} data-workspace-id={workspaceId}>
+    {ishotyouu && <link rel="stylesheet" href="/admin-assets/ishotyouu-workspace-v1.css" />}
     <div class="studio-shell">
       <aside class="studio-sidebar" data-studio-sidebar>
         <div class="studio-sidebar__head">

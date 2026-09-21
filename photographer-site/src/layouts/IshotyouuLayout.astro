@@ -1,6 +1,7 @@
 ---
 import { ISHOTYOUU_INSTAGRAM_HANDLE, ISHOTYOUU_INSTAGRAM_URL, ishotyouuNavHref, ishotyouuPublicPathname } from '../lib/ishotyouu';
 import '../styles/ishotyouu.css';
+import TrafficConsent from '../components/TrafficConsent.astro';
 
 interface Props {
   title: string;
@@ -64,5 +65,6 @@ const links = [
       <a href={ISHOTYOUU_INSTAGRAM_URL} rel="noreferrer">{ISHOTYOUU_INSTAGRAM_HANDLE}</a>
       <a href="https://leonsites.org">A site by Leon</a>
     </footer>
+    <TrafficConsent />
   </body>
 </html>

@@ -67,12 +67,29 @@ const date = (value: number) => new Intl.DateTimeFormat('en-US', { month: 'short
         <article class="business-table__row" role="row">
           <div role="cell"><strong>{user.name}</strong><small>{user.email}</small></div>
           <div role="cell"><span>{memberWorkspaces.get(user.id) ?? 'Not connected'}</span>{!memberWorkspaces.has(user.id) && <a class="user-connect-link" href={`/admin/sites/new?owner=${encodeURIComponent(user.id)}${isPreview ? '&preview=true' : ''}`}>Create site</a>}</div>
-          <span role="cell">{date(user.createdAt)}</span>
+          <div role="cell"><span>{date(user.createdAt)}</span><button type="button" class="user-delete" data-delete-user={user.id} data-user-label={`${user.name} (${user.email})`} disabled={isPreview || user.id === auth?.userId || memberWorkspaces.has(user.id)} title={memberWorkspaces.has(user.id) ? 'Users connected to client sites are protected' : user.id === auth?.userId ? 'You cannot delete your own account' : 'Permanently delete this sign-in account'}>Delete user</button></div>
         </article>
       )) : <p class="simple-empty">No users match those filters.</p>}
     </div>
   </section>
+  <p data-delete-status role="status" aria-live="polite"></p>
   <script>
+    document.querySelectorAll<HTMLButtonElement>('[data-delete-user]').forEach(button=>{
+      button.addEventListener('click',async()=>{
+        const id=button.dataset.deleteUser!;
+        const confirmation=window.prompt(`Permanently delete ${button.dataset.userLabel}? This removes their sign-in account and cannot be undone. Client-linked and admin accounts are protected.\n\nType DELETE to confirm.`);
+        if(confirmation!=='DELETE')return;
+        const status=document.querySelector<HTMLElement>('[data-delete-status]')!;
+        button.disabled=true;status.textContent='Deleting account…';
+        try{
+          const response=await fetch('/api/admin/delete-user',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({user_id:id,confirmation:`DELETE ${id}`})});
+          const result=await response.json();
+          status.textContent=result.message??'Deletion could not be confirmed. Refresh the list.';
+          if(response.ok){window.location.reload();return;}
+        }catch{status.textContent='Deletion could not be confirmed. Refresh the user list before trying again.';}
+        button.disabled=false;
+      });
+    });
     const form = document.querySelector<HTMLFormElement>('[data-add-client]');
     if (form) {
       const studio = form.elements.namedItem('studio_name') as HTMLInputElement;
@@ -139,4 +156,4 @@ const date = (value: number) => new Intl.DateTimeFormat('en-US', { month: 'short
     }
   </script>
 </AdminFrame>
-
+<style>.user-delete{display:block;margin-top:8px;background:transparent;border:1px solid #b4bfb5;border-radius:5px;padding:6px 10px;font-size:12px;color:#943d32;cursor:pointer}.user-delete:disabled{opacity:.5;cursor:not-allowed}.user-delete:focus-visible{outline:3px solid #254b37;outline-offset:3px}</style>

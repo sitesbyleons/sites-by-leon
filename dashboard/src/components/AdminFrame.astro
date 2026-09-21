@@ -5,7 +5,7 @@ import ClerkSignOutButton from './ClerkSignOutButton.astro';
 import ClerkUI from './ClerkUI.astro';
 
 interface Props {
-  active: 'overview' | 'users' | 'tickets' | 'subscriptions' | 'sites' | 'demos';
+  active: 'overview' | 'operations' | 'users' | 'tickets' | 'subscriptions' | 'sites' | 'demos';
   title: string;
   eyebrow: string;
   description: string;
@@ -17,6 +17,7 @@ const { active, title, eyebrow, description, isPreview, error = null } = Astro.p
 const preview = isPreview ? '?preview=true' : '';
 const links = [
   { key: 'overview', label: 'Overview', href: `/admin${preview}` },
+  { key: 'operations', label: 'Operations', href: `/admin/operations${preview}` },
   { key: 'users', label: 'Users', href: `/admin/users${preview}` },
   { key: 'tickets', label: 'Tickets', href: `/admin/tickets${preview}` },
   { key: 'subscriptions', label: 'Subscriptions', href: `/admin/subscriptions${preview}` },
@@ -26,6 +27,8 @@ const links = [
 ---
 
 <DashboardLayout title={title} shell>
+  <link rel="stylesheet" href="/admin-assets/admin-workspace-v5.css" />
+  <script is:inline defer src="/admin-assets/admin-workspace-v4.js"></script>
   <div class="studio-admin">
     <aside class="studio-admin__header" data-admin-sidebar>
       <a class="admin-brand" href={`/admin${preview}`} aria-label="Sites By Leon admin">

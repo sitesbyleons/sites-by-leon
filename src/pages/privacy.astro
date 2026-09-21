@@ -1,51 +1,54 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import SiteHeader from '../components/SiteHeader.astro';
-import SiteFooter from '../components/SiteFooter.astro';
+import StudioLayout from '../layouts/StudioLayout.astro';
 import { contactEmail } from '../content/site';
 ---
-
-<BaseLayout title="Privacy - Sites By Leon" description="How Sites By Leon handles personal information.">
-  <SiteHeader home={false} />
-  <main class="legal" id="main">
-    <div class="container legal__inner">
-      <h1>Privacy notice.</h1>
-      <p class="legal__updated">Last updated July 27, 2026</p>
-
-      <section>
+<StudioLayout title="Privacy — Sites by Leon" description="How Sites By Leon handles personal information." tone="legal">
+  <header class="legal-heading"><p class="legal-kicker">Legal</p><h1>Privacy notice</h1><p class="legal-description">How Sites by Leon handles personal information.</p><p class="legal-updated">Last updated July 27, 2026</p></header>
+  <div class="legal-layout">
+    <details class="legal-index" open><summary>On this page</summary><nav class="legal-contents" aria-label="On this page">
+      <a href="#what-this-notice-covers">What this notice covers</a>
+      <a href="#information-collected">Information collected</a>
+      <a href="#how-information-is-used">How information is used</a>
+      <a href="#service-providers">Service providers</a>
+      <a href="#customer-content-and-client-information">Customer content and client information</a>
+      <a href="#retention-and-security">Retention and security</a>
+      <a href="#your-choices">Your choices</a>
+      <a href="#contact">Contact</a>
+    </nav></details>
+    <article class="legal-body">
+      <section id="what-this-notice-covers">
         <h2>What this notice covers</h2>
         <p>This notice explains how Sites By Leon handles personal information from website visitors, prospective customers, account holders, and people whose information a customer enters while using the service.</p>
       </section>
-      <section>
+      <section id="information-collected">
         <h2>Information collected</h2>
         <p>Sites By Leon may collect contact and account information, project messages, support requests, subscription and payment status, website content, uploaded images, and business records you choose to store, such as client contacts, inquiries, services, and invoices. Servers and security tools may also process IP addresses, browser details, request times, and similar technical data.</p>
       </section>
-      <section>
+      <section id="how-information-is-used">
         <h2>How information is used</h2>
         <p>Information is used to answer inquiries, create and manage accounts and websites, provide hosting and support, process subscriptions and customer invoices, prevent abuse, maintain security and reliability, comply with legal obligations, and improve the service. Sites By Leon does not sell personal information or add inquiry information to a marketing list.</p>
       </section>
-      <section>
+      <section id="service-providers">
         <h2>Service providers</h2>
         <p>Information may be processed by providers used for authentication, payment processing, email, infrastructure, backups, security, and website delivery. Stripe processes payment details, and Sites By Leon does not store full card numbers. These providers handle information under their own terms and privacy commitments.</p>
       </section>
-      <section>
+      <section id="customer-content-and-client-information">
         <h2>Customer content and client information</h2>
         <p>Customers decide what content and client information to place in their workspace. Customers are responsible for having permission to collect, upload, publish, and use that information. Sites By Leon processes it to provide the requested service.</p>
       </section>
-      <section>
+      <section id="retention-and-security">
         <h2>Retention and security</h2>
         <p>Information is kept while needed to provide the service and for legitimate business, security, backup, dispute, and legal purposes. Reasonable administrative and technical safeguards are used, but no online service can guarantee absolute security.</p>
       </section>
-      <section>
+      <section id="your-choices">
         <h2>Your choices</h2>
         <p>You may ask to access, correct, or delete personal information associated with you. Some information may be retained when needed to complete transactions, protect the service, resolve disputes, or comply with law. The service is intended for business users and is not directed to children.</p>
       </section>
-      <section>
+      <section id="contact">
         <h2>Contact</h2>
         <p>For privacy questions or requests, email <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.</p>
       </section>
-      <a class="text-link" href="/">Return home</a>
-    </div>
-  </main>
-  <SiteFooter home={false} />
-</BaseLayout>
+      <a class="studio-text-link" href="/">Return home ↗</a>
+    </article>
+  </div>
+</StudioLayout>

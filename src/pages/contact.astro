@@ -1,20 +1,36 @@
 ---
-const target = '/#contact';
+import StudioLayout from '../layouts/StudioLayout.astro';
+import { contactEmail, instagramUrl } from '../content/site';
 ---
-
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="refresh" content={`0;url=${target}`} />
-    <link rel="canonical" href={target} />
-    <title>Contact — Sites by Leon</title>
-    <script is:inline define:vars={{ target }}>
-      location.replace(target);
-    </script>
-  </head>
-  <body>
-    <p><a href={target}>Continue to contact</a></p>
-  </body>
-</html>
+<StudioLayout title="Contact — Sites by Leon" description="Talk directly to Leon about your photography website. Send your portfolio, Instagram, or project idea." active="/contact" tone="red">
+  <section class="studio-contact-grid">
+    <div class="studio-contact-copy"><p>One person. Start to finish.</p><h1>GOT<br />A VISION?</h1><p class="contact-lede">Send it over.<br />We’ll work out the website.</p><p class="selected-plan" data-plan-note hidden></p></div>
+    <figure class="contact-art"><img src="/images/cinematic/portrait-ceramicist.webp" alt="Creative portrait in red and blue studio lighting" width="1536" height="1024" fetchpriority="high" /><figcaption>Room for your point of view.</figcaption></figure>
+  </section>
+  <section class="contact-channels" aria-label="Contact Leon">
+    <div><p>Email Leon</p><a class="channel-email" data-contact-email href={`mailto:${contactEmail}`}>{contactEmail}<span aria-hidden="true">↗</span></a><button class="copy-email" type="button" data-copy-email data-email={contactEmail}>Copy email address</button><p class="copy-status" role="status" aria-live="polite" data-copy-status></p></div>
+    <div><p>More of an Instagram person?</p><a class="channel-instagram" href={instagramUrl} target="_blank" rel="noreferrer">@sites.by.leon <span aria-hidden="true">↗</span></a></div>
+  </section>
+  <section class="contact-start"><h2>A good starting point.</h2><p>Your portfolio or Instagram. The kind of work you shoot. What you want your website to do.</p><a href="/work">Still exploring? See the demos ↗</a></section>
+</StudioLayout>
+<script>
+  const plan = new URLSearchParams(location.search).get('plan');
+  const names: Record<string,string> = { essential:'Essential',studio:'Studio' };
+  const selected = plan && names[plan];
+  if (selected) {
+    const note = document.querySelector<HTMLElement>('[data-plan-note]');
+    if (note) { note.hidden = false; note.textContent = `Let’s talk about ${selected}.`; }
+    const link = document.querySelector<HTMLAnchorElement>('[data-contact-email]');
+    if (link) link.href += `?subject=${encodeURIComponent(`Let's talk about ${selected}`)}`;
+  }
+  const copy = document.querySelector<HTMLButtonElement>('[data-copy-email]');
+  copy?.addEventListener('click', async () => {
+    const status = document.querySelector<HTMLElement>('[data-copy-status]');
+    try {
+      await navigator.clipboard.writeText(copy.dataset.email || '');
+      if (status) status.textContent = 'Email address copied.';
+    } catch {
+      if (status) status.textContent = 'Select the email address above to copy it, or open it in your email app.';
+    }
+  });
+</script>

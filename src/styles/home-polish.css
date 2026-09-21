@@ -1,0 +1,70 @@
+@font-face{font-family:'Leon Display';src:url('/fonts/barlow-condensed-latin.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+.home-polished{--red:#ef553d;--ink:#242320;--paper:#f8f8f4}
+body:has(.home-polished){background:#ef553d}
+.home-polished .lh-header{height:88px;margin-inline:4vw}
+.home-polished .lh-brand{font-size:24px;letter-spacing:-.055em}
+.home-polished .lh-nav a:last-child{border:1px solid var(--ink);border-radius:3px;background:transparent;color:var(--ink)}
+.home-polished .spatial-stage{height:calc(100svh - 88px);min-height:660px;max-height:1000px}
+.home-polished .spatial-heading{left:4vw;top:38px}
+.home-polished .spatial-heading>p{font-size:15px;font-weight:600;margin-bottom:28px;letter-spacing:-.02em}
+.home-polished .spatial-heading h1{font-family:'Leon Display',sans-serif;font-size:clamp(100px,11.2vw,195px);font-weight:600;line-height:.96;letter-spacing:-.035em}
+.home-polished .spatial-main{width:31%;height:72%;left:63%;top:12%;border:7px solid var(--paper)}
+.home-polished .spatial-left{width:23%;height:38%;left:43%;top:59%;border:6px solid var(--paper)}
+.home-polished .spatial-right{width:15%;height:30%;left:47%;top:3%;border:5px solid var(--paper)}
+.home-polished .spatial-final strong{font-family:'Leon Display',sans-serif;font-weight:600;font-size:clamp(110px,13vw,220px);line-height:.96;letter-spacing:-.025em}
+.home-polished .spatial-bottom{position:relative;inset:auto;display:flex;padding:34px 4vw 46px;gap:32px;align-items:center;background:var(--red)}
+.home-polished .spatial-bottom p{font-size:17px;font-weight:500;line-height:1.65}
+.spatial-actions{display:flex;align-items:center;gap:14px}
+.home-polished .spatial-cta,.home-polished .spatial-scroll{display:inline-flex;justify-content:center;min-height:56px;padding:16px 24px;border:1px solid var(--ink);border-radius:3px;font-size:15px;font-weight:700;white-space:nowrap}
+.home-polished .spatial-scroll:hover{background:#ffffff26}
+.home-polished .lh-work{background:var(--paper);color:var(--ink);padding:88px 4vw}
+.home-polished .work-head{align-items:center;margin-bottom:36px}
+.home-polished .work-head h2,.home-polished .pricing-intro h2{font-family:'Leon Display',sans-serif;font-size:clamp(44px,5.4vw,82px);font-weight:600;letter-spacing:-.025em;line-height:1.03}
+.home-polished .work-head p{color:#575750;max-width:280px;font-size:15px;line-height:1.7}
+.home-polished .lh-projects{grid-template-columns:1fr 1fr;gap:30px}
+.home-polished .lh-project:nth-child(2){padding-top:64px}
+.home-polished .lh-project-preview{height:auto;aspect-ratio:4/5;border-radius:4px;background:#242320}
+.home-polished .project-name{inset:24px 24px auto;font-family:'Leon Display',sans-serif;font-size:clamp(44px,5vw,78px);font-weight:600;letter-spacing:-.02em;line-height:1}
+.home-polished .project-wedding .project-name{font-family:'Newsreader Variable',serif;font-size:clamp(38px,4.3vw,68px);font-style:normal;font-weight:450}
+.home-polished .project-open{left:20px;right:auto;border:1px solid #24232033;border-radius:3px;min-height:48px;align-items:center}
+.home-polished .project-caption{align-items:baseline;flex-wrap:wrap;gap:5px 20px;padding-top:18px}
+.home-polished .project-caption h3{font-size:18px}
+.home-polished .project-caption p{font-size:13px;color:#575750}
+.home-polished .lh-pricing{padding:70px 4vw 90px;background:#eeeee8;gap:7vw}
+.home-polished .plan-row{padding:24px;border:1px solid #c3c3b9;border-radius:4px;background:var(--paper)}
+.home-polished .plan-row:last-child{border:1px solid #c3c3b9;padding:24px}
+.home-polished .plan-price{font-family:'Leon Display',sans-serif;font-weight:600;font-size:54px}
+.home-polished .plan-overview>a{padding:10px 12px;border:1px solid #8b8b80;border-radius:3px}
+.home-polished .plan-overview>a span{display:none}
+.home-polished .plan-row summary{font-size:14px;min-height:44px}
+.home-polished .lh-contact{padding:40px 4vw 64px}
+.home-polished .contact-big{padding-block:36px;justify-content:flex-start;gap:8vw}
+.home-polished .contact-big h2{font-family:'Leon Display',sans-serif;font-size:clamp(80px,12vw,190px);font-weight:600;line-height:.94;letter-spacing:-.03em}
+.home-polished .contact-big svg{width:clamp(65px,10vw,145px);flex-shrink:0}
+.home-polished .contact-email{font-size:clamp(16px,1.8vw,26px)}
+.home-polished .lh-footer{padding:26px 4vw;background:#eeeee8;gap:24px}
+.home-polished .lh-footer nav{flex-wrap:wrap;gap:14px 22px}
+.home-polished .lh-menu{border:1px solid var(--ink);border-radius:3px;padding:9px 14px;min-height:44px;font-weight:650}
+.home-polished .lh-menu span{display:none}
+@media(max-width:1050px) and (min-width:761px){.home-polished .spatial-heading h1{font-size:12.5vw}.home-polished .spatial-bottom p{font-size:15px}.spatial-actions{gap:8px}.home-polished .spatial-cta,.home-polished .spatial-scroll{padding:14px 16px;font-size:14px}}
+@media(max-width:760px){
+ .home-polished .lh-header{height:76px;margin-inline:22px}.home-polished .lh-brand{font-size:21px}.home-polished .lh-brand img{width:32px;height:32px}
+ .home-polished .spatial-stage{height:auto;min-height:0;max-height:none;overflow:hidden;padding-top:28px}
+ .home-polished .spatial-heading{position:relative;inset:auto;margin:0 22px;z-index:1}
+ .home-polished .spatial-heading>p{font-size:13px;margin-bottom:20px;max-width:27ch;line-height:1.5}
+ .home-polished .spatial-heading h1{font-size:clamp(68px,19vw,138px);line-height:.98;letter-spacing:-.025em}
+ .home-polished .spatial-world{position:relative;inset:auto;height:clamp(300px,84vw,560px);margin-top:24px}
+ .home-polished .spatial-main{left:32%;top:5%;height:84%;width:60%;transform:rotate(3deg);border-width:5px}
+ .home-polished .spatial-left{left:5%;top:36%;height:55%;width:43%;border-width:4px;transform:rotate(-7deg)}
+ .home-polished .spatial-right{display:none}.home-polished .spatial-final{display:none}
+ .home-polished .spatial-bottom{display:block;padding:16px 22px 38px}
+ .home-polished .spatial-bottom p{font-size:15px;line-height:1.7;margin-bottom:22px}
+ .spatial-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.home-polished .spatial-cta,.home-polished .spatial-scroll{grid-column:auto;grid-row:auto;font-size:15px;min-height:52px;padding:14px 18px}
+ .home-polished .lh-work{padding:48px 22px}.home-polished .work-head{margin-bottom:26px}.home-polished .work-head h2{font-size:44px;max-width:13ch}.home-polished .work-head p{font-size:14px;max-width:30ch;margin-top:15px}
+ .home-polished .lh-projects{grid-template-columns:1fr;gap:34px}.home-polished .lh-project:nth-child(2){padding-top:0}.home-polished .lh-project-preview{height:auto;aspect-ratio:4/5;max-height:none}
+ .home-polished .project-name{font-size:52px;inset:20px 18px auto}.home-polished .project-wedding .project-name{font-size:40px}.home-polished .project-open{left:14px;bottom:14px;font-size:13px;padding:10px 14px}.home-polished .project-caption h3{font-size:17px}.home-polished .project-caption p{font-size:13px}
+ .home-polished .lh-pricing{padding:48px 22px;gap:28px}.home-polished .pricing-intro h2{font-size:46px}.home-polished .plan-row{padding:20px}.home-polished .plan-overview{grid-template-columns:1fr auto}.home-polished .plan-overview>a{grid-column:1/-1;text-align:center;font-size:14px;margin-top:10px}.home-polished .plan-overview h3{font-size:21px}.home-polished .plan-price{font-size:48px}
+ .home-polished .lh-contact{padding:30px 22px 42px}.home-polished .contact-top{font-size:13px}.home-polished .contact-top p{max-width:none}.home-polished .contact-big{gap:20px;justify-content:space-between}.home-polished .contact-big h2{font-size:clamp(62px,17vw,110px)}.home-polished .contact-big svg{width:48px}.home-polished .contact-email{font-size:16px}
+ .home-polished .plan-row:last-child{padding:20px}
+ .home-polished .lh-footer{padding:24px 22px;display:grid;grid-template-columns:1fr auto}.home-polished .lh-footer nav{grid-column:1/-1;grid-row:2;gap:10px 20px;font-size:13px}.home-polished .lh-footer nav a{padding-block:7px}
+}

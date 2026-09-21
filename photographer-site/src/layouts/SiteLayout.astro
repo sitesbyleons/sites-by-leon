@@ -1,6 +1,7 @@
 ---
 import { loadSiteTheme, siteRepository } from '../lib/content/repository';
 import NorthlineLayout from './NorthlineLayout.astro';
+import { demoDesignFor, renderDemoDocument } from '../lib/demo-design.mjs';
 
 interface Props {
   title: string;
@@ -18,9 +19,10 @@ const [portfolio, theme] = await Promise.all([
 const pageTitle = title === portfolio.studioName ? title : `${title} - ${portfolio.studioName}`;
 const canonical = new URL(canonicalPath ?? Astro.url.pathname, `${canonicalOrigin}/`);
 const socialImage = image ? new URL(image, `${canonicalOrigin}/`) : undefined;
+const demoKind = demoDesignFor(Astro.locals.siteContext.hostname, Astro.url.pathname);
 ---
 
-<NorthlineLayout
+{demoKind ? <Fragment set:html={renderDemoDocument({kind: demoKind, portfolio, pathname: Astro.url.pathname, canonicalOrigin})} /> : <NorthlineLayout
   title={pageTitle}
   description={description}
   canonical={canonical}
@@ -33,4 +35,4 @@ const socialImage = image ? new URL(image, `${canonicalOrigin}/`) : undefined;
   accentColor={theme.accentColor}
 >
   <slot />
-</NorthlineLayout>
+</NorthlineLayout>}

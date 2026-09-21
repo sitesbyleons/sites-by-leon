@@ -1,0 +1,64 @@
+---
+import StudioAdminLayout from '../../layouts/StudioAdminLayout.astro';
+import { decideStudioAdminAccess, loadStudioSession } from '../../lib/studio';
+import { createStudioDatabase } from '../../lib/database';
+import { daysFor,emptyTraffic,statisticsEnabled,type TrafficReport } from '../../lib/statistics';
+import world from '../../lib/statistics-world.json';
+import '../../styles/statistics.css';
+const isPreview=import.meta.env.DEV && Astro.url.searchParams.get('preview')==='true';
+const auth=isPreview?null:Astro.locals.auth();
+const session=await loadStudioSession({isPreview,userId:isPreview?'preview':auth?.userId??null,workspaceId:Astro.locals.siteContext.workspaceId,getToken:async()=>auth?(await auth.getToken())??null:null});
+const access=decideStudioAdminAccess(session,'/admin/statistics');
+if(access.kind!=='admin')return Astro.redirect(access.location);
+Astro.response.headers.set('Cache-Control','private, no-store');
+const data=session.data!;
+const days=daysFor(Astro.url.searchParams.get('days'));
+const enabled=statisticsEnabled(Astro.locals.siteContext);
+let report:TrafficReport=emptyTraffic(days),unavailable=false;
+if(!isPreview)try{const database=createStudioDatabase();if(!database)throw Error();report=await database.statistics.report(Astro.locals.siteContext.workspaceId,days) as TrafficReport;if(!report)throw Error();}catch{unavailable=true;}
+const count=(n:number)=>n.toLocaleString('en-US');
+const best=report.daily.reduce((a,b)=>b.visits>a.visits?b:a,report.daily[0]!);
+const max=Math.max(2,Math.ceil(Math.max(0,...report.daily.map(d=>d.visits))/2)*2);
+const points=report.daily.map((d,i)=>`${32+i*736/(days-1)},${210-d.visits/max*170}`).join(' ');
+const countryNames=new Intl.DisplayNames(['en'],{type:'region'});
+const countryName=(code:string)=>code==='ZZ'?'Unknown':countryNames.of(code)??code;
+const mostCountry=Math.max(1,...report.countries.map(c=>c.visits));
+const rows=[{title:'Top pages',subtitle:'Page views · grouped public pages',items:report.pages},{title:'Traffic sources',subtitle:'Visits · referring website category',items:report.sources},{title:'Devices',subtitle:'Visits · approximate device type',items:report.devices}];
+---
+<StudioAdminLayout title="Statistics" active="statistics" studioName={data.workspace?.name??'Studio'} isPreview={isPreview} media={data.uploads}>
+  <div class="traffic-dashboard" data-traffic-dashboard data-days={days} data-preview={isPreview} data-poll={!unavailable&&!isPreview}>
+    <header class="traffic-heading"><div><p class="traffic-eyebrow">Your audience, in perspective</p><h2>Every visit tells a story.</h2><p>Understand how people find your work. Only consenting visits appear here.</p></div>
+      <form><label for="traffic-period">Time period</label><select name="days" id="traffic-period"><option value="7" selected={days===7}>Last 7 days</option><option value="30" selected={days===30}>Last 30 days</option><option value="90" selected={days===90}>Last 90 days</option></select>{isPreview&&<input type="hidden" name="preview" value="true"/>}<button type="submit">Update</button></form>
+    </header>
+    <p class="traffic-status" role="status">{isPreview?'Local preview · no visitor data':unavailable?'Statistics unavailable. No totals are being reported.':enabled?'Opt-in collection enabled':'Collection is off · historical data only'}<span>All dates in UTC</span></p>
+    <section class="traffic-metrics" aria-label="Traffic summary">
+      <article><span>Visits</span><strong>{unavailable?'—':count(report.visits)}</strong><small>Consenting browser sessions</small></article>
+      <article><span>Page views</span><strong>{unavailable?'—':count(report.views)}</strong><small>Public pages viewed</small></article>
+      <article><span>Busiest day</span><strong>{unavailable?'—':best.visits?count(best.visits):'—'}</strong><small>{best.visits?`${best.day} · visits`:'Waiting for your first visit'}</small></article>
+      <article class="traffic-live"><span><i aria-hidden="true"></i> Active now</span><strong data-live-total>{unavailable?'—':count(report.live)}</strong><small>Active within the last 90 seconds</small></article>
+    </section>
+    <section class="traffic-panel traffic-timeline"><header><div><h3>Visits over time</h3><p>A daily view of your audience.</p></div><span>{days} days</span></header>
+      {!unavailable&&<><svg viewBox="0 0 800 250" role="img" aria-label={`Daily visits for the last ${days} days; highest daily count ${best.visits}. Full values in table below.`}>
+        {[0,0.5,1].map(v=><g><line x1="32" x2="768" y1={210-v*170} y2={210-v*170} stroke="#e5ebe5"/><text x="8" y={214-v*170}>{Math.round(v*max)}</text></g>)}
+        <polygon points={`32,210 ${points} 768,210`} fill="#e1ede4"/><polyline points={points} fill="none" stroke="#2c6550" stroke-width="3" stroke-linejoin="round"/>
+        <text x="32" y="241">{report.daily[0]?.day}</text><text x="768" y="241" text-anchor="end">{report.daily.at(-1)?.day}</text>
+      </svg>{!report.visits&&<p class="traffic-empty">No consenting visits recorded in this period.</p>}
+      <details><summary>View daily numbers</summary><div class="traffic-table-scroll"><table><thead><tr><th scope="col">Date (UTC)</th><th scope="col">Visits</th><th scope="col">Page views</th></tr></thead><tbody>{report.daily.map(d=><tr><th scope="row">{d.day}</th><td>{count(d.visits)}</td><td>{count(d.views)}</td></tr>)}</tbody></table></div></details></>}
+    </section>
+    <section class="traffic-panel"><header><div><h3>Where your audience is</h3><p>Country-level estimates. No precise locations.</p></div></header>
+      <div class="traffic-geography"><div><svg class="traffic-map" viewBox="0 0 720 330" role="img" aria-label="World map of consenting visits. Country totals are listed alongside.">{world.filter(c=>c.code!=='AQ').map(c=>{const visits=report.countries.find(row=>row.name===c.code)?.visits??0;return <path d={c.d} fill={visits?`hsl(148 28% ${68-40*visits/mostCountry}%)`:'#e7ece6'} stroke="white" stroke-width=".6"><title>{c.name}: {count(visits)} visits</title></path>;})}</svg><small class="traffic-map-caption">Darker = more visits · map: Natural Earth (public domain)</small></div>
+        <div class="traffic-country-list"><h4>Countries <span>Visits</span></h4>{report.countries.length?<ol>{report.countries.map(c=><li><span>{countryName(c.name)}</span><strong>{count(c.visits)}</strong></li>)}</ol>:<p class="traffic-empty">Country data will appear after consenting visits arrive.</p>}</div>
+      </div>
+    </section>
+    <div class="traffic-breakdowns">{rows.map(row=><section class="traffic-panel"><header><div><h3>{row.title}</h3><p>{row.subtitle}</p></div></header>{row.items.length?<ol>{row.items.map(item=><li><div><span>{item.name}</span><strong>{count(item.visits)}</strong></div><meter min="0" max={Math.max(1,...row.items.map(i=>i.visits))} value={item.visits}>{item.visits}</meter></li>)}</ol>:<p class="traffic-empty">No data for this period yet.</p>}</section>)}</div>
+    <footer class="traffic-notes"><div><h3>Useful numbers. Respectful collection.</h3><p>A visit is a consenting browser-tab session lasting up to 30 minutes, not a unique person. Refreshing a page adds a page view. Sessions reset at midnight UTC. Blockers, declined consent and privacy signals mean these totals undercount overall traffic.</p><p>Known bots and private pages are excluded. Country is approximate and may be unknown or affected by a VPN. We don’t store names, raw IP addresses, full referrers or URL queries in these statistics. Pseudonymous records are retained for up to 90 days, with daily cleanup.</p></div><div><p data-live-status>{isPreview?'Live refresh disabled in preview.':'Active-now count refreshes every 30 seconds while this page is visible. Other totals update when you reload.'}</p><a href="/statistics-privacy" target="_blank" rel="noreferrer">Read the analytics privacy notice ↗</a></div></footer>
+  </div>
+  <script>
+    const root=document.querySelector<HTMLElement>('[data-traffic-dashboard]');
+    if(root?.dataset.poll==='true'){
+      let pending=false;
+      const refresh=async()=>{if(pending||document.visibilityState!=='visible')return;pending=true;try{const response=await fetch('/api/admin/statistics?mode=live',{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error();const data=await response.json();if(!Number.isFinite(data.live))throw Error();root.querySelector('[data-live-total]')!.textContent=data.live.toLocaleString('en-US');root.querySelector('[data-live-status]')!.textContent=`Live count updated ${new Date().toLocaleTimeString()}. Other totals update on reload.`;}catch{root.querySelector('[data-live-status]')!.textContent='Live refresh unavailable. The last displayed count may be out of date.';}finally{pending=false;}};
+      const timer=setInterval(refresh,30000);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
+    }
+  </script>
+</StudioAdminLayout>

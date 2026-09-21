@@ -1,0 +1,5 @@
+FROM leon-design-prod:cms-20260920
+COPY --chown=node:node demo-design.mjs /workspace/photographer-site/dist/server/chunks/demo-design-v1.mjs
+COPY --chown=node:node demo-assets/ /workspace/photographer-site/dist/client/demo-assets/
+COPY --chown=node:node patch-runtime.mjs /tmp/demo-design-patch.mjs
+RUN node /tmp/demo-design-patch.mjs

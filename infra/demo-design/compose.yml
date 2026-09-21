@@ -1,0 +1,5 @@
+services:
+  photographer:
+    image: leon-design-prod:demos-20260920
+  gateway:
+    image: leon-design-prod:demo-links-20260920

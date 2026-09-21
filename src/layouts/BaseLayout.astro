@@ -9,12 +9,16 @@ interface Props {
   title?: string;
   description?: string;
   canonicalUrl?: string | URL;
+  themeColor?: string;
+  colorScheme?: 'light' | 'dark';
 }
 
 const {
   title = 'Sites By Leon',
   description = 'Websites and hosting for photographers, with monthly plans from $25 to $35.',
   canonicalUrl,
+  themeColor = '#090a0c',
+  colorScheme = 'dark',
 } = Astro.props;
 
 const canonical = canonicalUrl
@@ -28,8 +32,8 @@ const canonical = canonicalUrl
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#090a0c" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content={themeColor} />
+    <meta name="color-scheme" content={colorScheme} />
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />

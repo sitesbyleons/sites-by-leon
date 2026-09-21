@@ -1,0 +1,10 @@
+@font-face{font-family:'Leon Display';font-style:normal;font-weight:100 900;font-display:swap;src:url('/admin-assets/anybody-latin-wght-v1.woff2') format('woff2')}
+.studio-auth-page{margin:0;min-height:100dvh;display:grid;place-items:center;padding:35px 20px;box-sizing:border-box;background:#f94f32;color:#171715;font-family:system-ui,sans-serif}
+.studio-auth-page>main{width:min(100%,450px);padding:30px;box-sizing:border-box;background:#fff;border:1px solid #171715;box-shadow:10px 10px 0 #171715}
+.studio-auth-page .cl-rootBox,.studio-auth-page .cl-cardBox,.studio-auth-page .cl-card{max-width:100%;width:100%;box-sizing:border-box;box-shadow:none;border-radius:0}
+.studio-auth-page .cl-card{padding:0;border:0}.studio-auth-page .cl-headerTitle{font-family:'Leon Display',sans-serif;font-size:32px;font-weight:750;letter-spacing:-.045em}
+.studio-auth-page .cl-formFieldInput,.studio-auth-page .cl-socialButtonsBlockButton{min-height:44px;font-size:15px;border-radius:2px}
+.studio-auth-page .cl-formButtonPrimary{min-height:44px;background:#171715;border-radius:2px;box-shadow:none}
+.studio-auth-page .cl-footerActionLink{color:#a33220}.studio-auth-page :focus-visible{outline:3px solid #aa331f;outline-offset:3px}
+@media(max-width:480px){.studio-auth-page>main{padding:22px;box-shadow:7px 7px 0 #171715}}
+

@@ -3,6 +3,7 @@ interface Props { name: string; }
 const { name } = Astro.props;
 ---
 <svg class="studio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  {name === 'statistics' && <><path d="M3 3v18h18M7 16v-5M12 16V6M17 16v-8" /></>}
   {name === 'overview' && <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>}
   {name === 'content' && <><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10.5V21h13V10.5" /><path d="M9.5 21v-6h5v6" /></>}
   {name === 'media' && <><rect x="3" y="5" width="18" height="15" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6" /><circle cx="16.5" cy="9" r="1.5" /></>}

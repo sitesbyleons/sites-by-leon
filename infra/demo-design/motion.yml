@@ -1,0 +1,3 @@
+services:
+  photographer:
+    image: leon-design-prod:demos-motion-20260920

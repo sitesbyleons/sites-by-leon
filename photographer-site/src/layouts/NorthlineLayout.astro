@@ -2,6 +2,7 @@
 import SiteFooter from '../components/SiteFooter.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import '../styles/site.css';
+import TrafficConsent from '../components/TrafficConsent.astro';
 
 interface Props {
   title: string;
@@ -60,6 +61,7 @@ const {
       <slot />
     </main>
     <SiteFooter studioName={studioName} email={email} />
+    <TrafficConsent />
     <script>
       import '../scripts/motion';
     </script>

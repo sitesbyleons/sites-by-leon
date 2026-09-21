@@ -1,0 +1,22 @@
+---
+interface Props { active?: string; }
+const { active = '' } = Astro.props;
+const links = [{href:'/work',label:'Work'},{href:'/pricing',label:'Pricing'},{href:'/sign-in',label:'Client login'},{href:'/contact',label:'Get a site'}];
+---
+<header class="lh-header">
+  <a class="lh-brand" href="/" aria-label="Sites by Leon, home"><img src="/sites-by-leon-mark.png" alt="" width="48" height="48" /><span>sites by leon</span></a>
+  <nav class="lh-nav" aria-label="Primary navigation">{links.map(link => <a href={link.href} aria-current={active === link.href ? 'page' : undefined}>{link.label}</a>)}</nav>
+  <button class="lh-menu" aria-expanded="false" aria-controls="lh-mobile-nav">Menu <span aria-hidden="true">+</span></button>
+  <nav class="lh-mobile-nav" id="lh-mobile-nav" aria-label="Mobile navigation" hidden>{links.map(link => <a href={link.href} aria-current={active === link.href ? 'page' : undefined}>{link.label === 'Get a site' ? 'Contact' : link.label}</a>)}</nav>
+</header>
+<script>
+  const toggle = document.querySelector<HTMLButtonElement>('.lh-menu');
+  const menu = document.querySelector<HTMLElement>('#lh-mobile-nav');
+  const closeMenu = () => { if (menu && toggle) { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); } };
+  toggle?.addEventListener('click', () => { if (menu) { menu.hidden = !menu.hidden; toggle.setAttribute('aria-expanded', String(!menu.hidden)); } });
+  menu?.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+  window.addEventListener('keydown', event => { if (event.key === 'Escape' && menu && !menu.hidden) { closeMenu(); toggle?.focus(); } });
+  document.addEventListener('click', event => { if (event.target instanceof Node && !menu?.contains(event.target) && !toggle?.contains(event.target)) closeMenu(); });
+  window.matchMedia('(min-width: 761px)').addEventListener('change', closeMenu);
+  window.addEventListener('pageshow', closeMenu);
+</script>
