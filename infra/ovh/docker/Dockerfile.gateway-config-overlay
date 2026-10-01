@@ -1,0 +1,5 @@
+ARG BASE_GATEWAY_IMAGE
+FROM ${BASE_GATEWAY_IMAGE}
+
+# Preserve the released marketing assets and replace only gateway routing.
+COPY infra/ovh/Caddyfile /etc/caddy/Caddyfile

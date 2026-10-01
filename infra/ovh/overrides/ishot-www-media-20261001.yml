@@ -1,0 +1,3 @@
+services:
+  gateway:
+    image: leon-design-prod:ishot-www-media-20261001
